@@ -39,7 +39,8 @@
 
   .grid{display:flex;flex-direction:column;gap:.85rem}
   .card{
-    display:flex;align-items:center;gap:1rem;padding:1.15rem 1.4rem;
+    display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;
+    padding:1.25rem 1.4rem;
     background:#fff;border:1px solid var(--border);border-radius:16px;
     text-decoration:none;color:inherit;
     transition:border-color .2s, box-shadow .2s, transform .2s;
@@ -48,25 +49,19 @@
     border-color:var(--aqua);box-shadow:0 12px 28px rgba(0,48,96,.09);
     transform:translateY(-2px);
   }
-  .icon{
-    flex:0 0 auto;width:42px;height:42px;border-radius:11px;
-    display:flex;align-items:center;justify-content:center;font-size:1.25rem;
-    background:linear-gradient(135deg, rgba(0,117,198,.12), rgba(8,153,168,.12));
-  }
-  .icon.coral{background:linear-gradient(135deg, rgba(123,63,242,.13), rgba(0,117,198,.10))}
   .body{flex:1 1 auto;min-width:0}
   .name{
     font-weight:700;font-size:1rem;color:var(--white);
-    display:flex;align-items:center;gap:.55rem;flex-wrap:wrap;
+    display:flex;align-items:center;gap:.55rem;flex-wrap:wrap;margin-bottom:.4rem;
   }
-  .desc{color:var(--muted);font-size:.82rem;margin-top:.2rem}
+  .desc{color:var(--muted);font-size:.85rem;line-height:1.55}
   .tag{
     font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
     padding:.15rem .5rem;border-radius:100px;flex:0 0 auto;
   }
   .tag.local{background:rgba(8,153,168,.13);color:var(--cyan)}
   .tag.artifact{background:rgba(74,98,133,.12);color:var(--muted)}
-  .arrow{flex:0 0 auto;color:var(--muted);font-size:1.1rem;opacity:0;transition:opacity .2s, transform .2s}
+  .arrow{flex:0 0 auto;color:var(--muted);font-size:1.1rem;opacity:0;transition:opacity .2s, transform .2s;margin-top:.15rem}
   .card:hover .arrow{opacity:1;transform:translateX(3px)}
 
   footer{margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--border);color:var(--muted);font-size:.75rem}
@@ -80,70 +75,63 @@
 
   <div class="grid">
     <a class="card" href="journal-match.html">
-      <div class="icon">🎯</div>
       <div class="body">
         <div class="name">Journal Match <span class="tag local">Local</span></div>
-        <div class="desc">Buscador de revistas por título o palabras clave · dataset Scimago Journal Rank.</div>
+        <div class="desc">Buscador de revistas científicas por título o palabras clave del manuscrito, con filtros de área, editorial, cuartil SJR y SJR mínimo — dataset Scimago Journal Rank (~30 mil revistas).</div>
       </div>
       <div class="arrow">→</div>
     </a>
 
     <a class="card" href="https://claude.ai/artifact/B2BjurANJtJkw3NbL1Ydot" target="_blank" rel="noopener">
-      <div class="icon coral">🗂️</div>
       <div class="body">
         <div class="name">Cuaderno ENDES <span class="tag artifact">Artifact</span></div>
-        <div class="desc">Abre en claude.ai · requiere sesión iniciada.</div>
+        <div class="desc">Cuaderno de trabajo del pipeline ENDES: sugiere revistas candidatas cruzando el corpus de estudios previos con Scimago, redacta las declaraciones de disponibilidad de datos/código para el envío a revista, y asigna temas ENDES sin duplicados entre los alumnos de una cohorte.</div>
       </div>
       <div class="arrow">↗</div>
     </a>
 
     <a class="card" href="https://claude.ai/artifact/JeSswuB9ekxirCpqWA3dio" target="_blank" rel="noopener">
-      <div class="icon">📊</div>
       <div class="body">
         <div class="name">Explorador ENDES <span class="tag artifact">Artifact</span></div>
-        <div class="desc">Abre en claude.ai · requiere sesión iniciada.</div>
+        <div class="desc">Prevalencia nacional ponderada por año para un conjunto de ejes temáticos de la ENDES, calculada con diseño muestral complejo real (svy) sobre los microdatos del INEI.</div>
       </div>
       <div class="arrow">↗</div>
     </a>
 
     <a class="card" href="https://claude.ai/artifact/KQBBH3EoDnu662siXaXbgv" target="_blank" rel="noopener">
-      <div class="icon coral">🐬</div>
       <div class="body">
         <div class="name">Cotizador DolphinStats <span class="tag artifact">Artifact</span></div>
-        <div class="desc">Abre en claude.ai · requiere sesión iniciada.</div>
+        <div class="desc">Calculadora de proformas para servicios de consultoría (asesoría de tesis, informes, proyectos): ajusta el precio por complejidad metodológica, carga analítica, perfil del investigador y plazo, y genera el documento imprimible.</div>
       </div>
       <div class="arrow">↗</div>
     </a>
 
     <a class="card" href="https://claude.ai/artifact/3vNtadT6qs6d4b339CnE6u" target="_blank" rel="noopener">
-      <div class="icon">🗂️</div>
       <div class="body">
         <div class="name">Candidatos ENDES 2026-09 <span class="tag artifact">Artifact</span></div>
-        <div class="desc">Abre en claude.ai · requiere sesión iniciada.</div>
+        <div class="desc">Reporte de estudios ENDES no explotados detectados en la corrida de setiembre 2026 del buscador de huecos (gap finder), rankeados y fusionados al corpus.</div>
       </div>
       <div class="arrow">↗</div>
     </a>
 
     <a class="card" href="https://claude.ai/artifact/CpoemQjVE5cKwaKyZs21qy" target="_blank" rel="noopener">
-      <div class="icon coral">📚</div>
       <div class="body">
         <div class="name">Corpus ENDES Multiespecialidad <span class="tag artifact">Artifact</span></div>
-        <div class="desc">Abre en claude.ai · requiere sesión iniciada.</div>
+        <div class="desc">Base de estudios ENDES ya publicados, organizada por especialidad (medicina, odontología, obstetricia, psicología, geriatría, nutrición, oftalmología), usada como fuente para detectar huecos de investigación y sugerir revistas.</div>
       </div>
       <div class="arrow">↗</div>
     </a>
 
     <a class="card" href="https://claude.ai/artifact/HCLYLs7D8XtZ48V2HvmTqT" target="_blank" rel="noopener">
-      <div class="icon">🦷</div>
       <div class="body">
         <div class="name">Marco en tiempo real <span class="tag artifact">Artifact</span></div>
-        <div class="desc">Abre en claude.ai · requiere sesión iniciada.</div>
+        <div class="desc">Diagnóstico y plan de migración del dashboard EPE: por qué el reporte actual corre sobre datos congelados y desactualizados, y cómo reconstruirlo conectado en vivo a las hojas Marco / MarcoSOP en Looker Studio.</div>
       </div>
       <div class="arrow">↗</div>
     </a>
   </div>
 
-  <footer>DolphinStats Eco · protegido con autenticación básica · no listado en buscadores.</footer>
+  <footer>DolphinStats Ecosistema · protegido con autenticación básica · no listado en buscadores.</footer>
 </div>
 </body>
 </html>
