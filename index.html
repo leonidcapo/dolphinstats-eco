@@ -5,54 +5,145 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DolphinStats Eco — Herramientas internas</title>
 <meta name="robots" content="noindex, nofollow">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
-  :root{ --ocean:#ffffff; --aqua:#0075c6; --white:#003060; --muted:#4a6285; --border:rgba(0,48,96,.10); }
-  *{box-sizing:border-box} html,body{margin:0;padding:0}
-  body{font-family:-apple-system,'Segoe UI',sans-serif;color:var(--white);background:var(--ocean);line-height:1.5}
-  .wrap{max-width:720px;margin:0 auto;padding:3rem 1.25rem}
-  h1{font-size:1.6rem;margin:0 0 .5rem}
-  p.lead{color:var(--muted);margin:0 0 2rem}
-  ul{list-style:none;padding:0;display:flex;flex-direction:column;gap:.75rem}
-  li a{display:block;padding:1rem 1.25rem;border:1px solid var(--border);border-radius:10px;text-decoration:none;color:var(--white);font-weight:600;position:relative}
-  li a:hover{border-color:var(--aqua);color:var(--aqua)}
-  li span.desc{display:block;font-weight:400;font-size:.85rem;color:var(--muted);margin-top:.2rem}
-  li span.tag{position:absolute;top:1rem;right:1.25rem;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);background:var(--border);padding:.15rem .5rem;border-radius:100px}
+  :root{
+    --ocean:#ffffff; --aqua:#0075c6; --cyan:#0899a8; --white:#003060;
+    --muted:#4a6285; --coral:#7b3ff2; --border:rgba(0,48,96,.10);
+    --surface:#f5f7fb;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:'DM Sans',sans-serif;color:var(--white);background:var(--ocean);
+    line-height:1.5;min-height:100vh;
+  }
+  body::before{
+    content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+    background:
+      radial-gradient(ellipse 70% 45% at 15% 0%, rgba(0,117,198,.07) 0%, transparent 60%),
+      radial-gradient(ellipse 55% 65% at 85% 90%, rgba(123,63,242,.05) 0%, transparent 60%);
+  }
+  .wrap{position:relative;z-index:1;max-width:760px;margin:0 auto;padding:3.5rem 1.5rem 5rem}
+  .kicker{
+    display:inline-flex;align-items:center;gap:.6rem;color:var(--aqua);font-size:.72rem;
+    font-weight:700;letter-spacing:.16em;text-transform:uppercase;margin-bottom:1.1rem;
+  }
+  .kicker::before{content:'';width:22px;height:1px;background:var(--aqua)}
+  h1{
+    font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(1.9rem,4vw,2.5rem);
+    letter-spacing:-.02em;margin:0 0 .5rem;color:var(--white);
+  }
+  h1 span{color:var(--aqua)}
+  p.lead{color:var(--muted);margin:0 0 2.5rem;max-width:480px;font-size:.95rem}
+
+  .grid{display:flex;flex-direction:column;gap:.85rem}
+  .card{
+    display:flex;align-items:center;gap:1rem;padding:1.15rem 1.4rem;
+    background:#fff;border:1px solid var(--border);border-radius:16px;
+    text-decoration:none;color:inherit;
+    transition:border-color .2s, box-shadow .2s, transform .2s;
+  }
+  .card:hover{
+    border-color:var(--aqua);box-shadow:0 12px 28px rgba(0,48,96,.09);
+    transform:translateY(-2px);
+  }
+  .icon{
+    flex:0 0 auto;width:42px;height:42px;border-radius:11px;
+    display:flex;align-items:center;justify-content:center;font-size:1.25rem;
+    background:linear-gradient(135deg, rgba(0,117,198,.12), rgba(8,153,168,.12));
+  }
+  .icon.coral{background:linear-gradient(135deg, rgba(123,63,242,.13), rgba(0,117,198,.10))}
+  .body{flex:1 1 auto;min-width:0}
+  .name{
+    font-weight:700;font-size:1rem;color:var(--white);
+    display:flex;align-items:center;gap:.55rem;flex-wrap:wrap;
+  }
+  .desc{color:var(--muted);font-size:.82rem;margin-top:.2rem}
+  .tag{
+    font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
+    padding:.15rem .5rem;border-radius:100px;flex:0 0 auto;
+  }
+  .tag.local{background:rgba(8,153,168,.13);color:var(--cyan)}
+  .tag.artifact{background:rgba(74,98,133,.12);color:var(--muted)}
+  .arrow{flex:0 0 auto;color:var(--muted);font-size:1.1rem;opacity:0;transition:opacity .2s, transform .2s}
+  .card:hover .arrow{opacity:1;transform:translateX(3px)}
+
+  footer{margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--border);color:var(--muted);font-size:.75rem}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>DolphinStats Eco</h1>
-  <p class="lead">Herramientas internas, aún sin anexar al sitio público.</p>
-  <ul>
-    <li><a href="journal-match.html">Journal Match
-      <span class="tag">local</span>
-      <span class="desc">Buscador de revistas por título/palabras clave, dataset Scimago.</span>
-    </a></li>
-    <li><a href="https://claude.ai/artifact/B2BjurANJtJkw3NbL1Ydot" target="_blank" rel="noopener">Cuaderno ENDES
-      <span class="tag">artifact</span>
-      <span class="desc">Abre en claude.ai (requiere sesión iniciada).</span>
-    </a></li>
-    <li><a href="https://claude.ai/artifact/JeSswuB9ekxirCpqWA3dio" target="_blank" rel="noopener">Explorador ENDES
-      <span class="tag">artifact</span>
-      <span class="desc">Abre en claude.ai (requiere sesión iniciada).</span>
-    </a></li>
-    <li><a href="https://claude.ai/artifact/KQBBH3EoDnu662siXaXbgv" target="_blank" rel="noopener">Cotizador DolphinStats
-      <span class="tag">artifact</span>
-      <span class="desc">Abre en claude.ai (requiere sesión iniciada).</span>
-    </a></li>
-    <li><a href="https://claude.ai/artifact/3vNtadT6qs6d4b339CnE6u" target="_blank" rel="noopener">Candidatos ENDES 2026-09
-      <span class="tag">artifact</span>
-      <span class="desc">Abre en claude.ai (requiere sesión iniciada).</span>
-    </a></li>
-    <li><a href="https://claude.ai/artifact/CpoemQjVE5cKwaKyZs21qy" target="_blank" rel="noopener">Corpus ENDES Multiespecialidad
-      <span class="tag">artifact</span>
-      <span class="desc">Abre en claude.ai (requiere sesión iniciada).</span>
-    </a></li>
-    <li><a href="https://claude.ai/artifact/HCLYLs7D8XtZ48V2HvmTqT" target="_blank" rel="noopener">Marco en tiempo real
-      <span class="tag">artifact</span>
-      <span class="desc">Abre en claude.ai (requiere sesión iniciada).</span>
-    </a></li>
-  </ul>
+  <span class="kicker">Uso interno · no indexado</span>
+  <h1>Dolphin<span>Stats</span> Eco</h1>
+  <p class="lead">Panel de herramientas internas del ecosistema DolphinStats, todavía sin anexar al sitio público.</p>
+
+  <div class="grid">
+    <a class="card" href="journal-match.html">
+      <div class="icon">🎯</div>
+      <div class="body">
+        <div class="name">Journal Match <span class="tag local">Local</span></div>
+        <div class="desc">Buscador de revistas por título o palabras clave · dataset Scimago Journal Rank.</div>
+      </div>
+      <div class="arrow">→</div>
+    </a>
+
+    <a class="card" href="https://claude.ai/artifact/B2BjurANJtJkw3NbL1Ydot" target="_blank" rel="noopener">
+      <div class="icon coral">🗂️</div>
+      <div class="body">
+        <div class="name">Cuaderno ENDES <span class="tag artifact">Artifact</span></div>
+        <div class="desc">Abre en claude.ai · requiere sesión iniciada.</div>
+      </div>
+      <div class="arrow">↗</div>
+    </a>
+
+    <a class="card" href="https://claude.ai/artifact/JeSswuB9ekxirCpqWA3dio" target="_blank" rel="noopener">
+      <div class="icon">📊</div>
+      <div class="body">
+        <div class="name">Explorador ENDES <span class="tag artifact">Artifact</span></div>
+        <div class="desc">Abre en claude.ai · requiere sesión iniciada.</div>
+      </div>
+      <div class="arrow">↗</div>
+    </a>
+
+    <a class="card" href="https://claude.ai/artifact/KQBBH3EoDnu662siXaXbgv" target="_blank" rel="noopener">
+      <div class="icon coral">🐬</div>
+      <div class="body">
+        <div class="name">Cotizador DolphinStats <span class="tag artifact">Artifact</span></div>
+        <div class="desc">Abre en claude.ai · requiere sesión iniciada.</div>
+      </div>
+      <div class="arrow">↗</div>
+    </a>
+
+    <a class="card" href="https://claude.ai/artifact/3vNtadT6qs6d4b339CnE6u" target="_blank" rel="noopener">
+      <div class="icon">🗂️</div>
+      <div class="body">
+        <div class="name">Candidatos ENDES 2026-09 <span class="tag artifact">Artifact</span></div>
+        <div class="desc">Abre en claude.ai · requiere sesión iniciada.</div>
+      </div>
+      <div class="arrow">↗</div>
+    </a>
+
+    <a class="card" href="https://claude.ai/artifact/CpoemQjVE5cKwaKyZs21qy" target="_blank" rel="noopener">
+      <div class="icon coral">📚</div>
+      <div class="body">
+        <div class="name">Corpus ENDES Multiespecialidad <span class="tag artifact">Artifact</span></div>
+        <div class="desc">Abre en claude.ai · requiere sesión iniciada.</div>
+      </div>
+      <div class="arrow">↗</div>
+    </a>
+
+    <a class="card" href="https://claude.ai/artifact/HCLYLs7D8XtZ48V2HvmTqT" target="_blank" rel="noopener">
+      <div class="icon">🦷</div>
+      <div class="body">
+        <div class="name">Marco en tiempo real <span class="tag artifact">Artifact</span></div>
+        <div class="desc">Abre en claude.ai · requiere sesión iniciada.</div>
+      </div>
+      <div class="arrow">↗</div>
+    </a>
+  </div>
+
+  <footer>DolphinStats Eco · protegido con autenticación básica · no listado en buscadores.</footer>
 </div>
 </body>
 </html>
