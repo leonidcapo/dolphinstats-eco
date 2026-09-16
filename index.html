@@ -61,6 +61,7 @@
   }
   .tag.local{background:rgba(8,153,168,.13);color:var(--cyan)}
   .tag.artifact{background:rgba(74,98,133,.12);color:var(--muted)}
+  .tag.external{background:rgba(123,63,242,.12);color:var(--coral)}
   .arrow{flex:0 0 auto;color:var(--muted);font-size:1.1rem;opacity:0;transition:opacity .2s, transform .2s;margin-top:.15rem}
   .card:hover .arrow{opacity:1;transform:translateX(3px)}
 
@@ -80,6 +81,22 @@
         <div class="desc">Buscador de revistas científicas por título o palabras clave del manuscrito, con filtros de área, editorial, cuartil SJR y SJR mínimo — dataset Scimago Journal Rank (~30 mil revistas).</div>
       </div>
       <div class="arrow">→</div>
+    </a>
+
+    <a class="card" href="https://nucleo-j51e.onrender.com/" target="_blank" rel="noopener">
+      <div class="body">
+        <div class="name">Núcleo <span class="tag external">Streamlit</span></div>
+        <div class="desc">Frontend del pipeline ENDES completo (propose → design → analyze → report): genera investigaciones a partir de los microdatos, con su propio login. Corre en Render, puede tardar en despertar tras inactividad.</div>
+      </div>
+      <div class="arrow">↗</div>
+    </a>
+
+    <a class="card" href="https://paeu-estadistico.streamlit.app/" target="_blank" rel="noopener">
+      <div class="body">
+        <div class="name">PAEU <span class="tag external">Streamlit</span></div>
+        <div class="desc">Plan de Análisis Estadístico Universal: sistema experto que guía paso a paso la construcción del plan de análisis, sugiere pruebas estadísticas según el diseño y las variables, detecta inconsistencias metodológicas y redacta el texto listo para tesis o artículos.</div>
+      </div>
+      <div class="arrow">↗</div>
     </a>
 
     <a class="card" href="https://claude.ai/artifact/B2BjurANJtJkw3NbL1Ydot" target="_blank" rel="noopener">
