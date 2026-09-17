@@ -46,7 +46,7 @@
 </nav>
 <div class="wrap">
   <h1>Calculadora de Muestra</h1>
-  <p class="lead">Tamaño de muestra para los 3 diseños más frecuentes en tesis de ciencias de la salud: proporción única, comparación de dos proporciones y comparación de dos medias. Incluye el párrafo de métodos listo para copiar.</p>
+  <p class="lead">Tamaño de muestra para los 3 diseños más frecuentes en tesis de ciencias de la salud: proporción única (con corrección por población finita opcional), comparación de dos proporciones y comparación de dos medias. Fórmulas validadas contra Epidat 4.2. Incluye el párrafo de métodos listo para copiar.</p>
 
   <div class="panel">
     <label for="cm-diseno">Diseño</label>
@@ -64,6 +64,10 @@
       <div>
         <label for="cm-d">Precisión absoluta deseada (0–1)</label>
         <input type="number" id="cm-d" step="0.01" min="0.01" max="0.99" value="0.05">
+      </div>
+      <div>
+        <label for="cm-n-poblacion">Tamaño de la población N (opcional)</label>
+        <input type="number" id="cm-n-poblacion" step="1" min="1" placeholder="Dejar en blanco si es infinita/desconocida">
       </div>
     </div>
 
