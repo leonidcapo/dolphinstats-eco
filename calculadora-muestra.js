@@ -261,9 +261,19 @@
         r = coeficienteCorrelacion(corrR, confianza, potencia, corrBilateral);
       }
 
-      $('cm-n-label').textContent = r.n_por_grupo != null ? 'Tamaño de muestra total' : 'Tamaño de muestra';
       $('cm-n').textContent = r.n_total;
-      $('cm-n-por-grupo').textContent = r.n_por_grupo != null ? (r.n_por_grupo + ' por grupo') : '';
+      if (diseno === 'casos_controles') {
+        // Casos y controles no son del mismo tamaño -- "X por grupo" sería
+        // engañoso (ej. 70 casos y 210 controles, no "70 por grupo").
+        $('cm-n-label').textContent = 'Tamaño de muestra total';
+        $('cm-n-por-grupo').textContent = r.n_por_grupo + ' casos, ' + (r.n_total - r.n_por_grupo) + ' controles';
+      } else if (diseno === 'cohorte') {
+        $('cm-n-label').textContent = 'Tamaño de muestra total';
+        $('cm-n-por-grupo').textContent = r.n_por_grupo + ' expuestos, ' + (r.n_total - r.n_por_grupo) + ' no expuestos';
+      } else {
+        $('cm-n-label').textContent = r.n_por_grupo != null ? 'Tamaño de muestra total' : 'Tamaño de muestra';
+        $('cm-n-por-grupo').textContent = r.n_por_grupo != null ? (r.n_por_grupo + ' por grupo') : '';
+      }
       $('cm-formula').textContent = r.formula;
       $('cm-parrafo').textContent = r.parrafo_metodos;
       resultadoEl.classList.add('show');
