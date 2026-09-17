@@ -37,6 +37,9 @@
   .resultado .formula{font-family:monospace;color:var(--muted);font-size:.85rem;margin-top:.5rem}
   .resultado .parrafo{margin-top:1rem;padding-top:1rem;border-top:1px dashed var(--border);font-size:.88rem;color:var(--white);line-height:1.6}
   .campo-oculto{display:none}
+  .check-field{display:flex;flex-direction:column;justify-content:flex-end}
+  .check-inline{display:flex;align-items:center;gap:.45rem;font-size:.88rem;font-weight:500;text-transform:none;letter-spacing:normal;color:var(--white);padding:.6rem 0}
+  .check-inline input[type=checkbox]{width:auto;accent-color:var(--aqua)}
 </style>
 </head>
 <body>
@@ -46,7 +49,7 @@
 </nav>
 <div class="wrap">
   <h1>Calculadora de Muestra</h1>
-  <p class="lead">Tamaño de muestra para los 3 diseños más frecuentes en tesis de ciencias de la salud: proporción única (con corrección por población finita opcional), comparación de dos proporciones y comparación de dos medias. Fórmulas validadas contra Epidat 4.2. Incluye el párrafo de métodos listo para copiar.</p>
+  <p class="lead">Tamaño de muestra para los 6 diseños más frecuentes en tesis de ciencias de la salud: proporción única (con corrección por población finita opcional), comparación de dos proporciones, comparación de dos medias, casos y controles, cohorte y coeficiente de correlación. Fórmulas validadas contra Epidat 4.2. Incluye el párrafo de métodos listo para copiar.</p>
 
   <div class="panel">
     <label for="cm-diseno">Diseño</label>
@@ -54,6 +57,9 @@
       <option value="proporcion_unica">Proporción única (prevalencia)</option>
       <option value="dos_proporciones">Comparación de dos proporciones</option>
       <option value="dos_medias">Comparación de dos medias</option>
+      <option value="casos_controles">Casos y controles (odds ratio)</option>
+      <option value="cohorte">Cohorte (riesgo relativo)</option>
+      <option value="correlacion">Coeficiente de correlación</option>
     </select>
 
     <div class="row" id="cm-campos-proporcion_unica">
@@ -90,6 +96,55 @@
       <div>
         <label for="cm-sd">Desviación estándar esperada</label>
         <input type="number" id="cm-sd" step="0.1" min="0.01" value="10">
+      </div>
+    </div>
+
+    <div class="row campo-oculto" id="cm-campos-casos_controles">
+      <div>
+        <label for="cm-cc-p2">Expuestos en controles (0–1)</label>
+        <input type="number" id="cm-cc-p2" step="0.01" min="0.01" max="0.99" value="0.30">
+      </div>
+      <div>
+        <label for="cm-cc-or">Odds ratio esperada</label>
+        <input type="number" id="cm-cc-or" step="0.1" min="0.01" value="2.5">
+      </div>
+      <div>
+        <label for="cm-cc-controles">Controles por caso (1–10)</label>
+        <input type="number" id="cm-cc-controles" step="1" min="1" max="10" value="1">
+      </div>
+      <div class="check-field">
+        <label for="cm-cc-yates">&nbsp;</label>
+        <label class="check-inline"><input type="checkbox" id="cm-cc-yates" checked> Corrección de Yates</label>
+      </div>
+    </div>
+
+    <div class="row campo-oculto" id="cm-campos-cohorte">
+      <div>
+        <label for="cm-co-p-exp">Riesgo en expuestos (0–1)</label>
+        <input type="number" id="cm-co-p-exp" step="0.01" min="0.01" max="0.99" value="0.30">
+      </div>
+      <div>
+        <label for="cm-co-p-noexp">Riesgo en no expuestos (0–1)</label>
+        <input type="number" id="cm-co-p-noexp" step="0.01" min="0.01" max="0.99" value="0.15">
+      </div>
+      <div>
+        <label for="cm-co-razon">Razón no expuestos/expuestos</label>
+        <input type="number" id="cm-co-razon" step="0.1" min="0.01" value="1">
+      </div>
+      <div class="check-field">
+        <label for="cm-co-yates">&nbsp;</label>
+        <label class="check-inline"><input type="checkbox" id="cm-co-yates"> Corrección de Yates</label>
+      </div>
+    </div>
+
+    <div class="row campo-oculto" id="cm-campos-correlacion">
+      <div>
+        <label for="cm-corr-r">Coeficiente de correlación esperado (-1 a 1)</label>
+        <input type="number" id="cm-corr-r" step="0.05" min="-0.99" max="0.99" value="0.30">
+      </div>
+      <div class="check-field">
+        <label for="cm-corr-bilateral">&nbsp;</label>
+        <label class="check-inline"><input type="checkbox" id="cm-corr-bilateral" checked> Contraste bilateral</label>
       </div>
     </div>
 
