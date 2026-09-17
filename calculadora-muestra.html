@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculadora de Muestra — DolphinStats</title>
+<meta name="robots" content="noindex, nofollow">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ocean:#ffffff; --aqua:#0075c6; --white:#003060; --muted:#4a6285;
+    --accent:#ff3131; --surface:#f5f7fb; --border:rgba(0,48,96,.10);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{font-family:'DM Sans',sans-serif;color:var(--white);background:var(--ocean);line-height:1.5}
+  .wrap{max-width:720px;margin:0 auto;padding:2rem 1.25rem 4rem}
+  nav{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;border-bottom:1px solid var(--border)}
+  .logo{font-family:Arial,sans-serif;font-weight:800;font-size:1.2rem;color:var(--aqua);text-decoration:none}
+  .logo span{color:#0899a8}
+  nav a.back{color:var(--muted);text-decoration:none;font-size:.85rem}
+  h1{font-family:'Syne',sans-serif;font-size:1.9rem;margin:0 0 .4rem}
+  p.lead{color:var(--muted);margin:0 0 1.75rem;max-width:640px}
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.5rem}
+  label{display:block;font-size:.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.35rem}
+  select,input[type=number]{width:100%;padding:.6rem .7rem;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:.9rem;background:#fff;color:var(--white)}
+  .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-top:1rem}
+  .actions{display:flex;gap:.75rem;margin-top:1.25rem;flex-wrap:wrap}
+  button{cursor:pointer;border:none;border-radius:100px;padding:.65rem 1.4rem;font-weight:700;font-size:.9rem;font-family:inherit}
+  #cm-calcular{background:var(--aqua);color:#fff}
+  #cm-copiar{background:#fff;color:var(--aqua);border:1px solid var(--aqua)}
+  #cm-status{margin-top:1rem;font-size:.85rem;color:var(--accent)}
+  .resultado{margin-top:1.5rem;background:#fff;border:1px solid var(--border);border-radius:14px;padding:1.5rem;display:none}
+  .resultado.show{display:block}
+  .resultado .n{font-family:'Syne',sans-serif;font-weight:800;font-size:2.2rem;color:var(--aqua)}
+  .resultado .n-label{color:var(--muted);font-size:.82rem;margin-bottom:.25rem}
+  .resultado .formula{font-family:monospace;color:var(--muted);font-size:.85rem;margin-top:.5rem}
+  .resultado .parrafo{margin-top:1rem;padding-top:1rem;border-top:1px dashed var(--border);font-size:.88rem;color:var(--white);line-height:1.6}
+  .campo-oculto{display:none}
+</style>
+</head>
+<body>
+<nav>
+  <a class="logo" href="/">Dolphin<span>Stats</span></a>
+  <a class="back" href="/">&larr; Volver al inicio</a>
+</nav>
+<div class="wrap">
+  <h1>Calculadora de Muestra</h1>
+  <p class="lead">Tamaño de muestra para los 3 diseños más frecuentes en tesis de ciencias de la salud: proporción única, comparación de dos proporciones y comparación de dos medias. Incluye el párrafo de métodos listo para copiar.</p>
+
+  <div class="panel">
+    <label for="cm-diseno">Diseño</label>
+    <select id="cm-diseno">
+      <option value="proporcion_unica">Proporción única (prevalencia)</option>
+      <option value="dos_proporciones">Comparación de dos proporciones</option>
+      <option value="dos_medias">Comparación de dos medias</option>
+    </select>
+
+    <div class="row" id="cm-campos-proporcion_unica">
+      <div>
+        <label for="cm-p">Proporción esperada (0–1)</label>
+        <input type="number" id="cm-p" step="0.01" min="0.01" max="0.99" value="0.30">
+      </div>
+      <div>
+        <label for="cm-d">Precisión absoluta deseada (0–1)</label>
+        <input type="number" id="cm-d" step="0.01" min="0.01" max="0.99" value="0.05">
+      </div>
+    </div>
+
+    <div class="row campo-oculto" id="cm-campos-dos_proporciones">
+      <div>
+        <label for="cm-p1">Proporción grupo 1 (0–1)</label>
+        <input type="number" id="cm-p1" step="0.01" min="0.01" max="0.99" value="0.40">
+      </div>
+      <div>
+        <label for="cm-p2">Proporción grupo 2 (0–1)</label>
+        <input type="number" id="cm-p2" step="0.01" min="0.01" max="0.99" value="0.20">
+      </div>
+    </div>
+
+    <div class="row campo-oculto" id="cm-campos-dos_medias">
+      <div>
+        <label for="cm-diferencia">Diferencia mínima a detectar</label>
+        <input type="number" id="cm-diferencia" step="0.1" min="0.01" value="5">
+      </div>
+      <div>
+        <label for="cm-sd">Desviación estándar esperada</label>
+        <input type="number" id="cm-sd" step="0.1" min="0.01" value="10">
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label for="cm-confianza">Nivel de confianza</label>
+        <select id="cm-confianza">
+          <option value="90">90%</option>
+          <option value="95" selected>95%</option>
+          <option value="99">99%</option>
+        </select>
+      </div>
+      <div id="cm-potencia-wrap" class="campo-oculto">
+        <label for="cm-potencia">Potencia estadística</label>
+        <select id="cm-potencia">
+          <option value="80" selected>80%</option>
+          <option value="85">85%</option>
+          <option value="90">90%</option>
+          <option value="95">95%</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button id="cm-calcular" type="button">Calcular</button>
+      <button id="cm-copiar" type="button" disabled>Copiar párrafo de métodos</button>
+    </div>
+    <div id="cm-status"></div>
+  </div>
+
+  <div class="resultado" id="cm-resultado">
+    <div class="n-label" id="cm-n-label">Tamaño de muestra</div>
+    <div class="n" id="cm-n"></div>
+    <div id="cm-n-por-grupo" style="color:var(--muted);font-size:.85rem;margin-top:.25rem"></div>
+    <div class="formula" id="cm-formula"></div>
+    <div class="parrafo" id="cm-parrafo"></div>
+  </div>
+</div>
+<script src="calculadora-muestra.js"></script>
+</body>
+</html>
