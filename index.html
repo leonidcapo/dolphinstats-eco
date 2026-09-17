@@ -24,7 +24,7 @@
       radial-gradient(ellipse 70% 45% at 15% 0%, rgba(0,117,198,.07) 0%, transparent 60%),
       radial-gradient(ellipse 55% 65% at 85% 90%, rgba(123,63,242,.05) 0%, transparent 60%);
   }
-  .wrap{position:relative;z-index:1;max-width:760px;margin:0 auto;padding:3.5rem 1.5rem 5rem}
+  .wrap{position:relative;z-index:1;max-width:800px;margin:0 auto;padding:3.5rem 1.5rem 5rem}
   .kicker{
     display:inline-flex;align-items:center;gap:.6rem;color:var(--aqua);font-size:.72rem;
     font-weight:700;letter-spacing:.16em;text-transform:uppercase;margin-bottom:1.1rem;
@@ -35,12 +35,17 @@
     letter-spacing:-.02em;margin:0 0 .5rem;color:var(--white);
   }
   h1 span{color:var(--aqua)}
-  p.lead{color:var(--muted);margin:0 0 2.5rem;max-width:480px;font-size:.95rem}
+  p.lead{color:var(--muted);margin:0 0 2.5rem;max-width:520px;font-size:.95rem}
+
+  .section-label{
+    font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;
+    color:var(--muted);margin:2rem 0 .75rem;
+  }
+  .section-label:first-of-type{margin-top:0}
 
   .grid{display:flex;flex-direction:column;gap:.85rem}
   .card{
-    display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;
-    padding:1.25rem 1.4rem;
+    display:block;padding:1.25rem 1.4rem;
     background:#fff;border:1px solid var(--border);border-radius:16px;
     text-decoration:none;color:inherit;
     transition:border-color .2s, box-shadow .2s, transform .2s;
@@ -49,12 +54,12 @@
     border-color:var(--aqua);box-shadow:0 12px 28px rgba(0,48,96,.09);
     transform:translateY(-2px);
   }
-  .body{flex:1 1 auto;min-width:0}
+  .card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem}
   .name{
     font-weight:700;font-size:1rem;color:var(--white);
-    display:flex;align-items:center;gap:.55rem;flex-wrap:wrap;margin-bottom:.4rem;
+    display:flex;align-items:center;gap:.55rem;flex-wrap:wrap;
   }
-  .desc{color:var(--muted);font-size:.85rem;line-height:1.55}
+  .desc{color:var(--muted);font-size:.85rem;line-height:1.55;margin-top:.4rem}
   .tag{
     font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
     padding:.15rem .5rem;border-radius:100px;flex:0 0 auto;
@@ -62,8 +67,17 @@
   .tag.local{background:rgba(8,153,168,.13);color:var(--cyan)}
   .tag.artifact{background:rgba(74,98,133,.12);color:var(--muted)}
   .tag.external{background:rgba(123,63,242,.12);color:var(--coral)}
+  .tag.gated{background:rgba(255,49,49,.10);color:#c62828}
   .arrow{flex:0 0 auto;color:var(--muted);font-size:1.1rem;opacity:0;transition:opacity .2s, transform .2s;margin-top:.15rem}
   .card:hover .arrow{opacity:1;transform:translateX(3px)}
+
+  .stats{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.65rem}
+  .stat{
+    font-size:.72rem;font-weight:600;color:var(--white);background:var(--surface);
+    border:1px solid var(--border);padding:.2rem .55rem;border-radius:8px;
+    font-variant-numeric:tabular-nums;
+  }
+  .caveat{margin-top:.55rem;font-size:.76rem;color:#c62828;font-style:italic}
 
   footer{margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--border);color:var(--muted);font-size:.75rem}
 </style>
@@ -74,105 +88,166 @@
   <h1>Dolphin<span>Stats</span> Ecosistema</h1>
   <p class="lead">El centro desde donde se coordinan las herramientas internas de DolphinStats — investigación, monitoreo, logística y administración — todavía sin anexar al sitio público.</p>
 
+  <p class="section-label">Herramientas propias (sin backend)</p>
   <div class="grid">
     <a class="card" href="journal-match.html">
-      <div class="body">
+      <div class="card-top">
         <div class="name">Journal Match <span class="tag local">Local</span></div>
-        <div class="desc">Buscador de revistas científicas por título o palabras clave del manuscrito, con filtros de área, editorial, cuartil SJR y SJR mínimo — dataset Scimago Journal Rank (~30 mil revistas).</div>
+        <div class="arrow">→</div>
       </div>
-      <div class="arrow">→</div>
+      <div class="desc">Buscador de revistas científicas por título o palabras clave del manuscrito, con filtros de área, editorial, cuartil SJR y SJR mínimo, más clasificación de acceso (Diamond / Gold OA / Suscripción).</div>
+      <div class="stats">
+        <span class="stat">30,412 revistas</span>
+        <span class="stat">Scimago Journal Rank</span>
+        <span class="stat">TF-IDF client-side</span>
+      </div>
     </a>
 
     <a class="card" href="calculadora-muestra.html">
-      <div class="body">
+      <div class="card-top">
         <div class="name">Calculadora de Muestra <span class="tag local">Local</span></div>
-        <div class="desc">Tamaño de muestra para proporción única, dos proporciones y dos medias — mismas fórmulas y referencia que usa DolphinStatsBot en el chat, ahora con formulario propio y párrafo de métodos copiable.</div>
+        <div class="arrow">→</div>
       </div>
-      <div class="arrow">→</div>
-    </a>
-
-    <a class="card" href="https://nucleo-j51e.onrender.com/" target="_blank" rel="noopener">
-      <div class="body">
-        <div class="name">Núcleo <span class="tag external">Streamlit</span></div>
-        <div class="desc">Frontend del pipeline ENDES completo (propose → design → analyze → report): genera investigaciones a partir de los microdatos, con su propio login. Corre en Render, puede tardar en despertar tras inactividad.</div>
+      <div class="desc">Tamaño de muestra para proporción única, dos proporciones y dos medias — mismas fórmulas y referencia que usa DolphinStatsBot en el chat, ahora con formulario propio y párrafo de métodos copiable.</div>
+      <div class="stats">
+        <span class="stat">3 diseños</span>
+        <span class="stat">Charan &amp; Biswas 2013</span>
+        <span class="stat">Sin dependencias (sin scipy)</span>
       </div>
-      <div class="arrow">↗</div>
-    </a>
-
-    <a class="card" href="https://paeu-estadistico.streamlit.app/" target="_blank" rel="noopener">
-      <div class="body">
-        <div class="name">PAEU <span class="tag external">Streamlit</span></div>
-        <div class="desc">Plan de Análisis Estadístico Universal: sistema experto que guía paso a paso la construcción del plan de análisis, sugiere pruebas estadísticas según el diseño y las variables, detecta inconsistencias metodológicas y redacta el texto listo para tesis o artículos.</div>
-      </div>
-      <div class="arrow">↗</div>
-    </a>
-
-    <a class="card" href="https://endes-generator.streamlit.app/" target="_blank" rel="noopener">
-      <div class="body">
-        <div class="name">endes-generator (Streamlit Cloud) <span class="tag external">Streamlit</span></div>
-        <div class="desc">Mismo pipeline ENDES que Núcleo (propose / design / report en la nube; analyze corre localmente con Stata), desplegado en Streamlit Cloud con acceso restringido a nivel de plataforma — requiere iniciar sesión con la cuenta autorizada.</div>
-      </div>
-      <div class="arrow">↗</div>
-    </a>
-
-    <a class="card" href="https://epe-generator.streamlit.app/" target="_blank" rel="noopener">
-      <div class="body">
-        <div class="name">epe-generator <span class="tag external">Streamlit</span></div>
-        <div class="desc">Herramienta del programa EPE (atención odontológica a personas con discapacidad) — mismo proyecto de origen de los datos Marco / MarcoSOP y del predictor de tiempo de quirófano. Con su propio login.</div>
-      </div>
-      <div class="arrow">↗</div>
-    </a>
-
-    <a class="card" href="https://claude.ai/artifact/B2BjurANJtJkw3NbL1Ydot" target="_blank" rel="noopener">
-      <div class="body">
-        <div class="name">Cuaderno ENDES <span class="tag artifact">Artifact</span></div>
-        <div class="desc">Cuaderno de trabajo del pipeline ENDES: sugiere revistas candidatas cruzando el corpus de estudios previos con Scimago, redacta las declaraciones de disponibilidad de datos/código para el envío a revista, y asigna temas ENDES sin duplicados entre los alumnos de una cohorte.</div>
-      </div>
-      <div class="arrow">↗</div>
-    </a>
-
-    <a class="card" href="https://claude.ai/artifact/JeSswuB9ekxirCpqWA3dio" target="_blank" rel="noopener">
-      <div class="body">
-        <div class="name">Explorador ENDES <span class="tag artifact">Artifact</span></div>
-        <div class="desc">Prevalencia nacional ponderada por año para un conjunto de ejes temáticos de la ENDES, calculada con diseño muestral complejo real (svy) sobre los microdatos del INEI.</div>
-      </div>
-      <div class="arrow">↗</div>
-    </a>
-
-    <a class="card" href="https://claude.ai/artifact/KQBBH3EoDnu662siXaXbgv" target="_blank" rel="noopener">
-      <div class="body">
-        <div class="name">Cotizador DolphinStats <span class="tag artifact">Artifact</span></div>
-        <div class="desc">Calculadora de proformas para servicios de consultoría (asesoría de tesis, informes, proyectos): ajusta el precio por complejidad metodológica, carga analítica, perfil del investigador y plazo, y genera el documento imprimible.</div>
-      </div>
-      <div class="arrow">↗</div>
-    </a>
-
-    <a class="card" href="https://claude.ai/artifact/3vNtadT6qs6d4b339CnE6u" target="_blank" rel="noopener">
-      <div class="body">
-        <div class="name">Candidatos ENDES 2026-09 <span class="tag artifact">Artifact</span></div>
-        <div class="desc">Reporte de estudios ENDES no explotados detectados en la corrida de setiembre 2026 del buscador de huecos (gap finder), rankeados y fusionados al corpus.</div>
-      </div>
-      <div class="arrow">↗</div>
-    </a>
-
-    <a class="card" href="https://claude.ai/artifact/CpoemQjVE5cKwaKyZs21qy" target="_blank" rel="noopener">
-      <div class="body">
-        <div class="name">Corpus ENDES Multiespecialidad <span class="tag artifact">Artifact</span></div>
-        <div class="desc">Base de estudios ENDES ya publicados, organizada por especialidad (medicina, odontología, obstetricia, psicología, geriatría, nutrición, oftalmología), usada como fuente para detectar huecos de investigación y sugerir revistas.</div>
-      </div>
-      <div class="arrow">↗</div>
-    </a>
-
-    <a class="card" href="https://claude.ai/artifact/HCLYLs7D8XtZ48V2HvmTqT" target="_blank" rel="noopener">
-      <div class="body">
-        <div class="name">Marco en tiempo real <span class="tag artifact">Artifact</span></div>
-        <div class="desc">Diagnóstico y plan de migración del dashboard EPE: por qué el reporte actual corre sobre datos congelados y desactualizados, y cómo reconstruirlo conectado en vivo a las hojas Marco / MarcoSOP en Looker Studio.</div>
-      </div>
-      <div class="arrow">↗</div>
     </a>
   </div>
 
-  <footer>DolphinStats Ecosistema · protegido con autenticación básica · no listado en buscadores.</footer>
+  <p class="section-label">Pipeline ENDES (artifacts + apps)</p>
+  <div class="grid">
+    <a class="card" href="https://claude.ai/artifact/JeSswuB9ekxirCpqWA3dio" target="_blank" rel="noopener">
+      <div class="card-top">
+        <div class="name">Explorador ENDES <span class="tag artifact">Artifact</span></div>
+        <div class="arrow">↗</div>
+      </div>
+      <div class="desc">Prevalencias reales de salud en el Perú calculadas directamente de los microdatos ENDES con diseño muestral oficial (svy:mean por año, con estrato/conglomerado/ponderación) — no estimaciones ni simulación.</div>
+      <div class="stats">
+        <span class="stat">9 ejes</span>
+        <span class="stat">2016–2025</span>
+        <span class="stat">5 especialidades</span>
+        <span class="stat">IC95% + n por año</span>
+      </div>
+    </a>
+
+    <a class="card" href="https://claude.ai/artifact/CpoemQjVE5cKwaKyZs21qy" target="_blank" rel="noopener">
+      <div class="card-top">
+        <div class="name">Corpus ENDES Multiespecialidad <span class="tag artifact">Artifact</span></div>
+        <div class="arrow">↗</div>
+      </div>
+      <div class="desc">Los artículos que sostienen el sistema de detección de novedad: de dónde viene cada estudio previo, qué ejes ya cubren por especialidad y qué queda por explorar (algunos ejes bloqueados por falta de módulo ENDES).</div>
+      <div class="stats">
+        <span class="stat">82 artículos</span>
+        <span class="stat">Odontología 24</span>
+        <span class="stat">Medicina 24</span>
+        <span class="stat">Psicología 14</span>
+        <span class="stat">Obstetricia 12</span>
+        <span class="stat">Nutrición 8</span>
+      </div>
+    </a>
+
+    <a class="card" href="https://claude.ai/artifact/3vNtadT6qs6d4b339CnE6u" target="_blank" rel="noopener">
+      <div class="card-top">
+        <div class="name">Candidatos ENDES 2026-09 <span class="tag artifact">Artifact</span></div>
+        <div class="arrow">↗</div>
+      </div>
+      <div class="desc">Estudios ENDES no explotados detectados en la corrida de setiembre 2026 del gap finder, con nivel de verificación por estudio (abstract leído / triangulado / sin DOI), para revisión humana antes de fusionar al corpus.</div>
+      <div class="stats">
+        <span class="stat">37 estudios únicos</span>
+        <span class="stat">25 ejes revisados</span>
+        <span class="stat">6 especialidades</span>
+        <span class="stat">PR #11 en GitHub</span>
+      </div>
+    </a>
+
+    <a class="card" href="https://claude.ai/artifact/B2BjurANJtJkw3NbL1Ydot" target="_blank" rel="noopener">
+      <div class="card-top">
+        <div class="name">Cuaderno ENDES <span class="tag artifact">Artifact</span></div>
+        <div class="arrow">↗</div>
+      </div>
+      <div class="desc">Cuaderno de trabajo del pipeline: sugiere revistas cruzando el corpus previo con Scimago (pestaña Revistas), redacta las declaraciones de disponibilidad de datos/código y la guía de depósito en Zenodo (Reproducibilidad), y asigna temas ENDES sin duplicados entre alumnos de una cohorte, guardado por navegador (Cohorte).</div>
+      <div class="stats">
+        <span class="stat">3 módulos</span>
+        <span class="stat">Cálculo 100% en el navegador</span>
+      </div>
+    </a>
+
+    <a class="card" href="https://nucleo-j51e.onrender.com/" target="_blank" rel="noopener">
+      <div class="card-top">
+        <div class="name">Núcleo <span class="tag external">Streamlit</span></div>
+        <div class="arrow">↗</div>
+      </div>
+      <div class="desc">Frontend del pipeline ENDES completo (propose → design → analyze → report): genera investigaciones a partir de los microdatos, con su propio login.</div>
+      <div class="stats">
+        <span class="stat">Render, plan free</span>
+        <span class="stat">Puede tardar en despertar</span>
+      </div>
+    </a>
+
+    <a class="card" href="https://endes-generator.streamlit.app/" target="_blank" rel="noopener">
+      <div class="card-top">
+        <div class="name">endes-generator (Streamlit Cloud) <span class="tag gated">Sin verificar</span></div>
+        <div class="arrow">↗</div>
+      </div>
+      <div class="desc">Mismo pipeline ENDES que Núcleo, desplegado en Streamlit Cloud con acceso restringido a nivel de plataforma.</div>
+      <div class="caveat">No se pudo verificar el contenido interno: requiere iniciar sesión con la cuenta autorizada de Streamlit Cloud.</div>
+    </a>
+  </div>
+
+  <p class="section-label">Otros proyectos (monitoreo, administración)</p>
+  <div class="grid">
+    <a class="card" href="https://claude.ai/artifact/KQBBH3EoDnu662siXaXbgv" target="_blank" rel="noopener">
+      <div class="card-top">
+        <div class="name">Cotizador DolphinStats <span class="tag artifact">Artifact</span></div>
+        <div class="arrow">↗</div>
+      </div>
+      <div class="desc">Calculadora de proformas para servicios de consultoría: precio piso por servicio, ajustado por complejidad metodológica, carga analítica, perfil académico, capacidad de pago y plazo (tope ×4.5), con descuento por publicación condicionado a coautoría ICMJE. Genera la proforma en texto y el documento imprimible en PDF.</div>
+      <div class="stats">
+        <span class="stat">4 tipos de servicio</span>
+        <span class="stat">9 factores de ajuste</span>
+        <span class="stat">Historial guardado</span>
+      </div>
+    </a>
+
+    <a class="card" href="https://claude.ai/artifact/HCLYLs7D8XtZ48V2HvmTqT" target="_blank" rel="noopener">
+      <div class="card-top">
+        <div class="name">Marco en tiempo real <span class="tag artifact">Artifact</span></div>
+        <div class="arrow">↗</div>
+      </div>
+      <div class="desc">Diagnóstico y plan de migración del dashboard EPE (atención odontológica a personas con discapacidad): el reporte actual corre desconectado sobre un Excel congelado de 2025; este documento explica por qué y da la especificación página por página para reconstruirlo en vivo sobre Google Sheets sin exponer datos personales.</div>
+      <div class="stats">
+        <span class="stat">1,829 pacientes</span>
+        <span class="stat">86 casos a quirófano</span>
+        <span class="stat">5 páginas de dashboard</span>
+      </div>
+    </a>
+
+    <a class="card" href="https://epe-generator.streamlit.app/" target="_blank" rel="noopener">
+      <div class="card-top">
+        <div class="name">epe-generator <span class="tag gated">Sin verificar</span></div>
+        <div class="arrow">↗</div>
+      </div>
+      <div class="desc">Proyecto de origen de los datos Marco / MarcoSOP (programa EPE) y del predictor de tiempo de quirófano. Con su propio login.</div>
+      <div class="caveat">No se pudo verificar el contenido interno: pide usuario/contraseña propios que no se tienen.</div>
+    </a>
+
+    <a class="card" href="https://paeu-estadistico.streamlit.app/" target="_blank" rel="noopener">
+      <div class="card-top">
+        <div class="name">PAEU <span class="tag external">Streamlit</span></div>
+        <div class="arrow">↗</div>
+      </div>
+      <div class="desc">Plan de Análisis Estadístico Universal: sistema experto que guía paso a paso la construcción del plan de análisis, sugiere pruebas estadísticas según el diseño y las variables, detecta inconsistencias metodológicas y redacta el texto listo para tesis o artículos.</div>
+      <div class="stats">
+        <span class="stat">6 secciones</span>
+        <span class="stat">Streamlit Cloud</span>
+      </div>
+    </a>
+  </div>
+
+  <footer>DolphinStats Ecosistema · protegido con autenticación básica · no listado en buscadores. Las tarjetas marcadas "Sin verificar" describen el proyecto de origen en el repo, no el contenido real de la app (no se pudo acceder).</footer>
 </div>
 </body>
 </html>
