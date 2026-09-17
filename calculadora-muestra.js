@@ -15,6 +15,8 @@
   // Epidat 4.2 — verificado reproduciendo sus ejemplos resueltos).
   var Z_ALFA = { 90: 1.6449, 95: 1.9600, 99: 2.5758 };
   var Z_BETA = { 80: 0.8416, 85: 1.0364, 90: 1.2816, 95: 1.6449 };
+  // Z de una cola, para el contraste unilateral del coeficiente de correlación.
+  var Z_ALFA_UNILATERAL = { 90: 1.2816, 95: 1.6449, 99: 2.3263 };
 
   function ParametroInvalido(mensaje) {
     this.message = mensaje;
@@ -107,9 +109,105 @@
     };
   }
 
+  function nGruposDesiguales(p1, p2, r, za, zb, conYates) {
+    var pPool = (p1 + r * p2) / (r + 1);
+    var terminoA = za * Math.sqrt((r + 1) * pPool * (1 - pPool));
+    var terminoB = zb * Math.sqrt(r * p1 * (1 - p1) + p2 * (1 - p2));
+    var n0 = Math.pow(terminoA + terminoB, 2) / (r * Math.pow(p1 - p2, 2));
+    if (conYates) {
+      n0 = n0 / 4 * Math.pow(1 + Math.sqrt(1 + 2 * (r + 1) / (r * n0 * Math.abs(p1 - p2))), 2);
+    }
+    return n0;
+  }
+
+  function orAP1(p2, orEsperada) {
+    return (orEsperada * p2) / (1 - p2 + orEsperada * p2);
+  }
+
+  function casosControles(p2, orEsperada, controlesPorCaso, confianza, potencia, conYates) {
+    validarProporcion(p2, 'La proporción de expuestos en los controles');
+    if (!(orEsperada > 0)) {
+      throw new ParametroInvalido('La odds ratio esperada debe ser mayor a 0');
+    }
+    if (orEsperada === 1) {
+      throw new ParametroInvalido('Una OR de 1 significa que no hay asociación que detectar');
+    }
+    if (!(controlesPorCaso >= 1 && controlesPorCaso <= 10)) {
+      throw new ParametroInvalido('El número de controles por caso debe estar entre 1 y 10');
+    }
+    var p1 = orAP1(p2, orEsperada);
+    if (!(p1 > 0 && p1 < 1)) {
+      throw new ParametroInvalido('Esa combinación de P2 y OR produce una proporción de expuestos en los casos fuera de 0-1; revisa los valores');
+    }
+    var za = Z_ALFA[confianza], zb = Z_BETA[potencia];
+    var n0 = nGruposDesiguales(p1, p2, controlesPorCaso, za, zb, conYates);
+    var nCasos = Math.ceil(n0);
+    var nControles = Math.ceil(controlesPorCaso * nCasos);
+    var total = nCasos + nControles;
+    var yatesTxt = conYates ? ' con corrección de continuidad de Yates' : ' sin corrección de continuidad de Yates';
+    var formula = 'Ji-cuadrado de Pearson para grupos desiguales' + yatesTxt;
+    var parrafo = 'El tamaño de muestra se calculó para un estudio de casos y controles ' +
+      'independientes, con ' + controlesPorCaso + ' control(es) por caso, asumiendo ' +
+      'una prevalencia de la exposición del ' + (p2 * 100).toFixed(0) + '% en los controles ' +
+      '(lo que implica un ' + (p1 * 100).toFixed(1) + '% en los casos) y una odds ratio esperada de ' +
+      orEsperada + ', con un nivel de confianza del ' + confianza + '% y una potencia ' +
+      'estadística del ' + potencia + '%, mediante ' + formula + ' (' + REF_TEXTO + '). ' +
+      'Se requirieron ' + nCasos + ' casos y ' + nControles + ' controles (total: ' + total + ').';
+    return { n_total: total, n_por_grupo: nCasos, formula: formula, parrafo_metodos: parrafo };
+  }
+
+  function cohorte(pExpuestos, pNoExpuestos, razonNoExpExp, confianza, potencia, conYates) {
+    validarProporcion(pExpuestos, 'El riesgo en expuestos');
+    validarProporcion(pNoExpuestos, 'El riesgo en no expuestos');
+    if (pExpuestos === pNoExpuestos) {
+      throw new ParametroInvalido('Los dos riesgos no pueden ser iguales (no hay riesgo relativo que detectar)');
+    }
+    if (!(razonNoExpExp > 0)) {
+      throw new ParametroInvalido('La razón entre no expuestos y expuestos debe ser mayor a 0');
+    }
+    var za = Z_ALFA[confianza], zb = Z_BETA[potencia];
+    var n0 = nGruposDesiguales(pExpuestos, pNoExpuestos, razonNoExpExp, za, zb, conYates);
+    var nExpuestos = Math.ceil(n0);
+    var nNoExpuestos = Math.ceil(razonNoExpExp * nExpuestos);
+    var total = nExpuestos + nNoExpuestos;
+    var rr = pExpuestos / pNoExpuestos;
+    var yatesTxt = conYates ? ' con corrección de continuidad de Yates' : ' sin corrección de continuidad de Yates';
+    var formula = 'Ji-cuadrado de Pearson para grupos desiguales' + yatesTxt;
+    var parrafo = 'El tamaño de muestra se calculó para un estudio de cohortes, asumiendo ' +
+      'un riesgo del ' + (pExpuestos * 100).toFixed(0) + '% en expuestos y del ' +
+      (pNoExpuestos * 100).toFixed(0) + '% en no expuestos (riesgo relativo esperado de ' +
+      rr.toFixed(2) + '), con una razón entre no expuestos y expuestos de ' + razonNoExpExp +
+      ', un nivel de confianza del ' + confianza + '% y una potencia estadística del ' + potencia +
+      '%, mediante ' + formula + ' (' + REF_TEXTO + '). Se requirieron ' + nExpuestos +
+      ' expuestos y ' + nNoExpuestos + ' no expuestos (total: ' + total + ').';
+    return { n_total: total, n_por_grupo: nExpuestos, formula: formula, parrafo_metodos: parrafo };
+  }
+
+  function coeficienteCorrelacion(rEsperado, confianza, potencia, bilateral) {
+    if (!(rEsperado > -1 && rEsperado < 1)) {
+      throw new ParametroInvalido('El coeficiente de correlación esperado debe estar entre -1 y 1');
+    }
+    if (rEsperado === 0) {
+      throw new ParametroInvalido('Un coeficiente esperado de 0 significa que no hay correlación que detectar');
+    }
+    var c = 0.5 * Math.log((1 + Math.abs(rEsperado)) / (1 - Math.abs(rEsperado)));
+    var za = bilateral ? Z_ALFA[confianza] : Z_ALFA_UNILATERAL[confianza];
+    var zb = Z_BETA[potencia];
+    var n = Math.ceil(Math.pow((za + zb) / c, 2) + 3);
+    var tipoContraste = bilateral ? 'bilateral (H1: r≠0)' : 'unilateral (H1: r>0 o r<0, según el signo esperado)';
+    var formula = 'n = [(Zα+Zβ)/C]² + 3, con C = transformación z de Fisher de r';
+    var parrafo = 'El tamaño de muestra se calculó para contrastar si el coeficiente de ' +
+      'correlación de Pearson es distinto de cero, asumiendo un valor esperado de r=' +
+      rEsperado + ', con un contraste ' + tipoContraste + ', un nivel de confianza del ' +
+      confianza + '% y una potencia estadística del ' + potencia + '%, mediante la fórmula ' +
+      formula + ' (' + REF_TEXTO + '). El tamaño de muestra mínimo requerido fue de ' + n + ' sujetos.';
+    return { n_total: n, n_por_grupo: null, formula: formula, parrafo_metodos: parrafo };
+  }
+
   /* ---------------- UI wiring ---------------- */
 
-  var DISENOS = ['proporcion_unica', 'dos_proporciones', 'dos_medias'];
+  var DISENOS = ['proporcion_unica', 'dos_proporciones', 'dos_medias',
+    'casos_controles', 'cohorte', 'correlacion'];
 
   function $(id) { return document.getElementById(id); }
 
@@ -141,10 +239,26 @@
         var p1 = Number($('cm-p1').value);
         var p2 = Number($('cm-p2').value);
         r = dosProporciones(p1, p2, confianza, potencia);
-      } else {
+      } else if (diseno === 'dos_medias') {
         var diferencia = Number($('cm-diferencia').value);
         var sd = Number($('cm-sd').value);
         r = dosMedias(diferencia, sd, confianza, potencia);
+      } else if (diseno === 'casos_controles') {
+        var ccP2 = Number($('cm-cc-p2').value);
+        var ccOr = Number($('cm-cc-or').value);
+        var ccControles = Number($('cm-cc-controles').value);
+        var ccYates = $('cm-cc-yates').checked;
+        r = casosControles(ccP2, ccOr, ccControles, confianza, potencia, ccYates);
+      } else if (diseno === 'cohorte') {
+        var coPExp = Number($('cm-co-p-exp').value);
+        var coPNoExp = Number($('cm-co-p-noexp').value);
+        var coRazon = Number($('cm-co-razon').value);
+        var coYates = $('cm-co-yates').checked;
+        r = cohorte(coPExp, coPNoExp, coRazon, confianza, potencia, coYates);
+      } else {
+        var corrR = Number($('cm-corr-r').value);
+        var corrBilateral = $('cm-corr-bilateral').checked;
+        r = coeficienteCorrelacion(corrR, confianza, potencia, corrBilateral);
       }
 
       $('cm-n-label').textContent = r.n_por_grupo != null ? 'Tamaño de muestra total' : 'Tamaño de muestra';
@@ -181,5 +295,8 @@
     actualizarCamposVisibles();
   });
 
-  window.CalculadoraMuestra = { proporcionUnica: proporcionUnica, dosProporciones: dosProporciones, dosMedias: dosMedias };
+  window.CalculadoraMuestra = {
+    proporcionUnica: proporcionUnica, dosProporciones: dosProporciones, dosMedias: dosMedias,
+    casosControles: casosControles, cohorte: cohorte, coeficienteCorrelacion: coeficienteCorrelacion
+  };
 })();
