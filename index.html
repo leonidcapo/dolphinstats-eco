@@ -46,14 +46,28 @@
   .grid{display:flex;flex-direction:column;gap:.85rem}
   .card{
     display:block;padding:1.25rem 1.4rem;
-    background:#fff;border:1px solid var(--border);border-radius:16px;
+    background:#fff;border:1px solid var(--border);border-left:3px solid var(--accent-cat,var(--border));
+    border-radius:16px;
     text-decoration:none;color:inherit;
     transition:border-color .2s, box-shadow .2s, transform .2s;
   }
   .card:hover{
-    border-color:var(--aqua);box-shadow:0 12px 28px rgba(0,48,96,.09);
+    border-color:var(--aqua);border-left-color:var(--accent-cat,var(--aqua));
+    box-shadow:0 12px 28px rgba(0,48,96,.09);
     transform:translateY(-2px);
   }
+  .grid-propias{--accent-cat:var(--aqua)}
+  .grid-endes{--accent-cat:var(--coral)}
+  .grid-otros{--accent-cat:var(--cyan)}
+
+  .search-wrap{position:relative;margin-bottom:1.75rem}
+  .search-wrap input{
+    width:100%;padding:.75rem 1rem .75rem 2.4rem;border:1px solid var(--border);
+    border-radius:12px;font-family:inherit;font-size:.9rem;color:var(--white);
+    background:#fff;
+  }
+  .search-wrap input:focus{outline:none;border-color:var(--aqua)}
+  .search-wrap svg{position:absolute;left:.85rem;top:50%;transform:translateY(-50%);color:var(--muted)}
   .card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem}
   .name{
     font-weight:700;font-size:1rem;color:var(--white);
@@ -78,6 +92,7 @@
     font-variant-numeric:tabular-nums;
   }
   .caveat{margin-top:.55rem;font-size:.76rem;color:#c62828;font-style:italic}
+  .verified{margin-top:.5rem;font-size:.7rem;color:var(--muted);opacity:.75}
 
   footer{margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--border);color:var(--muted);font-size:.75rem}
 </style>
@@ -88,8 +103,13 @@
   <h1>Dolphin<span>Stats</span> Ecosistema</h1>
   <p class="lead">El centro desde donde se coordinan las herramientas internas de DolphinStats — investigación, monitoreo, logística y administración — todavía sin anexar al sitio público.</p>
 
+  <div class="search-wrap">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+    <input type="text" id="buscador" placeholder="Buscar herramienta…" autocomplete="off">
+  </div>
+
   <p class="section-label">Herramientas propias (sin backend)</p>
-  <div class="grid">
+  <div class="grid grid-propias">
     <a class="card" href="journal-match.html">
       <div class="card-top">
         <div class="name">Journal Match <span class="tag local">Local</span></div>
@@ -101,6 +121,7 @@
         <span class="stat">Scimago Journal Rank</span>
         <span class="stat">TF-IDF client-side</span>
       </div>
+      <div class="verified">Verificado 16-sep-2026</div>
     </a>
 
     <a class="card" href="calculadora-muestra.html">
@@ -114,11 +135,12 @@
         <span class="stat">Charan &amp; Biswas 2013</span>
         <span class="stat">Sin dependencias (sin scipy)</span>
       </div>
+      <div class="verified">Verificado 16-sep-2026</div>
     </a>
   </div>
 
   <p class="section-label">Pipeline ENDES (artifacts + apps)</p>
-  <div class="grid">
+  <div class="grid grid-endes">
     <a class="card" href="https://claude.ai/artifact/JeSswuB9ekxirCpqWA3dio" target="_blank" rel="noopener">
       <div class="card-top">
         <div class="name">Explorador ENDES <span class="tag artifact">Artifact</span></div>
@@ -131,6 +153,7 @@
         <span class="stat">5 especialidades</span>
         <span class="stat">IC95% + n por año</span>
       </div>
+      <div class="verified">Verificado 16-sep-2026</div>
     </a>
 
     <a class="card" href="https://claude.ai/artifact/CpoemQjVE5cKwaKyZs21qy" target="_blank" rel="noopener">
@@ -147,6 +170,7 @@
         <span class="stat">Obstetricia 12</span>
         <span class="stat">Nutrición 8</span>
       </div>
+      <div class="verified">Verificado 16-sep-2026</div>
     </a>
 
     <a class="card" href="https://claude.ai/artifact/3vNtadT6qs6d4b339CnE6u" target="_blank" rel="noopener">
@@ -161,6 +185,7 @@
         <span class="stat">6 especialidades</span>
         <span class="stat">PR #11 en GitHub</span>
       </div>
+      <div class="verified">Verificado 16-sep-2026</div>
     </a>
 
     <a class="card" href="https://claude.ai/artifact/B2BjurANJtJkw3NbL1Ydot" target="_blank" rel="noopener">
@@ -173,6 +198,7 @@
         <span class="stat">3 módulos</span>
         <span class="stat">Cálculo 100% en el navegador</span>
       </div>
+      <div class="verified">Verificado 16-sep-2026</div>
     </a>
 
     <a class="card" href="https://nucleo-j51e.onrender.com/" target="_blank" rel="noopener">
@@ -185,6 +211,7 @@
         <span class="stat">Render, plan free</span>
         <span class="stat">Puede tardar en despertar</span>
       </div>
+      <div class="verified">Verificado 16-sep-2026</div>
     </a>
 
     <a class="card" href="https://endes-generator.streamlit.app/" target="_blank" rel="noopener">
@@ -198,7 +225,7 @@
   </div>
 
   <p class="section-label">Otros proyectos (monitoreo, administración)</p>
-  <div class="grid">
+  <div class="grid grid-otros">
     <a class="card" href="https://claude.ai/artifact/KQBBH3EoDnu662siXaXbgv" target="_blank" rel="noopener">
       <div class="card-top">
         <div class="name">Cotizador DolphinStats <span class="tag artifact">Artifact</span></div>
@@ -210,6 +237,7 @@
         <span class="stat">9 factores de ajuste</span>
         <span class="stat">Historial guardado</span>
       </div>
+      <div class="verified">Verificado 16-sep-2026</div>
     </a>
 
     <a class="card" href="https://claude.ai/artifact/HCLYLs7D8XtZ48V2HvmTqT" target="_blank" rel="noopener">
@@ -223,6 +251,7 @@
         <span class="stat">86 casos a quirófano</span>
         <span class="stat">5 páginas de dashboard</span>
       </div>
+      <div class="verified">Verificado 16-sep-2026</div>
     </a>
 
     <a class="card" href="https://epe-generator.streamlit.app/" target="_blank" rel="noopener">
@@ -244,10 +273,26 @@
         <span class="stat">6 secciones</span>
         <span class="stat">Streamlit Cloud</span>
       </div>
+      <div class="verified">Verificado 16-sep-2026</div>
     </a>
   </div>
 
   <footer>DolphinStats Ecosistema · protegido con autenticación básica · no listado en buscadores. Las tarjetas marcadas "Sin verificar" describen el proyecto de origen en el repo, no el contenido real de la app (no se pudo acceder).</footer>
 </div>
+<script>
+  document.getElementById('buscador').addEventListener('input', function (e) {
+    var q = e.target.value.trim().toLowerCase();
+    document.querySelectorAll('.card').forEach(function (card) {
+      var texto = card.textContent.toLowerCase();
+      card.style.display = !q || texto.indexOf(q) !== -1 ? '' : 'none';
+    });
+    document.querySelectorAll('.section-label').forEach(function (label) {
+      var grid = label.nextElementSibling;
+      var visibles = Array.from(grid.children).some(function (c) { return c.style.display !== 'none'; });
+      label.style.display = visibles ? '' : 'none';
+      grid.style.display = visibles ? '' : 'none';
+    });
+  });
+</script>
 </body>
 </html>
