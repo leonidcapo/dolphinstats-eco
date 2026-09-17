@@ -36,7 +36,11 @@
   .resultado .n-label{color:var(--muted);font-size:.82rem;margin-bottom:.25rem}
   .resultado .formula{font-family:monospace;color:var(--muted);font-size:.85rem;margin-top:.5rem}
   .resultado .parrafo{margin-top:1rem;padding-top:1rem;border-top:1px dashed var(--border);font-size:.88rem;color:var(--white);line-height:1.6}
-  .campo-oculto{display:none}
+  /* !important a propósito: es una clase utilitaria de "ocultar", debe ganar
+     siempre sin importar en qué orden se declaren las reglas de display de
+     otros componentes (ver bug real: .btn-block, declarada después en esta
+     hoja, sobrescribía display:none de .campo-oculto por orden de cascada). */
+  .campo-oculto{display:none !important}
   .check-field{display:flex;flex-direction:column;justify-content:flex-end}
   .check-inline{display:flex;align-items:center;gap:.45rem;font-size:.88rem;font-weight:500;text-transform:none;letter-spacing:normal;color:var(--white);padding:.6rem 0}
   .check-inline input[type=checkbox]{width:auto;accent-color:var(--aqua)}
