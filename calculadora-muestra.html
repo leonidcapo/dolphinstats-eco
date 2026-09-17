@@ -40,6 +40,16 @@
   .check-field{display:flex;flex-direction:column;justify-content:flex-end}
   .check-inline{display:flex;align-items:center;gap:.45rem;font-size:.88rem;font-weight:500;text-transform:none;letter-spacing:normal;color:var(--white);padding:.6rem 0}
   .check-inline input[type=checkbox]{width:auto;accent-color:var(--aqua)}
+  .btn-block{display:block;width:100%;background:#fff;color:var(--aqua);border:1px solid var(--aqua);margin-bottom:1rem}
+  .caja{margin-top:0;margin-bottom:1rem;padding:1.1rem;background:#fff;border:1px solid var(--border);border-radius:12px}
+  .caja-pregunta{font-weight:700;margin:0 0 .75rem}
+  .caja-opcion{display:block;width:100%;text-align:left;background:var(--surface);color:var(--white);border:1px solid var(--border);border-radius:8px;padding:.65rem .9rem;margin-bottom:.5rem;font-weight:500;font-size:.88rem;cursor:pointer}
+  .caja-opcion:hover{border-color:var(--aqua)}
+  .caja-info{background:#eaf6ff;border:1px solid var(--aqua);border-radius:8px;padding:.85rem 1rem;margin:.75rem 0;font-size:.88rem;line-height:1.5}
+  .caja-nota{font-size:.78rem;color:var(--muted);margin:.75rem 0 0}
+  .caja-fila{display:flex;gap:.6rem;flex-wrap:wrap}
+  .caja-fila button{flex:1;min-width:140px}
+  .btn-secundario{background:#fff;color:var(--aqua);border:1px solid var(--aqua)}
 </style>
 </head>
 <body>
@@ -52,6 +62,9 @@
   <p class="lead">Tamaño de muestra para los 6 diseños más frecuentes en tesis de ciencias de la salud: proporción única (con corrección por población finita opcional), comparación de dos proporciones, comparación de dos medias, casos y controles, cohorte y coeficiente de correlación. Fórmulas validadas contra Epidat 4.2. Incluye el párrafo de métodos listo para copiar.</p>
 
   <div class="panel">
+    <button type="button" id="cm-asistente-toggle" class="btn-block">🧭 ¿No sabes qué diseño elegir? Usa el asistente</button>
+    <div class="caja campo-oculto" id="cm-asistente-panel"></div>
+
     <label for="cm-diseno">Diseño</label>
     <select id="cm-diseno">
       <option value="proporcion_unica">Proporción única (prevalencia)</option>
@@ -61,6 +74,18 @@
       <option value="cohorte">Cohorte (riesgo relativo)</option>
       <option value="correlacion">Coeficiente de correlación</option>
     </select>
+
+    <button type="button" id="cm-endes-toggle" class="btn-block campo-oculto" style="margin-top:1rem">📊 ¿Tu variable es una de estas 9? Usa un dato real de ENDES Perú</button>
+    <div class="caja campo-oculto" id="cm-endes-panel">
+      <label for="cm-endes-select">Elige el eje (dato más reciente, ENDES 2025 salvo que se indique otro año)</label>
+      <select id="cm-endes-select"></select>
+      <div class="caja-info" id="cm-endes-info"></div>
+      <div class="caja-fila">
+        <button type="button" id="cm-endes-usar">Usar este valor ✓</button>
+        <button type="button" id="cm-endes-cerrar" class="btn-secundario">Cerrar</button>
+      </div>
+      <p class="caja-nota">Solo cubre estos 9 ejes (ver el Explorador ENDES completo para más detalle por año). Si tu variable no está en la lista, sigue usando tu propia referencia.</p>
+    </div>
 
     <div class="row" id="cm-campos-proporcion_unica">
       <div>

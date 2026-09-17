@@ -204,6 +204,86 @@
     return { n_total: n, n_por_grupo: null, formula: formula, parrafo_metodos: parrafo };
   }
 
+  /* ---------------- Asistente de selección de diseño (sin IA) ----------------
+   * Puerto directo de ASISTENTE_ARBOL / ASISTENTE_MOTIVOS en chatbot.py (paso 2
+   * del roadmap "enriquecer con Epidat"). Mismo árbol de decisión fijo, mismas
+   * 6 opciones + "no disponible" cuando el diseño que hace falta (media única,
+   * pareado/McNemar) todavía no está en la calculadora. */
+  var ASISTENTE_ARBOL = {
+    inicio: {
+      pregunta: '¿Qué quieres hacer con tu estudio?',
+      opciones: [
+        { texto: 'Estimar un solo valor (ej. una prevalencia, un porcentaje)', irA: 'unica' },
+        { texto: 'Ver si dos variables numéricas están relacionadas en las mismas personas (ej. ¿el peso se relaciona con la presión?)', resultado: 'correlacion' },
+        { texto: 'Comparar un desenlace entre dos grupos, o ver si una exposición se asocia a una enfermedad', irA: 'grupos_pareados' }
+      ]
+    },
+    unica: {
+      pregunta: '¿Tu variable es categórica (sí/no) o numérica (un promedio)?',
+      opciones: [
+        { texto: 'Categórica: sí/no, presente/ausente (ej. % con anemia)', resultado: 'proporcion_unica' },
+        { texto: 'Numérica: un promedio (ej. hemoglobina promedio)', noDisponible: 'Estimar una media única (con un intervalo de confianza) todavía no está en la calculadora.' }
+      ]
+    },
+    grupos_pareados: {
+      pregunta: '¿Son dos grupos distintos de personas, o mides a las mismas personas dos veces (antes/después, pareado)?',
+      opciones: [
+        { texto: 'Dos grupos distintos de personas (independientes)', irA: 'tipo_variable' },
+        { texto: 'Las mismas personas, medidas dos veces (pareado o antes/después)', noDisponible: 'El diseño pareado (prueba de McNemar o t pareada) todavía no está en la calculadora.' }
+      ]
+    },
+    tipo_variable: {
+      pregunta: '¿Qué tipo de variable comparas entre los dos grupos?',
+      opciones: [
+        { texto: 'Numérica (un promedio): peso, presión, puntaje…', resultado: 'dos_medias' },
+        { texto: 'Categórica: sí/no', irA: 'como_armaste_grupos' }
+      ]
+    },
+    como_armaste_grupos: {
+      pregunta: '¿Cómo armaste tus dos grupos?',
+      opciones: [
+        { texto: 'Primero elegí quién tiene la enfermedad (casos) y quién no (controles), y reviso su exposición pasada', resultado: 'casos_controles' },
+        { texto: 'Primero elegí quién estuvo expuesto y quién no, y los sigo en el tiempo para ver quién enferma', resultado: 'cohorte' },
+        { texto: 'Ya tenía mis 2 grupos definidos de otra forma (ej. tratamiento vs. placebo, urbano vs. rural)', resultado: 'dos_proporciones' }
+      ]
+    }
+  };
+
+  var ASISTENTE_MOTIVOS = {
+    proporcion_unica: 'Porque quieres estimar un porcentaje (una proporción) con cierta precisión, sin comparar grupos.',
+    dos_medias: 'Porque comparas un promedio (variable numérica) entre dos grupos independientes.',
+    correlacion: 'Porque quieres ver si dos variables numéricas están asociadas entre sí, en las mismas personas, sin dividir en grupos.',
+    casos_controles: 'Porque partiste de la enfermedad (casos/controles) y miras hacia atrás la exposición — diseño retrospectivo.',
+    cohorte: 'Porque partiste de la exposición y sigues a los grupos en el tiempo para ver quién enferma — diseño prospectivo.',
+    dos_proporciones: 'Porque comparas una proporción (sí/no) entre dos grupos ya definidos, sin que la selección se base en enfermedad o exposición.'
+  };
+
+  var DISENOS_LABELS = {
+    proporcion_unica: 'Proporción única (prevalencia)',
+    dos_proporciones: 'Comparación de dos proporciones',
+    dos_medias: 'Comparación de dos medias',
+    casos_controles: 'Casos y controles (odds ratio)',
+    cohorte: 'Cohorte (riesgo relativo)',
+    correlacion: 'Coeficiente de correlación'
+  };
+
+  /* ---------------- Sugerencias de p con datos reales de ENDES Perú ----------------
+   * Puerto directo de ENDES_PREVALENCIAS en chatbot.py (paso 3). Snapshot
+   * embebido (ENDES 2025, sin fetch en vivo) de los 9 ejes que cubre el
+   * Explorador ENDES V1. Si se regenera explorador/datos.json con más ejes o
+   * años, actualizar este objeto a mano igual que su par en Python. */
+  var ENDES_PREVALENCIAS = {
+    'Higiene oral (niños 0-11 años)': { prevalenciaPct: 94.89, ic95Lo: 94.47, ic95Hi: 95.30, n: 32652, anio: 2025 },
+    'Comparte cepillo dental, no debería (niños 0-11 años)': { prevalenciaPct: 0.08, ic95Lo: 0.04, ic95Hi: 0.12, n: 29898, anio: 2025 },
+    'Hipertensión arterial (adultos 18+)': { prevalenciaPct: 13.38, ic95Lo: 12.59, ic95Hi: 14.18, n: 28610, anio: 2025 },
+    'Tabaquismo (adultos 18+)': { prevalenciaPct: 15.52, ic95Lo: 14.70, ic95Hi: 16.33, n: 28612, anio: 2025 },
+    'Síntomas depresivos moderados, PHQ-9≥10 (adultos 18+)': { prevalenciaPct: 7.67, ic95Lo: 7.06, ic95Hi: 8.29, n: 28599, anio: 2025 },
+    'Anemia infantil (niños 0-11 años)': { prevalenciaPct: 33.58, ic95Lo: 32.65, ic95Hi: 34.52, n: 17616, anio: 2025 },
+    'Desnutrición crónica infantil (niños 0-11 años)': { prevalenciaPct: 12.21, ic95Lo: 11.55, ic95Hi: 12.86, n: 18993, anio: 2025 },
+    'Dificultad visual (adultos 60+)': { prevalenciaPct: 26.77, ic95Lo: 24.69, ic95Hi: 28.85, n: 5016, anio: 2025 },
+    'Alguna dificultad funcional (adultos 60+)': { prevalenciaPct: 4.40, ic95Lo: 3.49, ic95Hi: 5.32, n: 5031, anio: 2025 }
+  };
+
   /* ---------------- UI wiring ---------------- */
 
   var DISENOS = ['proporcion_unica', 'dos_proporciones', 'dos_medias',
@@ -217,6 +297,162 @@
       $('cm-campos-' + d).classList.toggle('campo-oculto', d !== diseno);
     });
     $('cm-potencia-wrap').classList.toggle('campo-oculto', diseno === 'proporcion_unica');
+    $('cm-endes-toggle').classList.toggle('campo-oculto', diseno !== 'proporcion_unica');
+    if (diseno !== 'proporcion_unica') {
+      $('cm-endes-panel').classList.add('campo-oculto');
+    }
+  }
+
+  /* ---- Asistente: estado y render ---- */
+  var asistenteNodo = 'inicio';
+  var asistenteHistorial = [];
+
+  function reiniciarAsistente() {
+    asistenteNodo = 'inicio';
+    asistenteHistorial = [];
+  }
+
+  function renderAsistente() {
+    var panel = $('cm-asistente-panel');
+    panel.innerHTML = '';
+    var nodo = ASISTENTE_ARBOL[asistenteNodo];
+    var pregunta = document.createElement('p');
+    pregunta.className = 'caja-pregunta';
+    pregunta.textContent = nodo.pregunta;
+    panel.appendChild(pregunta);
+    nodo.opciones.forEach(function (opcion, i) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'caja-opcion';
+      btn.textContent = opcion.texto;
+      btn.addEventListener('click', function () {
+        if (opcion.resultado) {
+          mostrarResultadoAsistente(opcion.resultado, null);
+        } else if (opcion.noDisponible) {
+          mostrarNoDisponibleAsistente(opcion.noDisponible);
+        } else {
+          asistenteHistorial.push(asistenteNodo);
+          asistenteNodo = opcion.irA;
+          renderAsistente();
+        }
+      });
+      panel.appendChild(btn);
+    });
+    if (asistenteHistorial.length) {
+      var atras = document.createElement('button');
+      atras.type = 'button';
+      atras.className = 'caja-opcion';
+      atras.textContent = '← Atrás';
+      atras.addEventListener('click', function () {
+        asistenteNodo = asistenteHistorial.pop();
+        renderAsistente();
+      });
+      panel.appendChild(atras);
+    }
+    panel.appendChild(botonCerrarAsistente());
+  }
+
+  function botonCerrarAsistente() {
+    var cerrar = document.createElement('button');
+    cerrar.type = 'button';
+    cerrar.className = 'caja-opcion';
+    cerrar.style.textAlign = 'center';
+    cerrar.textContent = 'Cerrar asistente';
+    cerrar.addEventListener('click', function () {
+      $('cm-asistente-panel').classList.add('campo-oculto');
+      reiniciarAsistente();
+    });
+    return cerrar;
+  }
+
+  function mostrarResultadoAsistente(disenoReco, motivoExtra) {
+    var panel = $('cm-asistente-panel');
+    panel.innerHTML = '';
+    var caja = document.createElement('div');
+    caja.className = 'caja-info';
+    var titulo = document.createElement('strong');
+    titulo.textContent = 'Te recomendamos: ' + DISENOS_LABELS[disenoReco];
+    caja.appendChild(titulo);
+    caja.appendChild(document.createElement('br'));
+    caja.appendChild(document.createTextNode(ASISTENTE_MOTIVOS[disenoReco]));
+    if (motivoExtra) {
+      caja.appendChild(document.createElement('br'));
+      var em = document.createElement('em');
+      em.textContent = motivoExtra;
+      caja.appendChild(em);
+    }
+    panel.appendChild(caja);
+    var fila = document.createElement('div');
+    fila.className = 'caja-fila';
+    var usar = document.createElement('button');
+    usar.type = 'button';
+    usar.textContent = 'Usar este diseño ✓';
+    usar.addEventListener('click', function () {
+      $('cm-diseno').value = disenoReco;
+      actualizarCamposVisibles();
+      $('cm-asistente-panel').classList.add('campo-oculto');
+      reiniciarAsistente();
+    });
+    var otra = document.createElement('button');
+    otra.type = 'button';
+    otra.className = 'btn-secundario';
+    otra.textContent = 'Volver a empezar';
+    otra.addEventListener('click', function () {
+      reiniciarAsistente();
+      renderAsistente();
+    });
+    fila.appendChild(usar);
+    fila.appendChild(otra);
+    panel.appendChild(fila);
+  }
+
+  function mostrarNoDisponibleAsistente(mensaje) {
+    var panel = $('cm-asistente-panel');
+    panel.innerHTML = '';
+    var caja = document.createElement('div');
+    caja.className = 'caja-info';
+    caja.textContent = mensaje;
+    panel.appendChild(caja);
+    var nota = document.createElement('p');
+    nota.className = 'caja-nota';
+    nota.textContent = 'Escríbenos y te ayudamos con ese diseño manualmente, o vuelve a intentarlo con otra respuesta.';
+    panel.appendChild(nota);
+    var volver = document.createElement('button');
+    volver.type = 'button';
+    volver.className = 'caja-opcion';
+    volver.textContent = '← Volver a empezar';
+    volver.addEventListener('click', function () {
+      reiniciarAsistente();
+      renderAsistente();
+    });
+    panel.appendChild(volver);
+  }
+
+  /* ---- ENDES: estado y render ---- */
+  function poblarSelectEndes() {
+    var select = $('cm-endes-select');
+    select.innerHTML = '';
+    Object.keys(ENDES_PREVALENCIAS).forEach(function (eje) {
+      var opt = document.createElement('option');
+      opt.value = eje;
+      opt.textContent = eje;
+      select.appendChild(opt);
+    });
+  }
+
+  function actualizarInfoEndes() {
+    var eje = $('cm-endes-select').value;
+    var info = ENDES_PREVALENCIAS[eje];
+    var contenedor = $('cm-endes-info');
+    contenedor.innerHTML = '';
+    var fuerte = document.createElement('strong');
+    fuerte.textContent = info.prevalenciaPct.toFixed(1) + '%';
+    contenedor.appendChild(fuerte);
+    contenedor.appendChild(document.createTextNode(
+      ' (IC95%: ' + info.ic95Lo.toFixed(1) + '–' + info.ic95Hi.toFixed(1) + '%, n=' +
+      info.n.toLocaleString('es-PE') + ', ENDES ' + info.anio + ') — calculado de los microdatos ENDES ' +
+      'con diseño muestral oficial (svy: mean por año), no es una estimación.'
+    ));
   }
 
   function calcular() {
@@ -303,6 +539,27 @@
     $('cm-calcular').addEventListener('click', calcular);
     $('cm-copiar').addEventListener('click', copiarParrafo);
     actualizarCamposVisibles();
+
+    $('cm-asistente-toggle').addEventListener('click', function () {
+      reiniciarAsistente();
+      renderAsistente();
+      $('cm-asistente-panel').classList.remove('campo-oculto');
+    });
+
+    poblarSelectEndes();
+    actualizarInfoEndes();
+    $('cm-endes-select').addEventListener('change', actualizarInfoEndes);
+    $('cm-endes-toggle').addEventListener('click', function () {
+      $('cm-endes-panel').classList.remove('campo-oculto');
+    });
+    $('cm-endes-cerrar').addEventListener('click', function () {
+      $('cm-endes-panel').classList.add('campo-oculto');
+    });
+    $('cm-endes-usar').addEventListener('click', function () {
+      var info = ENDES_PREVALENCIAS[$('cm-endes-select').value];
+      $('cm-p').value = Math.max(1, Math.round(info.prevalenciaPct)) / 100;
+      $('cm-endes-panel').classList.add('campo-oculto');
+    });
   });
 
   window.CalculadoraMuestra = {
