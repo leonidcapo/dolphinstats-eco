@@ -306,10 +306,12 @@
   /* ---- Asistente: estado y render ---- */
   var asistenteNodo = 'inicio';
   var asistenteHistorial = [];
+  var asistenteViaIA = false; // true cuando el resultado vino del atajo "pega tu título"
 
   function reiniciarAsistente() {
     asistenteNodo = 'inicio';
     asistenteHistorial = [];
+    asistenteViaIA = false;
   }
 
   function renderAsistente() {
@@ -396,11 +398,20 @@
     var otra = document.createElement('button');
     otra.type = 'button';
     otra.className = 'btn-secundario';
-    otra.textContent = 'Volver a empezar';
-    otra.addEventListener('click', function () {
-      reiniciarAsistente();
-      renderAsistente();
-    });
+    if (asistenteViaIA) {
+      otra.textContent = '✍️ Probar con otro título';
+      otra.addEventListener('click', function () {
+        reiniciarAsistente();
+        $('cm-asistente-panel').classList.add('campo-oculto');
+        abrirPanelTituloIA();
+      });
+    } else {
+      otra.textContent = 'Volver a empezar';
+      otra.addEventListener('click', function () {
+        reiniciarAsistente();
+        renderAsistente();
+      });
+    }
     fila.appendChild(usar);
     fila.appendChild(otra);
     panel.appendChild(fila);
@@ -415,17 +426,90 @@
     panel.appendChild(caja);
     var nota = document.createElement('p');
     nota.className = 'caja-nota';
-    nota.textContent = 'Escríbenos y te ayudamos con ese diseño manualmente, o vuelve a intentarlo con otra respuesta.';
+    nota.textContent = asistenteViaIA
+      ? 'Escríbenos y te ayudamos con ese diseño manualmente.'
+      : 'Escríbenos y te ayudamos con ese diseño manualmente, o vuelve a intentarlo con otra respuesta.';
     panel.appendChild(nota);
     var volver = document.createElement('button');
     volver.type = 'button';
     volver.className = 'caja-opcion';
-    volver.textContent = '← Volver a empezar';
-    volver.addEventListener('click', function () {
-      reiniciarAsistente();
-      renderAsistente();
-    });
+    if (asistenteViaIA) {
+      volver.textContent = '✍️ Probar con otro título';
+      volver.addEventListener('click', function () {
+        reiniciarAsistente();
+        $('cm-asistente-panel').classList.add('campo-oculto');
+        abrirPanelTituloIA();
+      });
+    } else {
+      volver.textContent = '← Volver a empezar';
+      volver.addEventListener('click', function () {
+        reiniciarAsistente();
+        renderAsistente();
+      });
+    }
     panel.appendChild(volver);
+  }
+
+  /* ---- Atajo "pega tu título" (clasificación con IA) ----
+   * Puerto de titulo_ia_activo/clasificar_diseno_ia en chatbot.py (paso 4).
+   * La clasificación la hace api/clasificar-diseno.js (función serverless de
+   * Vercel) -- este archivo nunca ve ni toca DEEPSEEK_API_KEY, solo llama a
+   * ese endpoint same-origin y muestra lo que devuelve, reutilizando el
+   * mismo panel de resultado del asistente manual (mostrarResultadoAsistente
+   * / mostrarNoDisponibleAsistente). Igual que en el chatbot, la IA nunca
+   * calcula la muestra ni un valor de p -- solo elige uno de los 6 diseños o
+   * "no_disponible"; el cálculo lo sigue haciendo la fórmula fija. */
+  var MAX_TITULO_IA_SESION = 5; // tope de clasificaciones por carga de página -- control de costo
+  var tituloIaUsos = 0;
+
+  function abrirPanelTituloIA() {
+    $('cm-titulo-ia-status').textContent = '';
+    $('cm-titulo-ia-panel').classList.remove('campo-oculto');
+  }
+
+  function clasificarDisenoConIA() {
+    var statusEl = $('cm-titulo-ia-status');
+    var titulo = $('cm-titulo-ia-texto').value.trim();
+    statusEl.textContent = '';
+    if (!titulo) {
+      statusEl.textContent = 'Escribe tu título o pregunta de investigación.';
+      return;
+    }
+    if (tituloIaUsos >= MAX_TITULO_IA_SESION) {
+      statusEl.textContent = 'Ya usaste este atajo ' + MAX_TITULO_IA_SESION + ' veces. Usa el asistente de preguntas, o elige el diseño manualmente.';
+      return;
+    }
+    tituloIaUsos += 1;
+    var boton = $('cm-titulo-ia-clasificar');
+    boton.disabled = true;
+    statusEl.style.color = '';
+    statusEl.textContent = 'Clasificando…';
+    fetch('/api/clasificar-diseno', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ titulo: titulo }),
+    })
+      .then(function (r) { return r.json().then(function (data) { return { ok: r.ok, data: data }; }); })
+      .then(function (res) {
+        boton.disabled = false;
+        if (!res.ok || !res.data || !res.data.diseno) {
+          statusEl.textContent = (res.data && res.data.error) || 'No se pudo clasificar el diseño en este momento.';
+          return;
+        }
+        statusEl.textContent = '';
+        $('cm-titulo-ia-panel').classList.add('campo-oculto');
+        asistenteViaIA = true;
+        $('cm-asistente-panel').classList.remove('campo-oculto');
+        if (res.data.diseno === 'no_disponible') {
+          mostrarNoDisponibleAsistente(res.data.motivo || 'Ese diseño todavía no está disponible en la calculadora.');
+        } else {
+          mostrarResultadoAsistente(res.data.diseno, res.data.motivo ? ('Sobre tu título: ' + res.data.motivo) : null);
+        }
+      })
+      .catch(function () {
+        boton.disabled = false;
+        statusEl.textContent = 'No se pudo clasificar el diseño en este momento. Intenta de nuevo o usa el asistente de preguntas.';
+      });
   }
 
   /* ---- ENDES: estado y render ---- */
@@ -541,10 +625,17 @@
     actualizarCamposVisibles();
 
     $('cm-asistente-toggle').addEventListener('click', function () {
+      $('cm-titulo-ia-panel').classList.add('campo-oculto');
       reiniciarAsistente();
       renderAsistente();
       $('cm-asistente-panel').classList.remove('campo-oculto');
     });
+
+    $('cm-titulo-ia-toggle').addEventListener('click', abrirPanelTituloIA);
+    $('cm-titulo-ia-cerrar').addEventListener('click', function () {
+      $('cm-titulo-ia-panel').classList.add('campo-oculto');
+    });
+    $('cm-titulo-ia-clasificar').addEventListener('click', clasificarDisenoConIA);
 
     poblarSelectEndes();
     actualizarInfoEndes();

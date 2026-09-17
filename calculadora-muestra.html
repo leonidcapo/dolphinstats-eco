@@ -66,6 +66,19 @@
   <p class="lead">Tamaño de muestra para los 6 diseños más frecuentes en tesis de ciencias de la salud: proporción única (con corrección por población finita opcional), comparación de dos proporciones, comparación de dos medias, casos y controles, cohorte y coeficiente de correlación. Fórmulas validadas contra Epidat 4.2. Incluye el párrafo de métodos listo para copiar.</p>
 
   <div class="panel">
+    <button type="button" id="cm-titulo-ia-toggle" class="btn-block">✨ Pega tu título o pregunta de investigación</button>
+    <div class="caja campo-oculto" id="cm-titulo-ia-panel">
+      <label for="cm-titulo-ia-texto">Título o pregunta de investigación</label>
+      <textarea id="cm-titulo-ia-texto" maxlength="600" rows="3"
+        placeholder="Ej: Factores asociados a anemia en niños menores de 5 años atendidos en el C.S. X, Puno 2025"
+        style="width:100%;padding:.6rem .7rem;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:.9rem;resize:vertical"></textarea>
+      <div class="caja-fila" style="margin-top:.75rem">
+        <button type="button" id="cm-titulo-ia-clasificar">Clasificar diseño →</button>
+        <button type="button" id="cm-titulo-ia-cerrar" class="btn-secundario">Cerrar</button>
+      </div>
+      <div id="cm-titulo-ia-status" style="margin-top:.6rem;font-size:.85rem;color:var(--accent)"></div>
+    </div>
+
     <button type="button" id="cm-asistente-toggle" class="btn-block">🧭 ¿No sabes qué diseño elegir? Usa el asistente</button>
     <div class="caja campo-oculto" id="cm-asistente-panel"></div>
 
