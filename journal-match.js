@@ -9,6 +9,41 @@
   var IDF = new Map();
   var NDOCS = 0;
 
+  // Grupos editoriales curados (mismo patrón que investigaciontau/index.html
+  // -- PUBGROUPS ahí): el dataset de Scimago trae el campo Publisher con
+  // miles de variantes de nombre por editorial ("Elsevier BV", "Elsevier
+  // Inc", "Elsevier Ltd", etc.), así que listar cada valor único produce un
+  // <select> con ~3.000 opciones ilegibles. En vez de eso, se agrupan por
+  // expresión regular sobre el mismo campo crudo -- el filtro sigue
+  // operando sobre los datos reales de Scimago, solo cambia cómo se
+  // presentan las opciones.
+  var PUBGROUPS = [
+    ['Elsevier', /elsevier|academic press|cell press|mosby|w\.?b\.? saunders|churchill livingstone|pergamon|\bsaunders\b/i],
+    ['Springer Nature (incl. BMC, Nature)', /springer|nature (research|portfolio|publishing)|\bnature\b|biomed ?central|\bbmc\b|palgrave|adis|humana/i],
+    ['Wiley', /wiley|blackwell/i],
+    ['Taylor & Francis', /taylor|francis|routledge|informa|dove medical/i],
+    ['SAGE', /\bsage\b/i],
+    ['MDPI', /mdpi/i],
+    ['Frontiers', /frontiers/i],
+    ['Wolters Kluwer / Lippincott', /wolters|lippincott|kluwer|\bovid\b/i],
+    ['Oxford University Press', /oxford university/i],
+    ['Cambridge University Press', /cambridge university/i],
+    ['IEEE', /ieee|institute of electrical/i],
+    ['PLOS', /\bplos\b|public library of science/i],
+    ['American Chemical Society (ACS)', /american chemical society|\bacs\b/i],
+    ['BMJ', /\bbmj\b|british medical journal/i],
+    ['Karger', /karger/i],
+    ['Thieme', /thieme/i],
+    ['De Gruyter', /de ?gruyter/i],
+    ['Emerald', /emerald/i],
+    ['IOP Publishing', /\biop\b|institute of physics/i],
+    ['Hindawi', /hindawi/i]
+  ];
+  function pubMatch(pub, group) {
+    var g = PUBGROUPS.filter(function (x) { return x[0] === group; })[0];
+    return g ? g[1].test(String(pub)) : true;
+  }
+
   var STOP = new Set((
     'a an and are as at be by for from in into is it of on or that the to with ' +
     'study studies effect effects analysis analyses review reviews systematic ' +
@@ -61,7 +96,7 @@
 
   function passesFilters(j, filters) {
     if (filters.area && String(j[IDX.areas]).indexOf(filters.area) === -1) return false;
-    if (filters.publisher && j[IDX.publisher] !== filters.publisher) return false;
+    if (filters.publisher && !pubMatch(j[IDX.publisher], filters.publisher)) return false;
     var q = j[IDX.quartile];
     if (q && filters.quartiles.size > 0 && !filters.quartiles.has(q)) return false;
     if (filters.sjrMin != null) {
@@ -103,16 +138,19 @@
         d.fields.forEach(function (f, i) { IDX[f] = i; });
         J = d.journals;
 
-        var areaSet = new Set(), pubSet = new Set();
+        var areaSet = new Set();
         J.forEach(function (j) {
           String(j[IDX.areas]).split(';').forEach(function (a) {
             a = a.trim(); if (a) areaSet.add(a);
           });
-          var pub = j[IDX.publisher];
-          if (pub) pubSet.add(pub);
         });
         AREAS = Array.from(areaSet).sort();
-        PUBLISHERS = Array.from(pubSet).sort();
+        // Solo se listan los grupos que de verdad tienen al menos una
+        // revista en la base (evita, ej., mostrar "IEEE" si no hay ninguna
+        // revista IEEE en este dataset).
+        PUBLISHERS = PUBGROUPS.filter(function (g) {
+          return J.some(function (j) { return g[1].test(String(j[IDX.publisher])); });
+        }).map(function (g) { return g[0]; });
 
         buildIndex();
         statusEl.textContent = J.length.toLocaleString('es-PE') + ' revistas cargadas.';
@@ -193,10 +231,10 @@
       return '<tr><td><a href="' + scimagoUrl(j, idx) + '" target="_blank" rel="noopener">' +
         esc(j[idx.title]) + '</a></td><td>' + esc(j[idx.publisher]) + '</td><td>' +
         esc(j[idx.country]) + '</td><td>' + esc(j[idx.quartile] || '—') + '</td><td>' +
-        fmtN(j[idx.sjr]) + '</td><td>' + accessBadgeHtml(j, idx) + '</td></tr>';
+        fmtN(j[idx.sjr]) + '</td><td>' + fmtN(j[idx.h_index]) + '</td><td>' + accessBadgeHtml(j, idx) + '</td></tr>';
     }).join('');
     container.innerHTML = '<table><thead><tr><th>Revista</th><th>Editorial</th>' +
-      '<th>País</th><th>Cuartil</th><th>SJR</th><th>Acceso</th></tr></thead><tbody>' + rows + '</tbody></table>';
+      '<th>País</th><th>Cuartil</th><th>SJR</th><th>H-index</th><th>Acceso</th></tr></thead><tbody>' + rows + '</tbody></table>';
   }
 
   function dlCsv(rows, filename) {
@@ -228,11 +266,11 @@
 
   function exportCsv() {
     var idx = window.JournalMatch.getIDX();
-    var rows = [['Score', 'Título', 'ISSN', 'Editorial', 'País', 'Cuartil', 'SJR', 'Acceso']];
+    var rows = [['Score', 'Título', 'ISSN', 'Editorial', 'País', 'Cuartil', 'SJR', 'H-index', 'Acceso']];
     lastResults.forEach(function (r) {
       var j = r.journal;
       rows.push([r.score.toFixed(2), j[idx.title], j[idx.issn], j[idx.publisher],
-        j[idx.country], j[idx.quartile], j[idx.sjr], accessLabel(j, idx)]);
+        j[idx.country], j[idx.quartile], j[idx.sjr], j[idx.h_index], accessLabel(j, idx)]);
     });
     dlCsv(rows, 'journal_match_' + lastResults.length + '_revistas.csv');
   }
