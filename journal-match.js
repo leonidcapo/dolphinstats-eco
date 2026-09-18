@@ -44,6 +44,31 @@
     return g ? g[1].test(String(pub)) : true;
   }
 
+  // Procedencia del dato de APC -- mismos códigos que
+  // scripts/build_journals.py (SRC_*) en endes-generator, que es lo que
+  // genera este journals.json.
+  var APC_SRC_SIN_DATO = 0;
+  var APC_SRC_DOAJ_OFICIAL = 1;
+  var APC_SRC_OPENAPC_EVIDENCIA = 2;
+  var APC_SRC_SIN_APC_CONFIRMADO = 3;
+
+  // Modelo de publicación derivado (igual criterio que investigaciontau):
+  // diamond = OA sin APC (Scimago/DOAJ) · gold = 100% OA con APC ·
+  // hybrid = suscripción con pagos OA reales observados en OpenAPC ·
+  // subs = suscripción sin evidencia de opción OA.
+  function jType(j) {
+    if (j[IDX.oa_diamond]) return 'diamond';
+    if (j[IDX.oa]) return 'gold';
+    if (j[IDX.apc_paid_n]) return 'hybrid';
+    return 'subs';
+  }
+  var TYPE_INFO = {
+    diamond: { label: '💎 Diamond', title: 'Revista 100% Open Access sin costo para el autor' },
+    gold: { label: '🟡 Gold OA', title: 'Revista 100% Open Access financiada con APC' },
+    hybrid: { label: '🔀 Híbrida', title: 'Revista de suscripción con opción Open Access pagando APC (pagos documentados en OpenAPC)' },
+    subs: { label: '🔒 Suscripción', title: 'Revista solo por suscripción, sin evidencia de opción OA con APC' }
+  };
+
   var STOP = new Set((
     'a an and are as at be by for from in into is it of on or that the to with ' +
     'study studies effect effects analysis analyses review reviews systematic ' +
@@ -97,11 +122,28 @@
   function passesFilters(j, filters) {
     if (filters.area && String(j[IDX.areas]).indexOf(filters.area) === -1) return false;
     if (filters.publisher && !pubMatch(j[IDX.publisher], filters.publisher)) return false;
+    // Scimago marca el cuartil de las revistas sin ranquear (conference
+    // proceedings, algunas book series) con el string literal "-", no con
+    // un campo vacío -- si se tratara como cuartil real, quedarían
+    // excluidas aunque el usuario tenga los 4 cuartiles tildados. Solo se
+    // filtra por cuartil cuando el valor es realmente uno de Q1-Q4.
     var q = j[IDX.quartile];
-    if (q && filters.quartiles.size > 0 && !filters.quartiles.has(q)) return false;
+    var esCuartilValido = q === 'Q1' || q === 'Q2' || q === 'Q3' || q === 'Q4';
+    if (esCuartilValido && filters.quartiles.size > 0 && !filters.quartiles.has(q)) return false;
     if (filters.sjrMin != null) {
       var sjr = j[IDX.sjr];
       if (sjr == null || sjr < filters.sjrMin) return false;
+    }
+    if (filters.onlyJournal && j[IDX.type] !== 'journal') return false;
+    if (filters.waiver && j[IDX.waiver] !== 'Yes') return false;
+    if (filters.oaMode === 'oa' && !j[IDX.oa] && !j[IDX.oa_diamond]) return false;
+    if (filters.oaMode && filters.oaMode !== 'any' && filters.oaMode !== 'oa' && jType(j) !== filters.oaMode) return false;
+    // Si no se conoce el APC de la revista, no se excluye por presupuesto
+    // (mismo criterio que investigaciontau) -- excluir de plano dejaría
+    // fuera a la mayoría del dataset, que no tiene ese dato.
+    if (filters.budget != null) {
+      var usd = j[IDX.apc_usd];
+      if (usd != null && usd > filters.budget) return false;
     }
     return true;
   }
@@ -181,18 +223,32 @@
     });
   }
   function fmtN(n) { return n == null || n === '' ? '—' : Number(n).toLocaleString('en-US'); }
+  function fmtUsd(n) { return n == null ? '—' : '$' + fmtN(Math.round(n)); }
   function scimagoUrl(j, idx) {
+    // El Sourceid de Scimago (cuando está) da una URL exacta a la ficha de
+    // la revista; sin eso, se cae a una búsqueda por título (menos precisa
+    // si hay varias revistas con nombres parecidos).
+    var sid = j[idx.sourceid];
+    if (sid) return 'https://www.scimagojr.com/journalsearch.php?q=' + encodeURIComponent(sid) + '&tip=sid';
     return 'https://www.scimagojr.com/journalsearch.php?q=' + encodeURIComponent(j[idx.title]) + '&tip=jou';
   }
-  function accessBadgeHtml(j, idx) {
-    if (j[idx.oa_diamond]) return '<span class="badge b-dia">💎 Diamond</span>';
-    if (j[idx.oa]) return '<span class="badge b-gold">🟡 Gold OA</span>';
-    return '<span class="badge b-sub">🔒 Suscripción</span>';
+  function homepageUrl(j, idx) {
+    var home = j[idx.homepage];
+    return home ? home : scimagoUrl(j, idx);
   }
-  function accessLabel(j, idx) {
-    if (j[idx.oa_diamond]) return 'Diamond';
-    if (j[idx.oa]) return 'Gold OA';
-    return 'Suscripción';
+  function typeBadgeHtml(j, idx) {
+    var t = TYPE_INFO[jType(j)];
+    return '<span class="badge b-' + jType(j) + '" title="' + esc(t.title) + '">' + t.label + '</span>';
+  }
+  function typeLabel(j, idx) { return TYPE_INFO[jType(j)].label.replace(/^\S+\s/, ''); }
+  function apcOficialHtml(j, idx) {
+    if (j[idx.doaj_has_apc] === 'No') return '<span style="color:var(--ok);font-weight:700">Sin APC (Diamond)</span>';
+    return j[idx.doaj_apc] ? esc(j[idx.doaj_apc]) : '—';
+  }
+  function apcRealHtml(j, idx) {
+    var mediana = j[idx.apc_paid_median_eur];
+    if (mediana == null) return '—';
+    return '€' + fmtN(mediana) + ' <span style="color:var(--muted)">(n=' + fmtN(j[idx.apc_paid_n]) + ')</span>';
   }
 
   var lastResults = [];
@@ -212,11 +268,16 @@
       if (document.getElementById(id).checked) quartiles.add('Q' + (i + 1));
     });
     var sjrRaw = document.getElementById('jm-sjrmin').value;
+    var budgetRaw = document.getElementById('jm-budget').value;
     return {
       area: document.getElementById('jm-area').value,
       publisher: document.getElementById('jm-publisher').value,
       quartiles: quartiles,
       sjrMin: sjrRaw === '' ? null : Number(sjrRaw),
+      oaMode: document.getElementById('jm-oa').value,
+      budget: budgetRaw === '' ? null : Number(budgetRaw),
+      waiver: document.getElementById('jm-waiver').checked,
+      onlyJournal: document.getElementById('jm-onlyjournal').checked,
     };
   }
 
@@ -226,15 +287,27 @@
       container.innerHTML = '<p style="color:var(--muted);margin-top:1.5rem">Sin resultados para los criterios elegidos.</p>';
       return;
     }
-    var rows = results.map(function (r) {
+    var cards = results.map(function (r) {
       var j = r.journal;
-      return '<tr><td><a href="' + scimagoUrl(j, idx) + '" target="_blank" rel="noopener">' +
-        esc(j[idx.title]) + '</a></td><td>' + esc(j[idx.publisher]) + '</td><td>' +
-        esc(j[idx.country]) + '</td><td>' + esc(j[idx.quartile] || '—') + '</td><td>' +
-        fmtN(j[idx.sjr]) + '</td><td>' + fmtN(j[idx.h_index]) + '</td><td>' + accessBadgeHtml(j, idx) + '</td></tr>';
+      var waiverBadge = j[idx.waiver] === 'Yes' ? '<span class="badge b-wv">Waiver disponible</span>' : '';
+      var citesBadge = j[idx.cites_2y] != null
+        ? '<span class="badge b-if" title="Citas por documento a 2 años (Scimago) — proxy del factor de impacto">📈 Citas/Doc 2a: ' + j[idx.cites_2y] + '</span>' : '';
+      return '<div class="jcard">' +
+        '<h3><a href="' + homepageUrl(j, idx) + '" target="_blank" rel="noopener">' + esc(j[idx.title]) + '</a></h3>' +
+        '<div class="jmeta">' + esc(j[idx.publisher]) + ' · ' + esc(j[idx.country]) + ' · ISSN ' + esc(j[idx.issn]) +
+        ' · <a href="' + scimagoUrl(j, idx) + '" target="_blank" rel="noopener">Scimago ▸</a></div>' +
+        '<div class="badges">' +
+        (j[idx.quartile] ? '<span class="badge b-q">' + esc(j[idx.quartile]) + '</span>' : '') +
+        (j[idx.sjr] != null ? '<span class="badge b-apc">SJR ' + j[idx.sjr] + '</span>' : '') +
+        citesBadge +
+        '<span class="badge b-apc">H-index ' + fmtN(j[idx.h_index]) + '</span>' +
+        typeBadgeHtml(j, idx) + waiverBadge +
+        '</div>' +
+        '<div class="apcline">💰 <b>APC oficial:</b> ' + apcOficialHtml(j, idx) + ' &nbsp;·&nbsp; <b>Pagado real:</b> ' + apcRealHtml(j, idx) +
+        (j[idx.apc_url] ? ' &nbsp;<a href="' + esc(j[idx.apc_url]) + '" target="_blank" rel="noopener">ver política APC ▸</a>' : '') +
+        '</div></div>';
     }).join('');
-    container.innerHTML = '<table><thead><tr><th>Revista</th><th>Editorial</th>' +
-      '<th>País</th><th>Cuartil</th><th>SJR</th><th>H-index</th><th>Acceso</th></tr></thead><tbody>' + rows + '</tbody></table>';
+    container.innerHTML = cards;
   }
 
   function dlCsv(rows, filename) {
@@ -266,11 +339,16 @@
 
   function exportCsv() {
     var idx = window.JournalMatch.getIDX();
-    var rows = [['Score', 'Título', 'ISSN', 'Editorial', 'País', 'Cuartil', 'SJR', 'H-index', 'Acceso']];
+    var rows = [['Score', 'Título', 'ISSN', 'Editorial', 'País', 'Modelo de publicación',
+      'Cuartil SJR', 'SJR', 'H-index', 'Citas/Doc 2 años', 'Áreas', 'APC estimado (USD)',
+      'APC oficial (DOAJ)', 'APC pagado real mediano (EUR, OpenAPC)', 'n pagos OpenAPC',
+      'Waiver', 'URL Scimago']];
     lastResults.forEach(function (r) {
       var j = r.journal;
       rows.push([r.score.toFixed(2), j[idx.title], j[idx.issn], j[idx.publisher],
-        j[idx.country], j[idx.quartile], j[idx.sjr], j[idx.h_index], accessLabel(j, idx)]);
+        j[idx.country], typeLabel(j, idx), j[idx.quartile], j[idx.sjr], j[idx.h_index],
+        j[idx.cites_2y], j[idx.areas], j[idx.apc_usd], j[idx.doaj_apc],
+        j[idx.apc_paid_median_eur], j[idx.apc_paid_n], j[idx.waiver], scimagoUrl(j, idx)]);
     });
     dlCsv(rows, 'journal_match_' + lastResults.length + '_revistas.csv');
   }
