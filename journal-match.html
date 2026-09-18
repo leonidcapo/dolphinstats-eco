@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Journal Match — DolphinStats</title>
-<meta name="description" content="Busca revistas científicas por título o palabras clave de tu manuscrito, con filtros de área, editorial, cuartil SJR y SJR mínimo. Dataset Scimago Journal Rank.">
+<meta name="description" content="Busca revistas científicas por título o palabras clave de tu manuscrito, con filtros de área, editorial, cuartil SJR, modelo de acceso abierto, presupuesto de APC y waiver. Dataset Scimago + DOAJ + OpenAPC.">
 <link rel="canonical" href="https://dolphinstats-web.vercel.app/journal-match.html">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
@@ -12,7 +12,7 @@
 <style>
   :root{
     --ocean:#ffffff; --aqua:#0075c6; --white:#003060; --muted:#4a6285;
-    --accent:#ff3131; --surface:#f5f7fb; --border:rgba(0,48,96,.10);
+    --accent:#ff3131; --surface:#f5f7fb; --border:rgba(0,48,96,.10); --ok:#1c8c5b;
   }
   *{box-sizing:border-box}
   html,body{margin:0;padding:0}
@@ -37,17 +37,30 @@
   #jm-export{background:#fff;color:var(--aqua);border:1px solid var(--aqua)}
   #jm-status{margin-top:1rem;font-size:.85rem;color:var(--muted)}
   #jm-status.error{color:var(--accent)}
-  table{width:100%;border-collapse:collapse;margin-top:1.5rem;font-size:.85rem}
-  th,td{text-align:left;padding:.6rem .5rem;border-bottom:1px solid var(--border)}
-  th{color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.04em}
-  td a{color:var(--aqua)}
   .attribution{color:var(--muted);font-size:.8rem;margin:0 0 1.75rem}
   .info-box{background:#eef6fc;border:1px solid var(--border);border-radius:10px;padding:1rem 1.1rem;font-size:.82rem;color:var(--muted);margin-top:1.25rem;line-height:1.6}
   .info-box b{color:var(--white)}
-  .info-box .badge{display:inline-block;padding:.1rem .5rem;border-radius:100px;font-weight:700;font-size:.72rem;margin-right:.15rem}
-  .b-dia{background:#e3d9fb;color:#4c1d95}
+  .check-inline{display:flex;align-items:center;gap:.4rem;font-weight:500;text-transform:none;letter-spacing:normal;color:var(--white);font-size:.88rem}
+  .check-inline input[type=checkbox]{width:auto;accent-color:var(--aqua)}
+  .otros-criterios{display:flex;gap:1.25rem;align-items:center;flex-wrap:wrap;margin-top:.35rem}
+  .jcard{background:#fff;border:1px solid var(--border);border-radius:12px;padding:1.1rem 1.25rem;margin-top:1rem}
+  .jcard h3{margin:0 0 .3rem;font-size:1.05rem}
+  .jcard h3 a{color:var(--white);text-decoration:none}
+  .jcard h3 a:hover{color:var(--aqua)}
+  .jmeta{color:var(--muted);font-size:.82rem;margin-bottom:.6rem}
+  .jmeta a{color:var(--muted)}
+  .badges{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.6rem}
+  .badge{display:inline-block;padding:.15rem .55rem;border-radius:100px;font-weight:700;font-size:.72rem}
+  .b-q{background:#dbeafe;color:#1e3a8a}
+  .b-apc{background:var(--surface);color:var(--muted)}
+  .b-if{background:#fef3c7;color:#92400e}
+  .b-wv{background:#dcfce7;color:#166534}
+  .b-diamond{background:#e3d9fb;color:#4c1d95}
   .b-gold{background:#fdecc8;color:#92400e}
-  .b-sub{background:#f1f1f1;color:#4a6285}
+  .b-hybrid{background:#e0f2fe;color:#075985}
+  .b-subs{background:#f1f1f1;color:#4a6285}
+  .apcline{font-size:.85rem;color:var(--white)}
+  .apcline a{color:var(--aqua)}
 </style>
 </head>
 <body>
@@ -57,7 +70,7 @@
 </nav>
 <div class="wrap">
   <h1>Journal Match</h1>
-  <p class="lead">Encuentra revistas candidatas para tu manuscrito por título o palabras clave, con filtros de área, editorial, cuartil SJR y SJR mínimo. Dataset: Scimago Journal Rank.</p>
+  <p class="lead">Encuentra revistas candidatas para tu manuscrito por título o palabras clave, con filtros de área, editorial, cuartil SJR, modelo de acceso abierto, presupuesto de APC y waiver. Dataset: Scimago Journal Rank + DOAJ + OpenAPC.</p>
   <p class="attribution">Herramienta desarrollada por <strong>DolphinStats</strong> · Consultoría en Investigación Clínica y Bioestadística.</p>
 
   <div class="panel">
@@ -81,12 +94,37 @@
 
     <div class="row">
       <div>
+        <label for="jm-oa">Modelo de publicación / Acceso abierto</label>
+        <select id="jm-oa">
+          <option value="any">Indistinto</option>
+          <option value="oa">Cualquier acceso abierto</option>
+          <option value="diamond">💎 Diamond (OA sin APC)</option>
+          <option value="gold">🟡 Gold OA (con APC)</option>
+          <option value="hybrid">🔀 Híbrida (con pagos OA reales)</option>
+          <option value="subs">🔒 Suscripción</option>
+        </select>
+      </div>
+      <div>
+        <label for="jm-budget">Presupuesto máximo APC (USD)</label>
+        <input type="number" id="jm-budget" step="50" min="0" placeholder="Sin límite">
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
         <label>Cuartil SJR objetivo</label>
         <div class="quartiles">
           <label><input type="checkbox" id="jm-q1" checked> Q1</label>
           <label><input type="checkbox" id="jm-q2" checked> Q2</label>
           <label><input type="checkbox" id="jm-q3" checked> Q3</label>
           <label><input type="checkbox" id="jm-q4" checked> Q4</label>
+        </div>
+      </div>
+      <div>
+        <label>Otros criterios</label>
+        <div class="otros-criterios">
+          <label class="check-inline"><input type="checkbox" id="jm-waiver"> Con waiver</label>
+          <label class="check-inline"><input type="checkbox" id="jm-onlyjournal" checked> Solo journals</label>
         </div>
       </div>
     </div>
@@ -98,11 +136,14 @@
     <div id="jm-status">Cargando dataset de revistas…</div>
 
     <div class="info-box">
-      <b>Modelos de acceso</b> (según Scimago):
-      <span class="badge b-dia">💎 Diamond</span> 100% acceso abierto, sin costo declarado para el autor ·
-      <span class="badge b-gold">🟡 Gold OA</span> 100% acceso abierto ·
-      <span class="badge b-sub">🔒 Suscripción</span> sin marca de acceso abierto en Scimago.
-      No mostramos costos de publicación (APC): Scimago no reporta esos montos; para el valor exacto, consulta la web de la revista.
+      <b>Modelos de publicación</b>:
+      <span class="badge b-diamond">💎 Diamond</span> revista 100% OA sin costo declarado para el autor ·
+      <span class="badge b-gold">🟡 Gold OA</span> revista 100% OA financiada con APC ·
+      <span class="badge b-hybrid">🔀 Híbrida</span> revista de suscripción con opción OA pagando APC (pagos reales documentados por OpenAPC) ·
+      <span class="badge b-subs">🔒 Suscripción</span> sin evidencia de opción OA con APC.
+      El <b>APC oficial</b> es el que declara la revista en DOAJ; el <b>pagado real</b> es la mediana de lo que instituciones
+      reportaron haber pagado de verdad (OpenAPC) — suele ser menor al oficial por descuentos, acuerdos institucionales o waivers.
+      Sin marca DOAJ (revistas de suscripción puras), no hay dato de APC.
     </div>
     <div class="info-box">
       <b>Sobre el factor de impacto:</b> el JIF de Clarivate es un dato propietario, sin descarga pública para las
