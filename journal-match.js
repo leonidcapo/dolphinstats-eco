@@ -5,7 +5,9 @@
   var J = [];           // loaded journals (array of arrays)
   var AREAS = [];
   var PUBLISHERS = [];
-  var JT = [];           // normalized "title categories" text per journal, for scoring
+  var JT = [];           // normalized title text per journal, for scoring (peso 1.0)
+  var JC = [];           // normalized categories text per journal (peso 0.75)
+  var JA = [];           // normalized areas text per journal (peso 0.4)
   var IDF = new Map();
   var NDOCS = 0;
 
@@ -93,30 +95,18 @@
   function buildIndex() {
     NDOCS = J.length;
     var df = new Map();
-    JT = new Array(NDOCS);
+    JT = new Array(NDOCS); JC = new Array(NDOCS); JA = new Array(NDOCS);
     for (var i = 0; i < NDOCS; i++) {
       var j = J[i];
-      var text = j[IDX.title] + ' ' + j[IDX.categories];
-      var seen = new Set(stoks(text));
+      var seen = new Set(stoks(j[IDX.title] + ' ' + j[IDX.categories]));
       seen.forEach(function (w) { df.set(w, (df.get(w) || 0) + 1); });
-      JT[i] = ' ' + normTxt(text) + ' ';
+      JT[i] = ' ' + normTxt(j[IDX.title]) + ' ';
+      JC[i] = ' ' + normTxt(j[IDX.categories]) + ' ';
+      JA[i] = ' ' + normTxt(j[IDX.areas]) + ' ';
     }
     df.forEach(function (c, w) {
       IDF.set(w, Math.log((NDOCS + 1) / (c + 1)) + 1);
     });
-  }
-
-  function score(journalIdx, queryToks) {
-    var text = JT[journalIdx];
-    var total = 0;
-    var seen = new Set();
-    for (var i = 0; i < queryToks.length; i++) {
-      var w = queryToks[i];
-      if (seen.has(w)) continue;
-      seen.add(w);
-      if (text.indexOf(w) !== -1) total += (IDF.get(w) || 1);
-    }
-    return total;
   }
 
   function passesFilters(j, filters) {
@@ -148,19 +138,85 @@
     return true;
   }
 
+  // Puerto del score de investigaciontau (runMatch en su código fuente): no
+  // es solo "contiene el término" -- pondera por campo (título > categorías
+  // > área), por especificidad del término (IDF) y exige una relevancia
+  // mínima (7%) para no incluir coincidencias de una sola palabra genérica.
+  // Diagnóstico de sesión: la versión anterior (un simple "suma IDF de lo
+  // que matcheó, sin piso") encontraba 1.568 revistas para una búsqueda
+  // donde investigaciontau encuentra 165 -- de ahí la diferencia real que
+  // reportó el usuario, no solo el límite de 50 que ya truncaba el conteo
+  // sin avisar (eso también se corrige acá: search() ahora devuelve el
+  // total real además de la porción a mostrar).
+  function buildQuery(query) {
+    var vistos = new Map(); // stem -> palabra original (para mostrar "coincidencias")
+    tokens(query).forEach(function (w) {
+      var s = stem(w);
+      if (!vistos.has(s)) vistos.set(s, w);
+    });
+    var terms = [];
+    vistos.forEach(function (w, s) { terms.push({ w: w, s: s, idf: IDF.get(s) || 1 }); });
+    return terms;
+  }
+
+  function relevancia(i, terms) {
+    var acc = 0, hits = [];
+    for (var k = 0; k < terms.length; k++) {
+      var t = terms[k];
+      var fld = 0;
+      if (JT[i].indexOf(t.s) !== -1) fld = 1.0;
+      else if (JC[i].indexOf(t.s) !== -1) fld = 0.75;
+      else if (JA[i].indexOf(t.s) !== -1) fld = 0.4;
+      if (fld > 0) { acc += t.idf * fld; hits.push(t.w); }
+    }
+    return { acc: acc, hits: hits };
+  }
+
   function search(query, filters, topN) {
-    topN = topN || 50;
-    var queryToks = stoks(query);
+    topN = topN || 30; // igual que investigaciontau: la lista completa se puede exportar, no hace falta pintar más
+    var terms = buildQuery(query);
+    var useKw = terms.length > 0;
+    var ranked = terms.slice().sort(function (a, b) { return b.idf - a.idf; });
+    var denom = ranked.slice(0, 5).reduce(function (acc, t) { return acc + t.idf; }, 0) || 1;
+
+    var quartiles = Array.from(filters.quartiles).map(function (q) { return Number(q.replace('Q', '')); });
+
     var out = [];
     for (var i = 0; i < J.length; i++) {
       var j = J[i];
       if (!passesFilters(j, filters)) continue;
-      var s = queryToks.length > 0 ? score(i, queryToks) : 0;
-      if (queryToks.length > 0 && s === 0) continue;
-      out.push({ journal: j, score: s });
+
+      var relScore = 0, hits = [];
+      if (useKw) {
+        var r = relevancia(i, terms);
+        var coverage = 0.62 + 0.38 * Math.min(1, r.hits.length / 3);
+        relScore = Math.min(1, (r.acc / denom) * coverage);
+        if (relScore < 0.07) continue; // con palabras clave, exige relevancia mínima
+        hits = r.hits;
+      }
+
+      var qNum = { Q1: 1, Q2: 2, Q3: 3, Q4: 4 }[j[IDX.quartile]] || 0;
+      var qScore = quartiles.length === 0 ? 0.6
+        : qNum === 0 ? 0.3
+        : quartiles.indexOf(qNum) !== -1 ? 1
+        : Math.max(0, 1 - 0.3 * Math.abs(qNum - Math.min.apply(null, quartiles)));
+
+      var sjr = j[IDX.sjr] || 0;
+      var pScore = Math.min(1, Math.log10(1 + sjr) / 1.04);
+
+      var aScore = 0.5;
+      if (j[IDX.apc_source] === APC_SRC_SIN_APC_CONFIRMADO) aScore = 1;
+      else if (j[IDX.apc_usd] != null) aScore = filters.budget != null ? (j[IDX.apc_usd] <= filters.budget ? 1 : 0) : 0.8;
+      if (j[IDX.waiver] === 'Yes') aScore = Math.min(1, aScore + 0.15);
+
+      var pct = useKw
+        ? 100 * (0.66 * relScore + 0.14 * qScore + 0.09 * pScore + 0.11 * aScore)
+        : 100 * (0.40 * qScore + 0.33 * pScore + 0.27 * aScore);
+
+      out.push({ journal: j, score: Math.round(pct), hits: hits });
     }
-    out.sort(function (a, b) { return b.score - a.score; });
-    return out.slice(0, topN);
+    out.sort(function (a, b) { return b.score - a.score || ((b.journal[IDX.sjr] || 0) - (a.journal[IDX.sjr] || 0)); });
+    return { all: out, shown: out.slice(0, topN), useKw: useKw };
   }
 
   // Cargado del dataset. Igual patrón que investigaciontau: busca primero en
@@ -281,18 +337,29 @@
     };
   }
 
-  function renderResults(results, idx) {
+  function matchColor(p) {
+    return p >= 75 ? 'var(--ok)' : p >= 50 ? 'var(--aqua)' : p >= 30 ? '#d97706' : 'var(--accent)';
+  }
+
+  function renderResults(shown, total, useKw, idx) {
     var container = document.getElementById('jm-results');
-    if (results.length === 0) {
+    if (shown.length === 0) {
       container.innerHTML = '<p style="color:var(--muted);margin-top:1.5rem">Sin resultados para los criterios elegidos.</p>';
       return;
     }
-    var cards = results.map(function (r) {
+    var resumen = '<p class="jsummary"><b>' + fmtN(total) + '</b> revista(s) cumplen tus criterios. Mostrando las <b>' +
+      fmtN(shown.length) + '</b> más pertinentes.' +
+      (useKw ? '' : ' <span style="color:var(--muted)">Escribe tu título o palabras clave para un match temático más fino.</span>') +
+      '</p>';
+    var cards = shown.map(function (r) {
       var j = r.journal;
       var waiverBadge = j[idx.waiver] === 'Yes' ? '<span class="badge b-wv">Waiver disponible</span>' : '';
       var citesBadge = j[idx.cites_2y] != null
         ? '<span class="badge b-if" title="Citas por documento a 2 años (Scimago) — proxy del factor de impacto">📈 Citas/Doc 2a: ' + j[idx.cites_2y] + '</span>' : '';
-      return '<div class="jcard">' +
+      var col = matchColor(r.score);
+      var hitsLine = r.hits.length
+        ? '<div class="jhits">Coincidencias temáticas: ' + esc(r.hits.slice(0, 10).join(', ')) + '</div>' : '';
+      return '<div class="jcard"><div class="jtop"><div class="jbody">' +
         '<h3><a href="' + homepageUrl(j, idx) + '" target="_blank" rel="noopener">' + esc(j[idx.title]) + '</a></h3>' +
         '<div class="jmeta">' + esc(j[idx.publisher]) + ' · ' + esc(j[idx.country]) + ' · ISSN ' + esc(j[idx.issn]) +
         ' · <a href="' + scimagoUrl(j, idx) + '" target="_blank" rel="noopener">Scimago ▸</a></div>' +
@@ -305,9 +372,13 @@
         '</div>' +
         '<div class="apcline">💰 <b>APC oficial:</b> ' + apcOficialHtml(j, idx) + ' &nbsp;·&nbsp; <b>Pagado real:</b> ' + apcRealHtml(j, idx) +
         (j[idx.apc_url] ? ' &nbsp;<a href="' + esc(j[idx.apc_url]) + '" target="_blank" rel="noopener">ver política APC ▸</a>' : '') +
+        '</div>' + hitsLine + '</div>' +
+        '<div class="jmatch"><div class="jmatchpct" style="color:' + col + '">' + r.score + '%</div>' +
+        '<div class="jmatchbar"><i style="width:' + r.score + '%;background:' + col + '"></i></div>' +
+        '<div class="jmatchlbl">pertinencia</div></div>' +
         '</div></div>';
     }).join('');
-    container.innerHTML = cards;
+    container.innerHTML = resumen + cards;
   }
 
   function dlCsv(rows, filename) {
@@ -328,24 +399,27 @@
   function runSearch() {
     var idx = window.JournalMatch.getIDX();
     var query = document.getElementById('jm-query').value.trim();
-    var results = window.JournalMatch.search(query, currentFilters());
-    lastResults = results;
-    renderResults(results, idx);
-    document.getElementById('jm-export').disabled = results.length === 0;
-    var statusEl = document.getElementById('jm-status');
-    statusEl.textContent = results.length + ' revista(s) encontradas.';
-    statusEl.classList.remove('error');
+    var r = window.JournalMatch.search(query, currentFilters());
+    // El CSV exporta TODO lo que cumple los criterios (r.all), no solo las
+    // que se pintan en pantalla (r.shown) -- mismo criterio que
+    // investigaciontau ("Descargar las 165 revistas", aunque solo pinte 30).
+    lastResults = r.all;
+    renderResults(r.shown, r.all.length, r.useKw, idx);
+    document.getElementById('jm-export').disabled = r.all.length === 0;
+    // El conteo y el resumen ya se muestran arriba de las tarjetas
+    // (renderResults) -- acá solo se limpia el status de carga inicial.
+    document.getElementById('jm-status').textContent = '';
   }
 
   function exportCsv() {
     var idx = window.JournalMatch.getIDX();
-    var rows = [['Score', 'Título', 'ISSN', 'Editorial', 'País', 'Modelo de publicación',
+    var rows = [['Pertinencia (%)', 'Título', 'ISSN', 'Editorial', 'País', 'Modelo de publicación',
       'Cuartil SJR', 'SJR', 'H-index', 'Citas/Doc 2 años', 'Áreas', 'APC estimado (USD)',
       'APC oficial (DOAJ)', 'APC pagado real mediano (EUR, OpenAPC)', 'n pagos OpenAPC',
       'Waiver', 'URL Scimago']];
     lastResults.forEach(function (r) {
       var j = r.journal;
-      rows.push([r.score.toFixed(2), j[idx.title], j[idx.issn], j[idx.publisher],
+      rows.push([r.score, j[idx.title], j[idx.issn], j[idx.publisher],
         j[idx.country], typeLabel(j, idx), j[idx.quartile], j[idx.sjr], j[idx.h_index],
         j[idx.cites_2y], j[idx.areas], j[idx.apc_usd], j[idx.doaj_apc],
         j[idx.apc_paid_median_eur], j[idx.apc_paid_n], j[idx.waiver], scimagoUrl(j, idx)]);
