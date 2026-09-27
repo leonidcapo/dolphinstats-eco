@@ -13,10 +13,14 @@
 // vez de romper.
 //
 // Mismo límite de responsabilidad que en chatbot.py: la IA NUNCA calcula el
-// tamaño de muestra ni inventa un valor de p -- solo clasifica cuál de los 6
-// diseños ya validados corresponde al título (mismo prompt, mismas 6
-// opciones + "no_disponible" que ASISTENTE_ARBOL en calculadora-muestra.js).
+// tamaño de muestra ni inventa un valor de p -- solo clasifica cuál de los
+// diseños ya validados corresponde al título (mismo prompt, mismas opciones
+// + "no_disponible" que ASISTENTE_ARBOL en calculadora-muestra.js).
 // El cálculo lo sigue haciendo siempre la fórmula fija en el navegador.
+//
+// V2 (sesión 2026-09-27): se agregaron media_pareada y mcnemar (diseño
+// antes/después) a la lista de diseños disponibles -- espejo de la
+// actualización V7 de PROMPT_CLASIFICADOR_DISENO en chatbot.py.
 
 export const config = { runtime: 'edge' };
 
@@ -24,10 +28,11 @@ const MAX_INPUT_CHARS = 600;
 
 const DISENOS_VALIDOS = new Set([
   'proporcion_unica', 'dos_proporciones', 'dos_medias',
-  'casos_controles', 'cohorte', 'correlacion', 'no_disponible',
+  'casos_controles', 'cohorte', 'correlacion',
+  'media_pareada', 'mcnemar', 'no_disponible',
 ]);
 
-const PROMPT_CLASIFICADOR_DISENO = `Eres un clasificador de diseños de estudio para tesis de ciencias de la salud. Dado un título o pregunta de investigación, elige CUÁL de estos 6 diseños de cálculo de tamaño de muestra corresponde, o admite honestamente que ninguno aplica todavía. Nunca calcules un tamaño de muestra ni sugieras un valor de p -- solo clasifica el diseño.
+const PROMPT_CLASIFICADOR_DISENO = `Eres un clasificador de diseños de estudio para tesis de ciencias de la salud. Dado un título o pregunta de investigación, elige CUÁL de estos 8 diseños de cálculo de tamaño de muestra corresponde, o admite honestamente que ninguno aplica todavía. Nunca calcules un tamaño de muestra ni sugieras un valor de p -- solo clasifica el diseño.
 
 Diseños disponibles (código exacto a usar):
 - proporcion_unica: estimar una sola proporción o prevalencia (ej. "prevalencia de X en Y", "¿cuántos tienen X?")
@@ -36,13 +41,15 @@ Diseños disponibles (código exacto a usar):
 - casos_controles: se parte de la enfermedad (casos vs. controles) y se mira hacia atrás la exposición pasada -- diseño retrospectivo; títulos con "factores de riesgo", "factores asociados a [enfermedad]"
 - cohorte: se parte de la exposición y se sigue a los grupos en el tiempo para ver quién desarrolla la enfermedad -- diseño prospectivo
 - correlacion: ver si dos variables numéricas están relacionadas entre sí, en las mismas personas, sin dividir en grupos (ej. "relación entre X y Y")
+- media_pareada: comparar un promedio (variable numérica) medido ANTES y DESPUÉS en los MISMOS sujetos (ej. "efecto de X sobre el peso antes y después de la intervención")
+- mcnemar: comparar una proporción (sí/no) medida ANTES y DESPUÉS en los MISMOS sujetos (ej. "efecto de X sobre la presencia de Y antes y después de la intervención")
 
-Si el título describe un diseño que NO es ninguno de estos 6 (ej. estimar una sola media/promedio con intervalo de confianza, o un diseño pareado/antes-después/antes-y-después en las mismas personas), responde con diseno="no_disponible" y en el motivo indica brevemente cuál sería el diseño correcto aunque todavía no esté disponible en la calculadora.
+Si el título describe un diseño que NO es ninguno de estos 8 (ej. estimar una sola media/promedio con intervalo de confianza, sin comparar antes/después), responde con diseno="no_disponible" y en el motivo indica brevemente cuál sería el diseño correcto aunque todavía no esté disponible en la calculadora.
 
 Si el título es ambiguo entre 2 diseños, elige el más probable dado cómo se suele plantear en tesis de salud, y dilo en el motivo (ej. "asumiendo que compararás dos grupos ya definidos; si en realidad partiste de los enfermos, sería casos y controles").
 
 Responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional antes ni después, con esta forma exacta:
-{"diseno": "<uno de: proporcion_unica, dos_proporciones, dos_medias, casos_controles, cohorte, correlacion, no_disponible>", "motivo": "<explicación breve, 1-2 oraciones, en español, dirigida directamente al estudiante>"}`;
+{"diseno": "<uno de: proporcion_unica, dos_proporciones, dos_medias, casos_controles, cohorte, correlacion, media_pareada, mcnemar, no_disponible>", "motivo": "<explicación breve, 1-2 oraciones, en español, dirigida directamente al estudiante>"}`;
 
 function jsonResponse(status, body) {
   return new Response(JSON.stringify(body), {

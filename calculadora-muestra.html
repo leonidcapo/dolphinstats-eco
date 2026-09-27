@@ -63,7 +63,7 @@
 </nav>
 <div class="wrap">
   <h1>Calculadora de Muestra</h1>
-  <p class="lead">Tamaño de muestra para los 6 diseños más frecuentes en tesis de ciencias de la salud: proporción única (con corrección por población finita opcional), comparación de dos proporciones, comparación de dos medias, casos y controles, cohorte y coeficiente de correlación. Fórmulas validadas contra Epidat 4.2. Incluye el párrafo de métodos listo para copiar.</p>
+  <p class="lead">Tamaño de muestra para los 8 diseños más frecuentes en tesis de ciencias de la salud: proporción única (con corrección por población finita opcional), comparación de dos proporciones, comparación de dos medias, casos y controles, cohorte, coeficiente de correlación, y el diseño pareado antes/después (t pareada y McNemar). Fórmulas validadas contra Epidat 4.2 y otras fuentes citadas en el párrafo de métodos. Incluye el párrafo de métodos listo para copiar.</p>
 
   <div class="panel">
     <button type="button" id="cm-titulo-ia-toggle" class="btn-block">✨ Pega tu título o pregunta de investigación</button>
@@ -90,6 +90,8 @@
       <option value="casos_controles">Casos y controles (odds ratio)</option>
       <option value="cohorte">Cohorte (riesgo relativo)</option>
       <option value="correlacion">Coeficiente de correlación</option>
+      <option value="media_pareada">Comparar una media antes/después (mismos sujetos)</option>
+      <option value="mcnemar">Comparar una proporción antes/después (mismos sujetos, McNemar)</option>
     </select>
 
     <button type="button" id="cm-endes-toggle" class="btn-block campo-oculto" style="margin-top:1rem">📊 ¿Tu variable es una de estas 9? Usa un dato real de ENDES Perú</button>
@@ -187,6 +189,28 @@
       <div class="check-field">
         <label for="cm-corr-bilateral">&nbsp;</label>
         <label class="check-inline"><input type="checkbox" id="cm-corr-bilateral" checked> Contraste bilateral</label>
+      </div>
+    </div>
+
+    <div class="row campo-oculto" id="cm-campos-media_pareada">
+      <div>
+        <label for="cm-mp-dif">Diferencia mínima a detectar (antes vs. después)</label>
+        <input type="number" id="cm-mp-dif" step="0.1" min="0.01" value="5">
+      </div>
+      <div>
+        <label for="cm-mp-sd">Desviación estándar de las diferencias</label>
+        <input type="number" id="cm-mp-sd" step="0.1" min="0.01" value="10">
+      </div>
+    </div>
+
+    <div class="row campo-oculto" id="cm-campos-mcnemar">
+      <div>
+        <label for="cm-mn-pd">Proporción de pares discordantes esperada (0–1)</label>
+        <input type="number" id="cm-mn-pd" step="0.01" min="0.01" max="0.99" value="0.50">
+      </div>
+      <div>
+        <label for="cm-mn-or">Odds ratio esperada entre pares discordantes</label>
+        <input type="number" id="cm-mn-or" step="0.1" min="0.01" value="2.0">
       </div>
     </div>
 

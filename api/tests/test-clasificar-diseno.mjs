@@ -118,8 +118,8 @@ async function main() {
     assert.equal(res.status, 502);
   });
 
-  await test('los 6 diseños válidos + no_disponible son aceptados', async () => {
-    const validos = ['proporcion_unica', 'dos_proporciones', 'dos_medias', 'casos_controles', 'cohorte', 'correlacion', 'no_disponible'];
+  await test('los 8 diseños válidos + no_disponible son aceptados', async () => {
+    const validos = ['proporcion_unica', 'dos_proporciones', 'dos_medias', 'casos_controles', 'cohorte', 'correlacion', 'media_pareada', 'mcnemar', 'no_disponible'];
     for (const d of validos) {
       const restore = mockFetchOnce(async () => deepseekOkResponse({ diseno: d, motivo: 'motivo de prueba' }));
       const res = await handler(req({ titulo: 'un título cualquiera' }));

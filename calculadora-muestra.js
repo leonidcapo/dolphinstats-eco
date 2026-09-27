@@ -10,6 +10,10 @@
 
   var REF_TEXTO = "Charan J, Biswas T. How to calculate sample size for different study " +
     "designs in medical research? Indian J Psychol Med. 2013;35(2):121-6.";
+  var REF_JULIOUS_TEXTO = "Julious SA. Sample sizes for clinical trials with Normal data. " +
+    "Stat Med. 2004;23(12):1921-86.";
+  var REF_CONNOR_TEXTO = "Connor RJ. Sample size for testing differences in proportions for " +
+    "the paired-sample design. Biometrics. 1987;43(1):207-11.";
 
   // Valores exactos de tabla normal estándar (coinciden con los que usa
   // Epidat 4.2 — verificado reproduciendo sus ejemplos resueltos).
@@ -204,6 +208,54 @@
     return { n_total: n, n_por_grupo: null, formula: formula, parrafo_metodos: parrafo };
   }
 
+  /* V7 (sesión 2026-09-27): diseño pareado (antes/después, mismos sujetos
+   * medidos dos veces), puerto directo de media_pareada/mcnemar en
+   * calculadora_muestra.py (ver su docstring, sección V7, para el detalle
+   * completo de cómo se validó cada fórmula). */
+  function mediaPareada(diferencia, sdDiferencias, confianza, potencia) {
+    if (!(diferencia > 0)) {
+      throw new ParametroInvalido('La diferencia mínima a detectar debe ser mayor a 0');
+    }
+    if (!(sdDiferencias > 0)) {
+      throw new ParametroInvalido('La desviación estándar de las diferencias debe ser mayor a 0');
+    }
+    var za = Z_ALFA[confianza], zb = Z_BETA[potencia];
+    var n = Math.ceil(Math.pow(za + zb, 2) * sdDiferencias * sdDiferencias / (diferencia * diferencia) + (za * za) / 2);
+    var formula = 'n = (Zα+Zβ)²σd²/Δ² + Zα²/2';
+    var parrafo = 'El tamaño de muestra se calculó para comparar una variable numérica ' +
+      'medida antes y después en los mismos sujetos (prueba t pareada), asumiendo una ' +
+      'diferencia mínima clínicamente relevante de ' + diferencia + ' y una desviación ' +
+      'estándar de las diferencias de ' + sdDiferencias + ', con un nivel de confianza del ' +
+      confianza + '% y una potencia estadística del ' + potencia + '%, mediante la fórmula ' +
+      formula + ' (' + REF_JULIOUS_TEXTO + '). El tamaño de muestra mínimo requerido fue de ' +
+      n + ' sujetos.';
+    return { n_total: n, n_por_grupo: null, formula: formula, parrafo_metodos: parrafo };
+  }
+
+  function mcnemar(proporcionDiscordante, orEsperada, confianza, potencia) {
+    validarProporcion(proporcionDiscordante, 'La proporción de pares discordantes');
+    if (!(orEsperada > 0)) {
+      throw new ParametroInvalido('La odds ratio esperada debe ser mayor a 0');
+    }
+    if (orEsperada === 1) {
+      throw new ParametroInvalido('Una OR de 1 significa que no hay asociación que detectar');
+    }
+    var za = Z_ALFA[confianza], zb = Z_BETA[potencia];
+    var delta = proporcionDiscordante * (orEsperada - 1) / (orEsperada + 1);
+    var var0 = proporcionDiscordante;
+    var var1 = proporcionDiscordante - delta * delta;
+    var n = Math.ceil(Math.pow(za * Math.sqrt(var0) + zb * Math.sqrt(var1), 2) / (delta * delta));
+    var formula = 'n = [Zα√pd + Zβ√(pd-Δ²)]²/Δ², Δ=pd(OR-1)/(OR+1)';
+    var parrafo = 'El tamaño de muestra se calculó para comparar una variable categórica ' +
+      'medida antes y después en los mismos sujetos (prueba de McNemar), asumiendo una ' +
+      'proporción de pares discordantes del ' + (proporcionDiscordante * 100).toFixed(0) +
+      '% y una odds ratio esperada de ' + orEsperada + ' entre esos pares, con un nivel de ' +
+      'confianza del ' + confianza + '% y una potencia estadística del ' + potencia +
+      '%, mediante la fórmula ' + formula + ' (' + REF_CONNOR_TEXTO + '). El tamaño de ' +
+      'muestra mínimo requerido fue de ' + n + ' sujetos.';
+    return { n_total: n, n_por_grupo: null, formula: formula, parrafo_metodos: parrafo };
+  }
+
   /* ---------------- Asistente de selección de diseño (sin IA) ----------------
    * Puerto directo de ASISTENTE_ARBOL / ASISTENTE_MOTIVOS en chatbot.py (paso 2
    * del roadmap "enriquecer con Epidat"). Mismo árbol de decisión fijo, mismas
@@ -229,7 +281,7 @@
       pregunta: '¿Son dos grupos distintos de personas, o mides a las mismas personas dos veces (antes/después, pareado)?',
       opciones: [
         { texto: 'Dos grupos distintos de personas (independientes)', irA: 'tipo_variable' },
-        { texto: 'Las mismas personas, medidas dos veces (pareado o antes/después)', noDisponible: 'El diseño pareado (prueba de McNemar o t pareada) todavía no está en la calculadora.' }
+        { texto: 'Las mismas personas, medidas dos veces (pareado o antes/después)', irA: 'tipo_variable_pareada' }
       ]
     },
     tipo_variable: {
@@ -237,6 +289,13 @@
       opciones: [
         { texto: 'Numérica (un promedio): peso, presión, puntaje…', resultado: 'dos_medias' },
         { texto: 'Categórica: sí/no', irA: 'como_armaste_grupos' }
+      ]
+    },
+    tipo_variable_pareada: {
+      pregunta: '¿Qué tipo de variable mides antes y después, en las mismas personas?',
+      opciones: [
+        { texto: 'Numérica (un promedio): peso, presión, puntaje…', resultado: 'media_pareada' },
+        { texto: 'Categórica: sí/no (ej. prueba positiva/negativa)', resultado: 'mcnemar' }
       ]
     },
     como_armaste_grupos: {
@@ -255,7 +314,9 @@
     correlacion: 'Porque quieres ver si dos variables numéricas están asociadas entre sí, en las mismas personas, sin dividir en grupos.',
     casos_controles: 'Porque partiste de la enfermedad (casos/controles) y miras hacia atrás la exposición — diseño retrospectivo.',
     cohorte: 'Porque partiste de la exposición y sigues a los grupos en el tiempo para ver quién enferma — diseño prospectivo.',
-    dos_proporciones: 'Porque comparas una proporción (sí/no) entre dos grupos ya definidos, sin que la selección se base en enfermedad o exposición.'
+    dos_proporciones: 'Porque comparas una proporción (sí/no) entre dos grupos ya definidos, sin que la selección se base en enfermedad o exposición.',
+    media_pareada: 'Porque mides un promedio (variable numérica) antes y después en los mismos sujetos, y comparas el promedio de esas diferencias.',
+    mcnemar: 'Porque mides una variable categórica (sí/no) antes y después en los mismos sujetos, y comparas cuántos cambian de respuesta — prueba de McNemar.'
   };
 
   var DISENOS_LABELS = {
@@ -264,7 +325,9 @@
     dos_medias: 'Comparación de dos medias',
     casos_controles: 'Casos y controles (odds ratio)',
     cohorte: 'Cohorte (riesgo relativo)',
-    correlacion: 'Coeficiente de correlación'
+    correlacion: 'Coeficiente de correlación',
+    media_pareada: 'Comparar una media antes/después (mismos sujetos)',
+    mcnemar: 'Comparar una proporción antes/después (mismos sujetos, McNemar)'
   };
 
   /* ---------------- Sugerencias de p con datos reales de ENDES Perú ----------------
@@ -287,7 +350,7 @@
   /* ---------------- UI wiring ---------------- */
 
   var DISENOS = ['proporcion_unica', 'dos_proporciones', 'dos_medias',
-    'casos_controles', 'cohorte', 'correlacion'];
+    'casos_controles', 'cohorte', 'correlacion', 'media_pareada', 'mcnemar'];
 
   function $(id) { return document.getElementById(id); }
 
@@ -575,10 +638,18 @@
         var coRazon = Number($('cm-co-razon').value);
         var coYates = $('cm-co-yates').checked;
         r = cohorte(coPExp, coPNoExp, coRazon, confianza, potencia, coYates);
-      } else {
+      } else if (diseno === 'correlacion') {
         var corrR = Number($('cm-corr-r').value);
         var corrBilateral = $('cm-corr-bilateral').checked;
         r = coeficienteCorrelacion(corrR, confianza, potencia, corrBilateral);
+      } else if (diseno === 'media_pareada') {
+        var mpDif = Number($('cm-mp-dif').value);
+        var mpSd = Number($('cm-mp-sd').value);
+        r = mediaPareada(mpDif, mpSd, confianza, potencia);
+      } else {
+        var mnPd = Number($('cm-mn-pd').value);
+        var mnOr = Number($('cm-mn-or').value);
+        r = mcnemar(mnPd, mnOr, confianza, potencia);
       }
 
       $('cm-n').textContent = r.n_total;
@@ -655,6 +726,7 @@
 
   window.CalculadoraMuestra = {
     proporcionUnica: proporcionUnica, dosProporciones: dosProporciones, dosMedias: dosMedias,
-    casosControles: casosControles, cohorte: cohorte, coeficienteCorrelacion: coeficienteCorrelacion
+    casosControles: casosControles, cohorte: cohorte, coeficienteCorrelacion: coeficienteCorrelacion,
+    mediaPareada: mediaPareada, mcnemar: mcnemar
   };
 })();
