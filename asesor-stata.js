@@ -148,6 +148,7 @@
     var vista = $('as-nota-vista');
     vista.classList.remove('campo-oculto');
     vista.innerHTML = '<p class="vacio">Cargando…</p>';
+    vista.scrollIntoView({ behavior: 'smooth', block: 'start' });
     fetch('/api/asesor-stata-base?nota=' + encodeURIComponent(path))
       .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
       .then(function (r) {
