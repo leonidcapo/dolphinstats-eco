@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Asesor Stata — DolphinStats</title>
+<meta name="robots" content="noindex, nofollow">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ocean:#ffffff; --aqua:#0075c6; --white:#003060; --muted:#4a6285;
+    --accent:#ff3131; --surface:#f5f7fb; --border:rgba(0,48,96,.10);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{font-family:'DM Sans',sans-serif;color:var(--white);background:var(--ocean);line-height:1.5}
+  .wrap{max-width:820px;margin:0 auto;padding:2rem 1.25rem 4rem}
+  nav{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;border-bottom:1px solid var(--border)}
+  .logo{font-family:Arial,sans-serif;font-weight:800;font-size:1.2rem;color:var(--aqua);text-decoration:none}
+  .logo span{color:#0899a8}
+  nav a.back{color:var(--muted);text-decoration:none;font-size:.85rem}
+  h1{font-family:'Syne',sans-serif;font-size:1.9rem;margin:0 0 .4rem}
+  p.lead{color:var(--muted);margin:0 0 1.75rem;max-width:640px}
+  .tabs{display:flex;gap:.5rem;margin-bottom:1.25rem;border-bottom:1px solid var(--border)}
+  .tab{cursor:pointer;border:none;background:none;padding:.7rem 1rem;font-family:inherit;font-size:.9rem;font-weight:700;color:var(--muted);border-bottom:2px solid transparent}
+  .tab.activo{color:var(--aqua);border-bottom-color:var(--aqua)}
+  .campo-oculto{display:none !important}
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.5rem}
+  .tema-titulo{font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:1.5rem 0 .6rem}
+  .tema-titulo:first-child{margin-top:0}
+  .ncard{display:block;width:100%;text-align:left;background:#fff;border:1px solid var(--border);border-radius:10px;padding:.9rem 1.1rem;margin-bottom:.6rem;cursor:pointer;font-family:inherit}
+  .ncard:hover{border-color:var(--aqua)}
+  .ncard .ntitulo{font-weight:700;font-size:.95rem;color:var(--white)}
+  .ncard .nresumen{color:var(--muted);font-size:.82rem;margin-top:.25rem}
+  .vacio{color:var(--muted);font-size:.85rem;font-style:italic}
+  #as-nota-vista{margin-top:1.5rem;background:#fff;border:1px solid var(--border);border-radius:14px;padding:1.5rem}
+  #as-nota-vista h2{font-size:1.05rem;margin:1.2rem 0 .5rem}
+  #as-nota-vista h2:first-child{margin-top:0}
+  #as-nota-vista p{font-size:.9rem;color:var(--white)}
+  #as-nota-vista ul{font-size:.9rem;color:var(--white);padding-left:1.2rem}
+  textarea{width:100%;padding:.7rem .8rem;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:.9rem;background:#fff;color:var(--white);min-height:70px;resize:vertical}
+  button.enviar{cursor:pointer;border:none;border-radius:100px;padding:.65rem 1.4rem;font-weight:700;font-size:.9rem;font-family:inherit;background:var(--aqua);color:#fff;margin-top:.9rem}
+  #as-buscar-status{margin-top:.8rem;font-size:.85rem;color:var(--accent)}
+  #as-buscar-resultado{margin-top:1.5rem;background:#fff;border:1px solid var(--border);border-radius:14px;padding:1.5rem}
+  #as-buscar-resultado .respuesta{font-size:.92rem;color:var(--white);line-height:1.6}
+  #as-buscar-resultado .citas{margin-top:1rem;padding-top:1rem;border-top:1px dashed var(--border)}
+  #as-buscar-resultado .citas a{display:block;font-size:.82rem;color:var(--aqua);text-decoration:none;margin-bottom:.3rem}
+</style>
+</head>
+<body>
+<nav>
+  <a class="logo" href="/">Dolphin<span>Stats</span></a>
+  <a class="back" href="/">&larr; Volver al inicio</a>
+</nav>
+<div class="wrap">
+  <h1>Asesor Stata</h1>
+  <p class="lead">Base de conocimiento sobre Stata, estadística aplicada y metodología relevante para DolphinStats. Explorá las notas ya guardadas o hacé una pregunta para que se responda solo con lo que hay en la base.</p>
+
+  <div class="tabs" id="as-tabs">
+    <button type="button" class="tab activo" id="as-tab-explorar">Explorar</button>
+    <button type="button" class="tab" id="as-tab-buscar">Buscar</button>
+  </div>
+
+  <div id="as-explorar-panel">
+    <div class="panel" id="as-indice">
+      <p class="vacio">Cargando índice…</p>
+    </div>
+    <div id="as-nota-vista" class="campo-oculto"></div>
+  </div>
+
+  <div id="as-buscar-panel" class="campo-oculto">
+    <div class="panel">
+      <form id="as-buscar-form">
+        <textarea id="as-buscar-input" placeholder="Ej.: ¿hay algo sobre modelos de hazard con datos de panel?"></textarea>
+        <button type="submit" class="enviar">Preguntar</button>
+      </form>
+      <div id="as-buscar-status"></div>
+    </div>
+    <div id="as-buscar-resultado" class="campo-oculto"></div>
+  </div>
+</div>
+<script src="asesor-stata.js"></script>
+</body>
+</html>
