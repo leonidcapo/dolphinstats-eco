@@ -11,13 +11,26 @@ Middleware, funciona en el plan Hobby gratuito).
   título/palabras clave, dataset Scimago Journal Rank (`data/journals.json`,
   generado desde `endes-generator/scripts/build_journals.py`, ver ese repo).
 
+- **Asesor Stata** (`asesor-stata.html`): explorador y buscador de solo lectura
+  sobre la base de conocimiento del repo privado `leonidcapo/asesor-stata`
+  (ver ese repo para el sistema completo: monitoreo automático semanal +
+  comando `/asesor-stata` de Claude Code). Backend en `api/asesor-stata-base.js`
+  (índice y notas) y `api/asesor-stata-consulta.js` (consulta con síntesis por
+  DeepSeek).
+
 ## Deploy en Vercel
 
 1. Conectar este repo en [vercel.com/new](https://vercel.com/new) (framework:
    Other / static, sin build command).
 2. En **Settings → Environment Variables**, agregar `SITE_USER` y
    `SITE_PASS` (elegí un usuario y contraseña — no van en el repo).
-3. Deploy. El sitio pedirá esas credenciales (Basic Auth del navegador)
+3. Agregar también `ASESOR_STATA_GITHUB_TOKEN` (Personal Access Token de
+   GitHub, permiso de solo lectura sobre el repo privado
+   `leonidcapo/asesor-stata` — Settings → Developer settings → Personal
+   access tokens → Fine-grained, con acceso de solo ese repo) y
+   `DEEPSEEK_API_KEY` (la misma que ya usa `clasificar-diseno.js`, si no
+   está configurada todavía).
+4. Deploy. El sitio pedirá esas credenciales (Basic Auth del navegador)
    antes de mostrar cualquier página.
 
 ## Actualizar el dataset de Journal Match
