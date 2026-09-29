@@ -165,6 +165,29 @@ async function main() {
     assert.equal(res.status, 502);
   });
 
+  await test('notas_citadas con item malformado -> se filtra, queda solo el válido', async () => {
+    const restore = mockFetch((url) => {
+      if (url.indexOf('git/trees/master') !== -1) return new Response(JSON.stringify(TREE_UNA_NOTA), { status: 200 });
+      if (url.indexOf('contents/knowledge/sampling/nota.md') !== -1) return new Response(NOTA_CONTENIDO, { status: 200 });
+      if (url.indexOf('api.deepseek.com') !== -1) {
+        return deepseekOkResponse({
+          respuesta: 'Resumen basado en la nota.',
+          notas_citadas: [
+            { titulo: 'Una nota de prueba', path: 'knowledge/sampling/nota.md' },
+            { titulo: 123, path: 'knowledge/x.md' },
+          ],
+        });
+      }
+      throw new Error('URL no mockeada: ' + url);
+    });
+    const res = await handler(req({ pregunta: '¿qué sabemos de xtdhazard?' }));
+    restore();
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(data.notas_citadas.length, 1);
+    assert.equal(data.notas_citadas[0].path, 'knowledge/sampling/nota.md');
+  });
+
   console.log('\n' + pasados + ' pasados, ' + fallidos + ' fallidos');
   process.exit(fallidos > 0 ? 1 : 0);
 }

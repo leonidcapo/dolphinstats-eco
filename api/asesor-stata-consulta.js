@@ -136,5 +136,9 @@ export default async function handler(request) {
     return jsonResponse(502, { error: 'No se pudo interpretar la respuesta. Intenta de nuevo.' });
   }
 
-  return jsonResponse(200, { respuesta: parsed.respuesta, notas_citadas: parsed.notas_citadas });
+  const notasCitadas = parsed.notas_citadas.filter(function (n) {
+    return n && typeof n.titulo === 'string' && n.titulo.trim() && typeof n.path === 'string' && n.path.trim();
+  });
+
+  return jsonResponse(200, { respuesta: parsed.respuesta, notas_citadas: notasCitadas });
 }
