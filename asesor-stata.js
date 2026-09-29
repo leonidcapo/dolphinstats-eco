@@ -241,6 +241,14 @@
     });
   }
 
+  function nivelSeleccionado() {
+    var opciones = document.getElementsByName('as-nivel');
+    for (var i = 0; i < opciones.length; i++) {
+      if (opciones[i].checked) return opciones[i].value;
+    }
+    return 'intermedio';
+  }
+
   function enviarConsulta(pregunta) {
     var status = $('as-buscar-status');
     var resultado = $('as-buscar-resultado');
@@ -249,7 +257,7 @@
     fetch('/api/asesor-stata-consulta', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pregunta: pregunta }),
+      body: JSON.stringify({ pregunta: pregunta, nivel: nivelSeleccionado() }),
     })
       .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
       .then(function (r) {

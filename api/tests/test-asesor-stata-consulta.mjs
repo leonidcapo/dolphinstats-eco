@@ -17,7 +17,7 @@ function req(bodyObj, method) {
 
 function mockFetch(routerFn) {
   const original = globalThis.fetch;
-  globalThis.fetch = async function (url) { return routerFn(String(url)); };
+  globalThis.fetch = async function (url, opts) { return routerFn(String(url), opts); };
   return function restore() { globalThis.fetch = original; };
 }
 
@@ -186,6 +186,40 @@ async function main() {
     const data = await res.json();
     assert.equal(data.notas_citadas.length, 1);
     assert.equal(data.notas_citadas[0].path, 'knowledge/sampling/nota.md');
+  });
+
+  await test('nivel "basico" se pasa al prompt del sistema', async () => {
+    let promptEnviado = '';
+    const restore = mockFetch((url, opts) => {
+      if (url.indexOf('git/trees/master') !== -1) return new Response(JSON.stringify(TREE_UNA_NOTA), { status: 200 });
+      if (url.indexOf('contents/knowledge/sampling/nota.md') !== -1) return new Response(NOTA_CONTENIDO, { status: 200 });
+      if (url.indexOf('api.deepseek.com') !== -1) {
+        promptEnviado = JSON.parse(opts.body).messages[0].content;
+        return deepseekOkResponse({ respuesta: 'ok', notas_citadas: [] });
+      }
+      throw new Error('URL no mockeada: ' + url);
+    });
+    const res = await handler(req({ pregunta: 'una pregunta', nivel: 'basico' }));
+    restore();
+    assert.equal(res.status, 200);
+    assert.match(promptEnviado, /Nivel de la respuesta: BÁSICO/);
+  });
+
+  await test('nivel inválido u omitido -> cae a intermedio', async () => {
+    let promptEnviado = '';
+    const restore = mockFetch((url, opts) => {
+      if (url.indexOf('git/trees/master') !== -1) return new Response(JSON.stringify(TREE_UNA_NOTA), { status: 200 });
+      if (url.indexOf('contents/knowledge/sampling/nota.md') !== -1) return new Response(NOTA_CONTENIDO, { status: 200 });
+      if (url.indexOf('api.deepseek.com') !== -1) {
+        promptEnviado = JSON.parse(opts.body).messages[0].content;
+        return deepseekOkResponse({ respuesta: 'ok', notas_citadas: [] });
+      }
+      throw new Error('URL no mockeada: ' + url);
+    });
+    const res = await handler(req({ pregunta: 'una pregunta', nivel: 'experto-supremo' }));
+    restore();
+    assert.equal(res.status, 200);
+    assert.match(promptEnviado, /Nivel de la respuesta: INTERMEDIO/);
   });
 
   console.log('\n' + pasados + ' pasados, ' + fallidos + ' fallidos');

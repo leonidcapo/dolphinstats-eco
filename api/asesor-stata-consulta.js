@@ -13,6 +13,18 @@ export const config = { runtime: 'edge' };
 const MAX_PREGUNTA_CHARS = 500;
 const MAX_CONTEXT_CHARS = 100000;
 
+const NIVEL_DEFAULT = 'intermedio';
+
+const INSTRUCCION_NIVEL = {
+  basico: 'Nivel de la respuesta: BÁSICO. Quien pregunta no está familiarizado con Stata ni con ' +
+    'jerga estadística. Usa lenguaje simple, explica cualquier término técnico la primera vez que ' +
+    'aparece, usa analogías si ayudan, y no asumas que sabe qué es un comando de Stata.',
+  intermedio: 'Nivel de la respuesta: INTERMEDIO. Quien pregunta entiende estadística pero no ' +
+    'necesariamente los comandos específicos de Stata — explica qué hace cada comando que menciones.',
+  avanzado: 'Nivel de la respuesta: AVANZADO. Quien pregunta ya sabe estadística y Stata. Sé ' +
+    'directo: sintaxis exacta, sin explicaciones introductorias de conceptos básicos.',
+};
+
 const PROMPT_SISTEMA = 'Eres el asistente de consulta de la base de conocimiento "Asesor Stata": ' +
   'notas en español sobre Stata, estadística aplicada y metodología, relevantes para ' +
   'DolphinStats. Se te da el contenido completo de todas las notas guardadas hasta ahora. ' +
@@ -78,6 +90,9 @@ export default async function handler(request) {
     return jsonResponse(400, { error: 'Escribe tu pregunta.' });
   }
 
+  const nivelPedido = body && typeof body.nivel === 'string' ? body.nivel.trim().toLowerCase() : '';
+  const nivel = INSTRUCCION_NIVEL[nivelPedido] ? nivelPedido : NIVEL_DEFAULT;
+
   let contexto;
   try {
     contexto = await construirContexto(githubToken);
@@ -100,7 +115,7 @@ export default async function handler(request) {
       body: JSON.stringify({
         model: process.env.DEEPSEEK_MODEL || 'deepseek-v4-flash',
         messages: [
-          { role: 'system', content: PROMPT_SISTEMA },
+          { role: 'system', content: PROMPT_SISTEMA + '\n\n' + INSTRUCCION_NIVEL[nivel] },
           { role: 'user', content: contexto + '\n\nPregunta: ' + pregunta },
         ],
         max_tokens: 800 + (Number(process.env.DEEPSEEK_REASONING_MARGIN) || 1500),
