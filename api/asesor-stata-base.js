@@ -60,6 +60,11 @@ export default async function handler(request) {
       if (nota.indexOf('knowledge/') !== 0 || nota.slice(-3) !== '.md') {
         return jsonResponse(400, { error: 'Ruta de nota inválida.' });
       }
+      // Check for path traversal attempts (..)
+      const segments = nota.split('/');
+      if (segments.includes('..')) {
+        return jsonResponse(400, { error: 'Ruta de nota inválida.' });
+      }
       const markdown = await fetchFileRaw(token, nota);
       if (markdown === null) {
         return jsonResponse(404, { error: 'No se encontró esa nota.' });
@@ -71,6 +76,9 @@ export default async function handler(request) {
     const indice = parseIndex(indexText || '');
     return jsonResponse(200, indice);
   } catch (e) {
-    return jsonResponse(502, { error: 'No se pudo conectar con la base de conocimiento. Intenta de nuevo.' });
+    if (e instanceof GithubError) {
+      return jsonResponse(502, { error: 'No se pudo conectar con la base de conocimiento. Intenta de nuevo.' });
+    }
+    return jsonResponse(502, { error: 'Ocurrió un error inesperado. Intenta de nuevo.' });
   }
 }

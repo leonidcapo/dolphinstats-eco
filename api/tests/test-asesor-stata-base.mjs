@@ -89,6 +89,13 @@ async function main() {
     assert.equal(res.status, 400);
   });
 
+  await test('?nota con path traversal (..) -> 400, no llama a fetch', async () => {
+    const restore = mockFetchOnce(() => { throw new Error('no debería llamarse'); });
+    const res = await handler(req({ nota: 'knowledge/../README.md' }));
+    restore();
+    assert.equal(res.status, 400);
+  });
+
   await test('?nota existente -> 200 con el markdown', async () => {
     const restore = mockFetchOnce(async () => new Response('# Una nota', { status: 200 }));
     const res = await handler(req({ nota: 'knowledge/sampling/nota.md' }));
