@@ -32,7 +32,7 @@ async function test(nombre, fn) {
 
 const INDEX_EJEMPLO = '# Índice — Asesor Stata\n\n' +
   '## survival-analysis\n' +
-  '- [xtdhazard y cfbinout](knowledge/survival-analysis/xtdhazard-cfbinout.md) — IV por own-differences.\n\n' +
+  '- [xtdhazard y cfbinout](knowledge/survival-analysis/xtdhazard-cfbinout.md) — IV por own-differences. · 2026-09-28\n\n' +
   '## panel-data\n' +
   '_(sin notas aún)_\n';
 
@@ -48,8 +48,15 @@ async function main() {
     assert.equal(indice.temas[0].notas[0].titulo, 'xtdhazard y cfbinout');
     assert.equal(indice.temas[0].notas[0].path, 'knowledge/survival-analysis/xtdhazard-cfbinout.md');
     assert.equal(indice.temas[0].notas[0].resumen, 'IV por own-differences.');
+    assert.equal(indice.temas[0].notas[0].fecha, '2026-09-28');
     assert.equal(indice.temas[1].nombre, 'panel-data');
     assert.equal(indice.temas[1].notas.length, 0);
+  });
+
+  await test('parseIndex: nota sin fecha (formato viejo) deja fecha null', () => {
+    const indice = parseIndex('## sampling\n- [Una nota](knowledge/sampling/n.md) — resumen sin fecha.\n');
+    assert.equal(indice.temas[0].notas[0].resumen, 'resumen sin fecha.');
+    assert.equal(indice.temas[0].notas[0].fecha, null);
   });
 
   await test('sin token -> 503, no llama a fetch', async () => {

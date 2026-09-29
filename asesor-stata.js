@@ -102,12 +102,15 @@
 
   function $(id) { return document.getElementById(id); }
 
+  var DIAS_NOVEDADES = 30;
+
   function mostrarTab(nombre) {
-    var esExplorar = nombre === 'explorar';
-    $('as-tab-explorar').classList.toggle('activo', esExplorar);
-    $('as-tab-buscar').classList.toggle('activo', !esExplorar);
-    $('as-explorar-panel').classList.toggle('campo-oculto', !esExplorar);
-    $('as-buscar-panel').classList.toggle('campo-oculto', esExplorar);
+    $('as-tab-explorar').classList.toggle('activo', nombre === 'explorar');
+    $('as-tab-buscar').classList.toggle('activo', nombre === 'buscar');
+    $('as-tab-novedades').classList.toggle('activo', nombre === 'novedades');
+    $('as-explorar-panel').classList.toggle('campo-oculto', nombre !== 'explorar');
+    $('as-buscar-panel').classList.toggle('campo-oculto', nombre !== 'buscar');
+    $('as-novedades-panel').classList.toggle('campo-oculto', nombre !== 'novedades');
   }
 
   function renderIndice(indice) {
@@ -160,14 +163,61 @@
       .catch(function () { vista.innerHTML = '<p class="vacio">No se pudo cargar la nota. Intenta de nuevo.</p>'; });
   }
 
+  function notasRecientes(indice) {
+    var limite = Date.now() - DIAS_NOVEDADES * 24 * 60 * 60 * 1000;
+    var recientes = [];
+    indice.temas.forEach(function (tema) {
+      tema.notas.forEach(function (nota) {
+        if (!nota.fecha) return;
+        var t = Date.parse(nota.fecha);
+        if (!isNaN(t) && t >= limite) {
+          recientes.push({ titulo: nota.titulo, path: nota.path, resumen: nota.resumen, fecha: nota.fecha, tema: tema.nombre });
+        }
+      });
+    });
+    recientes.sort(function (a, b) { return b.fecha < a.fecha ? -1 : b.fecha > a.fecha ? 1 : 0; });
+    return recientes;
+  }
+
+  function renderNovedades(indice) {
+    var cont = $('as-novedades');
+    var recientes = notasRecientes(indice);
+    cont.innerHTML = '';
+    if (!recientes.length) {
+      cont.innerHTML = '<p class="vacio">No hay notas nuevas en los últimos ' + DIAS_NOVEDADES + ' días.</p>';
+      return;
+    }
+    recientes.forEach(function (nota) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'ncard';
+      btn.innerHTML = '<div class="ntitulo"></div><div class="nresumen"></div><div class="nfecha"></div>';
+      btn.querySelector('.ntitulo').textContent = nota.titulo;
+      btn.querySelector('.nresumen').textContent = nota.resumen;
+      btn.querySelector('.nfecha').textContent = nota.tema + ' · ' + nota.fecha;
+      btn.addEventListener('click', function () { mostrarTab('explorar'); verNota(nota.path); });
+      cont.appendChild(btn);
+    });
+  }
+
   function cargarIndice() {
     fetch('/api/asesor-stata-base')
       .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
       .then(function (r) {
-        if (!r.ok) { $('as-indice').innerHTML = '<p class="vacio">' + escapeHtml(r.data.error || 'No se pudo cargar el índice.') + '</p>'; return; }
+        if (!r.ok) {
+          var msg = '<p class="vacio">' + escapeHtml(r.data.error || 'No se pudo cargar el índice.') + '</p>';
+          $('as-indice').innerHTML = msg;
+          $('as-novedades').innerHTML = msg;
+          return;
+        }
         renderIndice(r.data);
+        renderNovedades(r.data);
       })
-      .catch(function () { $('as-indice').innerHTML = '<p class="vacio">No se pudo cargar el índice. Intenta de nuevo.</p>'; });
+      .catch(function () {
+        var msg = '<p class="vacio">No se pudo cargar el índice. Intenta de nuevo.</p>';
+        $('as-indice').innerHTML = msg;
+        $('as-novedades').innerHTML = msg;
+      });
   }
 
   function renderResultadoBusqueda(data) {
@@ -213,6 +263,7 @@
   document.addEventListener('DOMContentLoaded', function () {
     $('as-tab-explorar').addEventListener('click', function () { mostrarTab('explorar'); });
     $('as-tab-buscar').addEventListener('click', function () { mostrarTab('buscar'); });
+    $('as-tab-novedades').addEventListener('click', function () { mostrarTab('novedades'); });
     cargarIndice();
 
     $('as-buscar-form').addEventListener('submit', function (e) {

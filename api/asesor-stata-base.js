@@ -30,12 +30,13 @@ export function parseIndex(markdown) {
       continue;
     }
     if (!actual) continue;
-    var notaMatch = linea.match(/^-\s*\[(.+?)\]\((.+?)\)(?:\s*—\s*(.*))?$/);
+    var notaMatch = linea.match(/^-\s*\[(.+?)\]\((.+?)\)(?:\s*—\s*(.*?))?(?:\s*·\s*(\d{4}-\d{2}-\d{2}))?$/);
     if (notaMatch) {
       actual.notas.push({
         titulo: notaMatch[1].trim(),
         path: notaMatch[2].trim(),
         resumen: (notaMatch[3] || '').trim(),
+        fecha: notaMatch[4] || null,
       });
     }
   }
