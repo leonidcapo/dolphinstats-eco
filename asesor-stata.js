@@ -167,9 +167,56 @@
       .catch(function () { $('as-indice').innerHTML = '<p class="vacio">No se pudo cargar el índice. Intenta de nuevo.</p>'; });
   }
 
+  function renderResultadoBusqueda(data) {
+    var cont = $('as-buscar-resultado');
+    cont.classList.remove('campo-oculto');
+    var html = '<div class="respuesta">' + escapeHtml(data.respuesta) + '</div>';
+    if (data.notas_citadas.length) {
+      html += '<div class="citas">';
+      data.notas_citadas.forEach(function (nota) {
+        html += '<a href="#" data-path="' + escapeHtml(nota.path) + '">' + escapeHtml(nota.titulo) + '</a>';
+      });
+      html += '</div>';
+    }
+    cont.innerHTML = html;
+    cont.querySelectorAll('.citas a').forEach(function (a) {
+      a.addEventListener('click', function (e) {
+        e.preventDefault();
+        mostrarTab('explorar');
+        verNota(a.getAttribute('data-path'));
+      });
+    });
+  }
+
+  function enviarConsulta(pregunta) {
+    var status = $('as-buscar-status');
+    var resultado = $('as-buscar-resultado');
+    status.textContent = 'Consultando…';
+    resultado.classList.add('campo-oculto');
+    fetch('/api/asesor-stata-consulta', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pregunta: pregunta }),
+    })
+      .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
+      .then(function (r) {
+        if (!r.ok) { status.textContent = r.data.error || 'No se pudo responder la consulta.'; return; }
+        status.textContent = '';
+        renderResultadoBusqueda(r.data);
+      })
+      .catch(function () { status.textContent = 'No se pudo responder la consulta. Intenta de nuevo.'; });
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     $('as-tab-explorar').addEventListener('click', function () { mostrarTab('explorar'); });
     $('as-tab-buscar').addEventListener('click', function () { mostrarTab('buscar'); });
     cargarIndice();
+
+    $('as-buscar-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var pregunta = $('as-buscar-input').value.trim();
+      if (!pregunta) return;
+      enviarConsulta(pregunta);
+    });
   });
 })();
