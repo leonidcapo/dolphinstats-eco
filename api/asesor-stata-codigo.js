@@ -22,7 +22,13 @@ const MAX_NOTAS_CONTEXTO = 8;
 // dos llamadas secuenciales largas pueden superar el límite de tiempo de la
 // función Edge. Por eso se salta el router y se va directo al análisis.
 const MAX_CHARS_PARA_ROUTER = 3000;
-const TIMEOUT_DEEPSEEK_MS = 20000;
+// La respuesta al navegador se abre de inmediato y se mantiene viva con
+// espacios mientras DeepSeek genera (una revisión de un do-file largo tarda
+// más que el límite de ~25s para *empezar* a responder de una Edge Function;
+// una vez empezada, puede seguir transmitiendo). El JSON final va al cierre
+// -- JSON.parse ignora los espacios iniciales.
+const TIMEOUT_DEEPSEEK_MS = 120000;
+const INTERVALO_KEEPALIVE_MS = 5000;
 
 const NIVEL_DEFAULT = 'intermedio';
 
@@ -46,6 +52,8 @@ const PROMPT_REVISAR = 'Eres un revisor experto de código Stata para DolphinSta
   'encabezado "### <path>" de cada nota); si no aplica ninguna, dejá nota_citada en null.\n\n' +
   'Si el código no tiene problemas relevantes, devolvé un array de hallazgos vacío — no ' +
   'inventes hallazgos triviales solo para tener algo que decir.\n\n' +
+  'Devolvé como MÁXIMO 8 hallazgos, los más relevantes, ordenados con los "importante" primero. ' +
+  'Cada campo de texto en 1-2 oraciones breves.\n\n' +
   'Responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional antes ni después:\n' +
   '{"hallazgos": [{"severidad": "importante"|"sugerencia", "que": "<qué está mal o se puede ' +
   'mejorar>", "por_que": "<por qué importa>", "como_arreglar": "<cómo solucionarlo>", ' +
@@ -134,12 +142,42 @@ function validarHallazgos(lista) {
   return validos;
 }
 
+// Lee el stream SSE de DeepSeek acumulando solo el contenido visible (el
+// razonamiento llega en otro campo y se descarta).
+async function leerStreamDeepSeek(body) {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let contenido = '';
+  let finishReason = null;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lineas = buffer.split('\n');
+    buffer = lineas.pop();
+    for (const linea of lineas) {
+      const l = linea.trim();
+      if (l.indexOf('data:') !== 0) continue;
+      const payload = l.slice(5).trim();
+      if (!payload || payload === '[DONE]') continue;
+      let evento;
+      try { evento = JSON.parse(payload); } catch (e) { continue; }
+      const choice = evento && evento.choices && evento.choices[0];
+      if (!choice) continue;
+      if (choice.delta && typeof choice.delta.content === 'string') contenido += choice.delta.content;
+      if (choice.finish_reason) finishReason = choice.finish_reason;
+    }
+  }
+  return { contenido: contenido, finishReason: finishReason };
+}
+
 async function llamarDeepSeek(promptSistema, promptUsuario, deepseekKey) {
   const controlador = new AbortController();
   const corteTimeout = setTimeout(function () { controlador.abort(); }, TIMEOUT_DEEPSEEK_MS);
-  let upstream;
+  let resultado;
   try {
-    upstream = await fetch('https://api.deepseek.com/chat/completions', {
+    const upstream = await fetch('https://api.deepseek.com/chat/completions', {
       method: 'POST',
       headers: {
         Authorization: 'Bearer ' + deepseekKey,
@@ -151,12 +189,17 @@ async function llamarDeepSeek(promptSistema, promptUsuario, deepseekKey) {
           { role: 'system', content: promptSistema },
           { role: 'user', content: promptUsuario },
         ],
-        max_tokens: 4000 + (Number(process.env.DEEPSEEK_REASONING_MARGIN) || 1500),
+        max_tokens: 6000 + (Number(process.env.DEEPSEEK_REASONING_MARGIN) || 1500),
         temperature: 0.2,
         response_format: { type: 'json_object' },
+        stream: true,
       }),
       signal: controlador.signal,
     });
+    if (!upstream.ok || !upstream.body) {
+      throw new Error('upstream_error');
+    }
+    resultado = await leerStreamDeepSeek(upstream.body);
   } catch (e) {
     if (e && e.name === 'AbortError') {
       throw new Error('timeout');
@@ -165,20 +208,42 @@ async function llamarDeepSeek(promptSistema, promptUsuario, deepseekKey) {
   } finally {
     clearTimeout(corteTimeout);
   }
-  if (!upstream.ok) {
-    throw new Error('upstream_error');
-  }
-  const data = await upstream.json();
-  const choice = data && data.choices && data.choices[0];
-  const contenido = choice && choice.message ? choice.message.content : null;
   try {
-    return JSON.parse(contenido);
+    return JSON.parse(resultado.contenido);
   } catch (e) {
-    if (choice && choice.finish_reason === 'length') {
+    if (resultado.finishReason === 'length') {
       throw new Error('respuesta_truncada');
     }
     throw new Error('parse_error');
   }
+}
+
+// Abre la respuesta ya (status 200), manda un espacio cada pocos segundos y
+// al final escribe el JSON que devuelva `trabajo`. Los errores que ocurren
+// después de abrir llegan como {error} dentro del cuerpo.
+function respuestaEnStreaming(trabajo) {
+  const encoder = new TextEncoder();
+  let intervalo;
+  const stream = new ReadableStream({
+    async start(controller) {
+      controller.enqueue(encoder.encode(' '));
+      intervalo = setInterval(function () { controller.enqueue(encoder.encode(' ')); }, INTERVALO_KEEPALIVE_MS);
+      let cuerpo;
+      try {
+        cuerpo = await trabajo();
+      } catch (e) {
+        cuerpo = { error: 'No se pudo procesar el pedido. Intenta de nuevo.' };
+      }
+      clearInterval(intervalo);
+      controller.enqueue(encoder.encode(JSON.stringify(cuerpo)));
+      controller.close();
+    },
+    cancel() { clearInterval(intervalo); },
+  });
+  return new Response(stream, {
+    status: 200,
+    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+  });
 }
 
 export default async function handler(request) {
@@ -212,25 +277,27 @@ export default async function handler(request) {
       return jsonResponse(400, { error: 'Pegá el código a revisar.' });
     }
 
-    const contexto = await construirContextoOpcional(codigo);
-    const bloqueContexto = contexto ? '\n\nNotas de la base de conocimiento (usalas solo si aplican):\n' + contexto : '';
+    return respuestaEnStreaming(async function () {
+      const contexto = await construirContextoOpcional(codigo);
+      const bloqueContexto = contexto ? '\n\nNotas de la base de conocimiento (usalas solo si aplican):\n' + contexto : '';
 
-    let parsed;
-    try {
-      parsed = await llamarDeepSeek(
-        PROMPT_REVISAR + '\n\n' + INSTRUCCION_NIVEL[nivel],
-        'Código a revisar:\n```\n' + codigo + '\n```' + bloqueContexto,
-        deepseekKey
-      );
-    } catch (e) {
-      return jsonResponse(502, { error: mensajeError(e, 'revisión') });
-    }
+      let parsed;
+      try {
+        parsed = await llamarDeepSeek(
+          PROMPT_REVISAR + '\n\n' + INSTRUCCION_NIVEL[nivel],
+          'Código a revisar:\n```\n' + codigo + '\n```' + bloqueContexto,
+          deepseekKey
+        );
+      } catch (e) {
+        return { error: mensajeError(e, 'revisión') };
+      }
 
-    const hallazgos = parsed ? validarHallazgos(parsed.hallazgos) : null;
-    if (hallazgos === null) {
-      return jsonResponse(502, { error: 'No se pudo interpretar la respuesta. Intenta de nuevo.' });
-    }
-    return jsonResponse(200, { hallazgos: hallazgos });
+      const hallazgos = parsed ? validarHallazgos(parsed.hallazgos) : null;
+      if (hallazgos === null) {
+        return { error: 'No se pudo interpretar la respuesta. Intenta de nuevo.' };
+      }
+      return { hallazgos: hallazgos };
+    });
   }
 
   // modo === 'generar'
@@ -239,25 +306,27 @@ export default async function handler(request) {
     return jsonResponse(400, { error: 'Describí qué análisis querés generar.' });
   }
 
-  const contexto = await construirContextoOpcional(descripcion);
-  const bloqueContexto = contexto ? '\n\nNotas de la base de conocimiento (usalas solo si aplican):\n' + contexto : '';
+  return respuestaEnStreaming(async function () {
+    const contexto = await construirContextoOpcional(descripcion);
+    const bloqueContexto = contexto ? '\n\nNotas de la base de conocimiento (usalas solo si aplican):\n' + contexto : '';
 
-  let parsed;
-  try {
-    parsed = await llamarDeepSeek(
-      PROMPT_GENERAR + '\n\n' + INSTRUCCION_NIVEL[nivel],
-      'Descripción del análisis:\n' + descripcion + bloqueContexto,
-      deepseekKey
-    );
-  } catch (e) {
-    return jsonResponse(502, { error: mensajeError(e, 'generación') });
-  }
+    let parsed;
+    try {
+      parsed = await llamarDeepSeek(
+        PROMPT_GENERAR + '\n\n' + INSTRUCCION_NIVEL[nivel],
+        'Descripción del análisis:\n' + descripcion + bloqueContexto,
+        deepseekKey
+      );
+    } catch (e) {
+      return { error: mensajeError(e, 'generación') };
+    }
 
-  if (!parsed || typeof parsed.codigo !== 'string' || typeof parsed.explicacion !== 'string' || !Array.isArray(parsed.notas_citadas)) {
-    return jsonResponse(502, { error: 'No se pudo interpretar la respuesta. Intenta de nuevo.' });
-  }
+    if (!parsed || typeof parsed.codigo !== 'string' || typeof parsed.explicacion !== 'string' || !Array.isArray(parsed.notas_citadas)) {
+      return { error: 'No se pudo interpretar la respuesta. Intenta de nuevo.' };
+    }
 
-  const notasCitadas = parsed.notas_citadas.map(filtrarNotaCitada).filter(function (n) { return n !== null; });
+    const notasCitadas = parsed.notas_citadas.map(filtrarNotaCitada).filter(function (n) { return n !== null; });
 
-  return jsonResponse(200, { codigo: parsed.codigo, explicacion: parsed.explicacion, notas_citadas: notasCitadas });
+    return { codigo: parsed.codigo, explicacion: parsed.explicacion, notas_citadas: notasCitadas };
+  });
 }

@@ -25,10 +25,27 @@ function deepseekOkResponse(contentObj) {
   return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(contentObj) } }] }), { status: 200 });
 }
 
+// Respuesta SSE como la de DeepSeek con stream:true: el contenido partido en
+// dos deltas (más uno de razonamiento, que debe ignorarse) y un finish_reason.
+function deepseekStreamTexto(texto, finishReason) {
+  const mitad = Math.floor(texto.length / 2);
+  const eventos = [
+    { choices: [{ delta: { reasoning_content: 'pensando...' }, finish_reason: null }] },
+    { choices: [{ delta: { content: texto.slice(0, mitad) }, finish_reason: null }] },
+    { choices: [{ delta: { content: texto.slice(mitad) }, finish_reason: finishReason || 'stop' }] },
+  ];
+  const sse = eventos.map(function (e) { return 'data: ' + JSON.stringify(e) + '\n\n'; }).join('') + 'data: [DONE]\n\n';
+  return new Response(sse, { status: 200, headers: { 'Content-Type': 'text/event-stream' } });
+}
+
+function deepseekStream(contentObj) {
+  return deepseekStreamTexto(JSON.stringify(contentObj));
+}
+
 function routerSinContexto(deepseekRespuesta) {
   return function (url) {
     if (url.indexOf('git/trees/master') !== -1) return new Response('error', { status: 500 });
-    if (url.indexOf('api.deepseek.com') !== -1) return deepseekOkResponse(deepseekRespuesta);
+    if (url.indexOf('api.deepseek.com') !== -1) return deepseekStream(deepseekRespuesta);
     throw new Error('URL no mockeada: ' + url);
   };
 }
@@ -91,9 +108,9 @@ async function main() {
       }],
     }));
     const res = await handler(req({ modo: 'revisar', codigo: 'regress y x' }));
+    const data = await res.json();
     restore();
     assert.equal(res.status, 200);
-    const data = await res.json();
     assert.equal(data.hallazgos.length, 1);
     assert.equal(data.hallazgos[0].severidad, 'importante');
   });
@@ -107,18 +124,18 @@ async function main() {
       }],
     }));
     const res = await handler(req({ modo: 'revisar', codigo: 'local x foo\ndisplay `y`' }));
+    const data = await res.json();
     restore();
     assert.equal(res.status, 200);
-    const data = await res.json();
     assert.equal(data.hallazgos[0].nota_citada.path, 'knowledge/programming/macros-loops-programas-propios.md');
   });
 
   await test('modo revisar sin hallazgos -> 200 con array vacío', async () => {
     const restore = mockFetch(routerSinContexto({ hallazgos: [] }));
     const res = await handler(req({ modo: 'revisar', codigo: 'regress y x' }));
+    const data = await res.json();
     restore();
     assert.equal(res.status, 200);
-    const data = await res.json();
     assert.deepEqual(data.hallazgos, []);
   });
 
@@ -130,9 +147,9 @@ async function main() {
       ],
     }));
     const res = await handler(req({ modo: 'revisar', codigo: 'regress y x' }));
+    const data = await res.json();
     restore();
     assert.equal(res.status, 200);
-    const data = await res.json();
     assert.equal(data.hallazgos.length, 1);
   });
 
@@ -150,11 +167,12 @@ async function main() {
         llamadasDeepseek++;
         if (llamadasDeepseek === 1) return deepseekOkResponse({ paths: ['knowledge/programming/macros-loops-programas-propios.md'] });
         promptEnviado = JSON.parse(opts.body).messages[1].content;
-        return deepseekOkResponse({ hallazgos: [] });
+        return deepseekStream({ hallazgos: [] });
       }
       throw new Error('URL no mockeada: ' + url);
     });
     const res = await handler(req({ modo: 'revisar', codigo: 'local x foo' }));
+    await res.json();
     restore();
     delete process.env.ASESOR_STATA_GITHUB_TOKEN;
     assert.equal(res.status, 200);
@@ -168,12 +186,13 @@ async function main() {
       if (url.indexOf('contents/INDEX.md') !== -1) throw new Error('no debería pedir INDEX.md con código largo');
       if (url.indexOf('api.deepseek.com') !== -1) {
         llamadasDeepseek++;
-        return deepseekOkResponse({ hallazgos: [] });
+        return deepseekStream({ hallazgos: [] });
       }
       throw new Error('URL no mockeada: ' + url);
     });
     const codigoLargo = 'di "linea"\n'.repeat(400); // > MAX_CHARS_PARA_ROUTER
     const res = await handler(req({ modo: 'revisar', codigo: codigoLargo }));
+    await res.json();
     restore();
     delete process.env.ASESOR_STATA_GITHUB_TOKEN;
     assert.equal(res.status, 200);
@@ -187,9 +206,9 @@ async function main() {
       notas_citadas: [],
     }));
     const res = await handler(req({ modo: 'generar', descripcion: 'regresión con errores robustos' }));
+    const data = await res.json();
     restore();
     assert.equal(res.status, 200);
-    const data = await res.json();
     assert.equal(data.codigo, 'regress y x1 x2, vce(robust)');
     assert.match(data.explicacion, /errores robustos/);
   });
@@ -200,45 +219,76 @@ async function main() {
       if (url.indexOf('git/trees/master') !== -1) return new Response('error', { status: 500 });
       if (url.indexOf('api.deepseek.com') !== -1) {
         promptEnviado = JSON.parse(opts.body).messages[0].content;
-        return deepseekOkResponse({ codigo: 'x', explicacion: 'y', notas_citadas: [] });
+        return deepseekStream({ codigo: 'x', explicacion: 'y', notas_citadas: [] });
       }
       throw new Error('URL no mockeada: ' + url);
     });
     const res = await handler(req({ modo: 'generar', descripcion: 'algo', nivel: 'basico' }));
+    await res.json();
     restore();
     assert.equal(res.status, 200);
     assert.match(promptEnviado, /Nivel de la respuesta: BÁSICO/);
   });
 
-  await test('error HTTP de DeepSeek -> 502', async () => {
+  // Con streaming la respuesta ya salió con 200 cuando falla DeepSeek: el
+  // error viaja como {error} dentro del cuerpo.
+  await test('error HTTP de DeepSeek -> {error} en el cuerpo', async () => {
     const restore = mockFetch((url) => {
       if (url.indexOf('git/trees/master') !== -1) return new Response('error', { status: 500 });
       if (url.indexOf('api.deepseek.com') !== -1) return new Response('error simulado', { status: 500 });
       throw new Error('URL no mockeada: ' + url);
     });
     const res = await handler(req({ modo: 'revisar', codigo: 'regress y x' }));
+    const data = await res.json();
     restore();
-    assert.equal(res.status, 502);
+    assert.match(data.error, /No se pudo completar la revisión/);
   });
 
-  await test('JSON malformado de DeepSeek -> 502', async () => {
+  await test('JSON malformado de DeepSeek -> {error}', async () => {
     const restore = mockFetch((url) => {
       if (url.indexOf('git/trees/master') !== -1) return new Response('error', { status: 500 });
-      if (url.indexOf('api.deepseek.com') !== -1) {
-        return new Response(JSON.stringify({ choices: [{ message: { content: 'esto no es JSON' } }] }), { status: 200 });
-      }
+      if (url.indexOf('api.deepseek.com') !== -1) return deepseekStreamTexto('esto no es JSON');
       throw new Error('URL no mockeada: ' + url);
     });
     const res = await handler(req({ modo: 'generar', descripcion: 'algo' }));
+    const data = await res.json();
     restore();
-    assert.equal(res.status, 502);
+    assert.ok(data.error);
+    assert.equal(data.codigo, undefined);
   });
 
-  await test('respuesta de DeepSeek con forma inesperada para el modo -> 502', async () => {
+  await test('respuesta cortada por max_tokens -> mensaje específico de truncado', async () => {
+    const restore = mockFetch((url) => {
+      if (url.indexOf('api.deepseek.com') !== -1) return deepseekStreamTexto('{"hallazgos": [{"severidad": "impor', 'length');
+      throw new Error('URL no mockeada: ' + url);
+    });
+    const res = await handler(req({ modo: 'revisar', codigo: 'regress y x' }));
+    const data = await res.json();
+    restore();
+    assert.match(data.error, /demasiado larga/);
+  });
+
+  await test('respuesta de DeepSeek con forma inesperada para el modo -> {error}', async () => {
     const restore = mockFetch(routerSinContexto({ respuesta: 'esto no tiene el campo codigo' }));
     const res = await handler(req({ modo: 'generar', descripcion: 'algo' }));
+    const data = await res.json();
     restore();
-    assert.equal(res.status, 502);
+    assert.ok(data.error);
+  });
+
+  await test('pide stream:true a DeepSeek', async () => {
+    let bodyEnviado = null;
+    const restore = mockFetch((url, opts) => {
+      if (url.indexOf('api.deepseek.com') !== -1) {
+        bodyEnviado = JSON.parse(opts.body);
+        return deepseekStream({ hallazgos: [] });
+      }
+      throw new Error('URL no mockeada: ' + url);
+    });
+    const res = await handler(req({ modo: 'revisar', codigo: 'regress y x' }));
+    await res.json();
+    restore();
+    assert.equal(bodyEnviado.stream, true);
   });
 
   console.log('\n' + pasados + ' pasados, ' + fallidos + ' fallidos');

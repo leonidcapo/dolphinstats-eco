@@ -373,7 +373,7 @@
     })
       .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
       .then(function (r) {
-        if (!r.ok) { status.textContent = r.data.error || 'No se pudo procesar el pedido.'; return; }
+        if (!r.ok || r.data.error) { status.textContent = r.data.error || 'No se pudo procesar el pedido.'; return; }
         status.textContent = '';
         if (subModoCodigo === 'revisar') { renderHallazgos(r.data.hallazgos); }
         else { renderCodigoGenerado(r.data); }
