@@ -12,6 +12,7 @@
 import { fetchFileRaw, parseIndex } from './asesor-stata-github.js';
 
 const LIMITE_DEFAULT = 8;
+const TIMEOUT_ROUTER_MS = 8000;
 
 const PROMPT_ROUTER = 'Sos un router de relevancia para la base de conocimiento "Asesor Stata". ' +
   'Se te da una lista de notas (path, título, resumen) y una consulta. Elegí como máximo ' +
@@ -38,23 +39,31 @@ export async function elegirNotasRelevantes(token, deepseekKey, textoConsulta, l
       return '- ' + n.path + ' — ' + n.titulo + ': ' + n.resumen;
     }).join('\n');
 
-    const upstream = await fetch('https://api.deepseek.com/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: 'Bearer ' + deepseekKey,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: process.env.DEEPSEEK_MODEL || 'deepseek-v4-flash',
-        messages: [
-          { role: 'system', content: PROMPT_ROUTER.replace('{{LIMITE}}', String(limite)) },
-          { role: 'user', content: 'Consulta: ' + textoConsulta + '\n\nNotas disponibles:\n' + listado },
-        ],
-        max_tokens: 500 + (Number(process.env.DEEPSEEK_REASONING_MARGIN) || 1500),
-        temperature: 0,
-        response_format: { type: 'json_object' },
-      }),
-    });
+    const controlador = new AbortController();
+    const corteTimeout = setTimeout(function () { controlador.abort(); }, TIMEOUT_ROUTER_MS);
+    let upstream;
+    try {
+      upstream = await fetch('https://api.deepseek.com/chat/completions', {
+        method: 'POST',
+        headers: {
+          Authorization: 'Bearer ' + deepseekKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: process.env.DEEPSEEK_MODEL || 'deepseek-v4-flash',
+          messages: [
+            { role: 'system', content: PROMPT_ROUTER.replace('{{LIMITE}}', String(limite)) },
+            { role: 'user', content: 'Consulta: ' + textoConsulta + '\n\nNotas disponibles:\n' + listado },
+          ],
+          max_tokens: 500 + (Number(process.env.DEEPSEEK_REASONING_MARGIN) || 1500),
+          temperature: 0,
+          response_format: { type: 'json_object' },
+        }),
+        signal: controlador.signal,
+      });
+    } finally {
+      clearTimeout(corteTimeout);
+    }
     if (!upstream.ok) return [];
 
     const data = await upstream.json();

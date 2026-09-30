@@ -17,6 +17,12 @@ const MAX_CODIGO_CHARS = 20000;
 const MAX_DESCRIPCION_CHARS = 1000;
 const MAX_CONTEXT_CHARS = 60000;
 const MAX_NOTAS_CONTEXTO = 8;
+// Con un texto largo (p.ej. un do-file completo pegado en "Revisar"), el
+// router de relevancia aporta poco y suma una llamada extra a DeepSeek --
+// dos llamadas secuenciales largas pueden superar el límite de tiempo de la
+// función Edge. Por eso se salta el router y se va directo al análisis.
+const MAX_CHARS_PARA_ROUTER = 3000;
+const TIMEOUT_DEEPSEEK_MS = 20000;
 
 const NIVEL_DEFAULT = 'intermedio';
 
@@ -69,6 +75,7 @@ async function construirContextoOpcional(textoConsulta) {
   const token = process.env.ASESOR_STATA_GITHUB_TOKEN;
   const deepseekKey = process.env.DEEPSEEK_API_KEY;
   if (!token) return '';
+  if (textoConsulta.length > MAX_CHARS_PARA_ROUTER) return '';
   try {
     const paths = await elegirNotasRelevantes(token, deepseekKey, textoConsulta, MAX_NOTAS_CONTEXTO);
     if (!paths.length) return '';
@@ -118,23 +125,36 @@ function validarHallazgos(lista) {
 }
 
 async function llamarDeepSeek(promptSistema, promptUsuario, deepseekKey) {
-  const upstream = await fetch('https://api.deepseek.com/chat/completions', {
-    method: 'POST',
-    headers: {
-      Authorization: 'Bearer ' + deepseekKey,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: process.env.DEEPSEEK_MODEL || 'deepseek-v4-flash',
-      messages: [
-        { role: 'system', content: promptSistema },
-        { role: 'user', content: promptUsuario },
-      ],
-      max_tokens: 1500 + (Number(process.env.DEEPSEEK_REASONING_MARGIN) || 1500),
-      temperature: 0.2,
-      response_format: { type: 'json_object' },
-    }),
-  });
+  const controlador = new AbortController();
+  const corteTimeout = setTimeout(function () { controlador.abort(); }, TIMEOUT_DEEPSEEK_MS);
+  let upstream;
+  try {
+    upstream = await fetch('https://api.deepseek.com/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer ' + deepseekKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: process.env.DEEPSEEK_MODEL || 'deepseek-v4-flash',
+        messages: [
+          { role: 'system', content: promptSistema },
+          { role: 'user', content: promptUsuario },
+        ],
+        max_tokens: 1500 + (Number(process.env.DEEPSEEK_REASONING_MARGIN) || 1500),
+        temperature: 0.2,
+        response_format: { type: 'json_object' },
+      }),
+      signal: controlador.signal,
+    });
+  } catch (e) {
+    if (e && e.name === 'AbortError') {
+      throw new Error('timeout');
+    }
+    throw e;
+  } finally {
+    clearTimeout(corteTimeout);
+  }
   if (!upstream.ok) {
     throw new Error('upstream_error');
   }
@@ -186,7 +206,10 @@ export default async function handler(request) {
         deepseekKey
       );
     } catch (e) {
-      return jsonResponse(502, { error: 'No se pudo revisar el código en este momento. Intenta de nuevo.' });
+      const mensaje = e && e.message === 'timeout'
+        ? 'El análisis está tardando demasiado. Probá con un código más corto o intenta de nuevo.'
+        : 'No se pudo revisar el código en este momento. Intenta de nuevo.';
+      return jsonResponse(502, { error: mensaje });
     }
 
     const hallazgos = parsed ? validarHallazgos(parsed.hallazgos) : null;
@@ -213,7 +236,10 @@ export default async function handler(request) {
       deepseekKey
     );
   } catch (e) {
-    return jsonResponse(502, { error: 'No se pudo generar el código en este momento. Intenta de nuevo.' });
+    const mensaje = e && e.message === 'timeout'
+      ? 'La generación está tardando demasiado. Probá con una descripción más simple o intenta de nuevo.'
+      : 'No se pudo generar el código en este momento. Intenta de nuevo.';
+    return jsonResponse(502, { error: mensaje });
   }
 
   if (!parsed || typeof parsed.codigo !== 'string' || typeof parsed.explicacion !== 'string' || !Array.isArray(parsed.notas_citadas)) {

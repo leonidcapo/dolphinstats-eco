@@ -161,6 +161,25 @@ async function main() {
     assert.match(promptEnviado, /Macros mal escritas/);
   });
 
+  await test('código largo -> se salta el router (una sola llamada a DeepSeek, sin pedir INDEX.md)', async () => {
+    process.env.ASESOR_STATA_GITHUB_TOKEN = 'fake-token';
+    let llamadasDeepseek = 0;
+    const restore = mockFetch((url) => {
+      if (url.indexOf('contents/INDEX.md') !== -1) throw new Error('no debería pedir INDEX.md con código largo');
+      if (url.indexOf('api.deepseek.com') !== -1) {
+        llamadasDeepseek++;
+        return deepseekOkResponse({ hallazgos: [] });
+      }
+      throw new Error('URL no mockeada: ' + url);
+    });
+    const codigoLargo = 'di "linea"\n'.repeat(400); // > MAX_CHARS_PARA_ROUTER
+    const res = await handler(req({ modo: 'revisar', codigo: codigoLargo }));
+    restore();
+    delete process.env.ASESOR_STATA_GITHUB_TOKEN;
+    assert.equal(res.status, 200);
+    assert.equal(llamadasDeepseek, 1);
+  });
+
   await test('modo generar feliz', async () => {
     const restore = mockFetch(routerSinContexto({
       codigo: 'regress y x1 x2, vce(robust)',
