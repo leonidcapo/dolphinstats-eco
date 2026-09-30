@@ -52,6 +52,23 @@
   #as-buscar-resultado .respuesta{font-size:.92rem;color:var(--white);line-height:1.6}
   #as-buscar-resultado .citas{margin-top:1rem;padding-top:1rem;border-top:1px dashed var(--border)}
   #as-buscar-resultado .citas a{display:block;font-size:.82rem;color:var(--aqua);text-decoration:none;margin-bottom:.3rem}
+  .subtabs{display:flex;gap:.5rem;margin-bottom:1rem}
+  .subtab{cursor:pointer;border:1px solid var(--border);background:#fff;padding:.5rem 1rem;border-radius:100px;font-family:inherit;font-size:.85rem;font-weight:700;color:var(--muted)}
+  .subtab.activo{background:var(--aqua);border-color:var(--aqua);color:#fff}
+  #as-codigo-status{margin-top:.8rem;font-size:.85rem;color:var(--accent)}
+  .hallazgo{background:#fff;border:1px solid var(--border);border-left:4px solid var(--muted);border-radius:10px;padding:.9rem 1.1rem;margin-bottom:.7rem}
+  .hallazgo.importante{border-left-color:var(--accent)}
+  .hallazgo.sugerencia{border-left-color:var(--aqua)}
+  .hallazgo .h-severidad{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+  .hallazgo .h-que{font-weight:700;font-size:.92rem;margin:.3rem 0}
+  .hallazgo .h-detalle{font-size:.85rem;color:var(--muted);margin:.2rem 0}
+  .hallazgo .h-detalle b{color:var(--white)}
+  .hallazgo .h-nota{margin-top:.5rem;font-size:.8rem}
+  .hallazgo .h-nota a{color:var(--aqua);text-decoration:none}
+  #as-codigo-generado{margin-top:1.5rem}
+  #as-codigo-generado pre{background:#fff;border:1px solid var(--border);border-radius:10px;padding:1rem;font-size:.82rem;overflow-x:auto;white-space:pre-wrap;word-break:break-word}
+  #as-codigo-generado .explicacion{font-size:.9rem;color:var(--white);margin-top:.8rem;line-height:1.6}
+  button.copiar{cursor:pointer;border:1px solid var(--aqua);border-radius:100px;padding:.4rem 1rem;font-size:.8rem;font-weight:700;background:#fff;color:var(--aqua);margin-top:.5rem}
 </style>
 </head>
 <body>
@@ -67,6 +84,7 @@
     <button type="button" class="tab activo" id="as-tab-explorar">Explorar</button>
     <button type="button" class="tab" id="as-tab-buscar">Buscar</button>
     <button type="button" class="tab" id="as-tab-novedades">Novedades</button>
+    <button type="button" class="tab" id="as-tab-codigo">Código</button>
   </div>
 
   <div id="as-explorar-panel">
@@ -97,6 +115,29 @@
       <div id="as-buscar-status"></div>
     </div>
     <div id="as-buscar-resultado" class="campo-oculto"></div>
+  </div>
+
+  <div id="as-codigo-panel" class="campo-oculto">
+    <div class="subtabs" id="as-codigo-subtabs">
+      <button type="button" class="subtab activo" id="as-subtab-revisar">Revisar</button>
+      <button type="button" class="subtab" id="as-subtab-generar">Generar</button>
+    </div>
+    <div class="panel">
+      <form id="as-codigo-form">
+        <div class="nivel-label">Nivel de la respuesta</div>
+        <div class="nivel-opciones" id="as-nivel-codigo-opciones">
+          <label><input type="radio" name="as-nivel-codigo" value="basico"><span>Básico</span></label>
+          <label><input type="radio" name="as-nivel-codigo" value="intermedio" checked><span>Intermedio</span></label>
+          <label><input type="radio" name="as-nivel-codigo" value="avanzado"><span>Avanzado</span></label>
+        </div>
+        <textarea id="as-codigo-revisar-input" placeholder="Pegá tu do-file acá para que lo revise…"></textarea>
+        <textarea id="as-codigo-generar-input" class="campo-oculto" placeholder="Describí qué análisis querés generar. Ej.: regresión de presión arterial en edad y sexo, con errores robustos."></textarea>
+        <button type="submit" class="enviar" id="as-codigo-enviar">Revisar</button>
+      </form>
+      <div id="as-codigo-status"></div>
+    </div>
+    <div id="as-codigo-hallazgos" class="campo-oculto"></div>
+    <div id="as-codigo-generado" class="campo-oculto"></div>
   </div>
 </div>
 <script src="asesor-stata.js"></script>

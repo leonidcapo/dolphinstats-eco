@@ -108,9 +108,11 @@
     $('as-tab-explorar').classList.toggle('activo', nombre === 'explorar');
     $('as-tab-buscar').classList.toggle('activo', nombre === 'buscar');
     $('as-tab-novedades').classList.toggle('activo', nombre === 'novedades');
+    $('as-tab-codigo').classList.toggle('activo', nombre === 'codigo');
     $('as-explorar-panel').classList.toggle('campo-oculto', nombre !== 'explorar');
     $('as-buscar-panel').classList.toggle('campo-oculto', nombre !== 'buscar');
     $('as-novedades-panel').classList.toggle('campo-oculto', nombre !== 'novedades');
+    $('as-codigo-panel').classList.toggle('campo-oculto', nombre !== 'codigo');
   }
 
   function renderIndice(indice) {
@@ -241,13 +243,15 @@
     });
   }
 
-  function nivelSeleccionado() {
-    var opciones = document.getElementsByName('as-nivel');
+  function nivelSeleccionadoDe(nombreGrupo) {
+    var opciones = document.getElementsByName(nombreGrupo);
     for (var i = 0; i < opciones.length; i++) {
       if (opciones[i].checked) return opciones[i].value;
     }
     return 'intermedio';
   }
+
+  function nivelSeleccionado() { return nivelSeleccionadoDe('as-nivel'); }
 
   function enviarConsulta(pregunta) {
     var status = $('as-buscar-status');
@@ -268,10 +272,110 @@
       .catch(function () { status.textContent = 'No se pudo responder la consulta. Intenta de nuevo.'; });
   }
 
+  var subModoCodigo = 'revisar';
+
+  function mostrarSubModoCodigo(modo) {
+    subModoCodigo = modo;
+    $('as-subtab-revisar').classList.toggle('activo', modo === 'revisar');
+    $('as-subtab-generar').classList.toggle('activo', modo === 'generar');
+    $('as-codigo-revisar-input').classList.toggle('campo-oculto', modo !== 'revisar');
+    $('as-codigo-generar-input').classList.toggle('campo-oculto', modo !== 'generar');
+    $('as-codigo-enviar').textContent = modo === 'revisar' ? 'Revisar' : 'Generar';
+    $('as-codigo-hallazgos').classList.add('campo-oculto');
+    $('as-codigo-generado').classList.add('campo-oculto');
+    $('as-codigo-status').textContent = '';
+  }
+
+  function renderHallazgos(hallazgos) {
+    var cont = $('as-codigo-hallazgos');
+    cont.classList.remove('campo-oculto');
+    if (!hallazgos.length) {
+      cont.innerHTML = '<p class="vacio">No encontré nada para observar en este código.</p>';
+      return;
+    }
+    cont.innerHTML = '';
+    hallazgos.forEach(function (h) {
+      var div = document.createElement('div');
+      div.className = 'hallazgo ' + (h.severidad === 'importante' ? 'importante' : 'sugerencia');
+      div.innerHTML = '<div class="h-severidad"></div><div class="h-que"></div>' +
+        '<div class="h-detalle"><b>Por qué:</b> <span class="h-porque"></span></div>' +
+        '<div class="h-detalle"><b>Cómo arreglarlo:</b> <span class="h-arreglo"></span></div>' +
+        '<div class="h-nota campo-oculto"><a href="#"></a></div>';
+      div.querySelector('.h-severidad').textContent = h.severidad === 'importante' ? 'Importante' : 'Sugerencia';
+      div.querySelector('.h-que').textContent = h.que;
+      div.querySelector('.h-porque').textContent = h.por_que;
+      div.querySelector('.h-arreglo').textContent = h.como_arreglar;
+      if (h.nota_citada) {
+        var notaDiv = div.querySelector('.h-nota');
+        notaDiv.classList.remove('campo-oculto');
+        var link = notaDiv.querySelector('a');
+        link.textContent = h.nota_citada.titulo;
+        link.addEventListener('click', function (e) {
+          e.preventDefault();
+          mostrarTab('explorar');
+          verNota(h.nota_citada.path);
+        });
+      }
+      cont.appendChild(div);
+    });
+  }
+
+  function renderCodigoGenerado(data) {
+    var cont = $('as-codigo-generado');
+    cont.classList.remove('campo-oculto');
+    cont.innerHTML = '<pre></pre><button type="button" class="copiar">Copiar</button><div class="explicacion"></div>';
+    cont.querySelector('pre').textContent = data.codigo;
+    cont.querySelector('.explicacion').textContent = data.explicacion;
+    cont.querySelector('button.copiar').addEventListener('click', function () {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(data.codigo).catch(function () {});
+      }
+    });
+  }
+
+  function enviarCodigo() {
+    var status = $('as-codigo-status');
+    $('as-codigo-hallazgos').classList.add('campo-oculto');
+    $('as-codigo-generado').classList.add('campo-oculto');
+    var nivel = nivelSeleccionadoDe('as-nivel-codigo');
+    var cuerpo = { modo: subModoCodigo, nivel: nivel };
+    if (subModoCodigo === 'revisar') {
+      var codigo = $('as-codigo-revisar-input').value.trim();
+      if (!codigo) return;
+      cuerpo.codigo = codigo;
+      status.textContent = 'Revisando…';
+    } else {
+      var descripcion = $('as-codigo-generar-input').value.trim();
+      if (!descripcion) return;
+      cuerpo.descripcion = descripcion;
+      status.textContent = 'Generando…';
+    }
+    fetch('/api/asesor-stata-codigo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(cuerpo),
+    })
+      .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
+      .then(function (r) {
+        if (!r.ok) { status.textContent = r.data.error || 'No se pudo procesar el pedido.'; return; }
+        status.textContent = '';
+        if (subModoCodigo === 'revisar') { renderHallazgos(r.data.hallazgos); }
+        else { renderCodigoGenerado(r.data); }
+      })
+      .catch(function () { status.textContent = 'No se pudo procesar el pedido. Intenta de nuevo.'; });
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     $('as-tab-explorar').addEventListener('click', function () { mostrarTab('explorar'); });
     $('as-tab-buscar').addEventListener('click', function () { mostrarTab('buscar'); });
     $('as-tab-novedades').addEventListener('click', function () { mostrarTab('novedades'); });
+    $('as-tab-codigo').addEventListener('click', function () { mostrarTab('codigo'); });
+    $('as-subtab-revisar').addEventListener('click', function () { mostrarSubModoCodigo('revisar'); });
+    $('as-subtab-generar').addEventListener('click', function () { mostrarSubModoCodigo('generar'); });
+    $('as-codigo-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      enviarCodigo();
+    });
     cargarIndice();
 
     $('as-buscar-form').addEventListener('submit', function (e) {
