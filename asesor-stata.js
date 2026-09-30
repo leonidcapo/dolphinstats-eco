@@ -320,16 +320,32 @@
     });
   }
 
+  function descargarComoDo(codigo) {
+    var blob = new Blob([codigo], { type: 'text/plain' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'analisis.do';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
   function renderCodigoGenerado(data) {
     var cont = $('as-codigo-generado');
     cont.classList.remove('campo-oculto');
-    cont.innerHTML = '<pre></pre><button type="button" class="copiar">Copiar</button><div class="explicacion"></div>';
+    cont.innerHTML = '<pre></pre><button type="button" class="copiar">Copiar</button>' +
+      '<button type="button" class="copiar descargar">Descargar .do</button><div class="explicacion"></div>';
     cont.querySelector('pre').textContent = data.codigo;
     cont.querySelector('.explicacion').textContent = data.explicacion;
-    cont.querySelector('button.copiar').addEventListener('click', function () {
+    cont.querySelector('button.copiar:not(.descargar)').addEventListener('click', function () {
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(data.codigo).catch(function () {});
       }
+    });
+    cont.querySelector('button.descargar').addEventListener('click', function () {
+      descargarComoDo(data.codigo);
     });
   }
 
