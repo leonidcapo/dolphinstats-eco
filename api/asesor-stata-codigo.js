@@ -97,6 +97,16 @@ async function construirContextoOpcional(textoConsulta) {
   }
 }
 
+function mensajeError(e, accion) {
+  if (e && e.message === 'timeout') {
+    return 'La ' + accion + ' está tardando demasiado. Probá con un texto más corto o intenta de nuevo.';
+  }
+  if (e && e.message === 'respuesta_truncada') {
+    return 'La respuesta fue demasiado larga y se cortó. Probá con un texto más corto.';
+  }
+  return 'No se pudo completar la ' + accion + ' en este momento. Intenta de nuevo.';
+}
+
 function filtrarNotaCitada(n) {
   if (!n || typeof n !== 'object') return null;
   if (typeof n.titulo === 'string' && n.titulo.trim() && typeof n.path === 'string' && n.path.trim()) {
@@ -141,7 +151,7 @@ async function llamarDeepSeek(promptSistema, promptUsuario, deepseekKey) {
           { role: 'system', content: promptSistema },
           { role: 'user', content: promptUsuario },
         ],
-        max_tokens: 1500 + (Number(process.env.DEEPSEEK_REASONING_MARGIN) || 1500),
+        max_tokens: 4000 + (Number(process.env.DEEPSEEK_REASONING_MARGIN) || 1500),
         temperature: 0.2,
         response_format: { type: 'json_object' },
       }),
@@ -159,9 +169,16 @@ async function llamarDeepSeek(promptSistema, promptUsuario, deepseekKey) {
     throw new Error('upstream_error');
   }
   const data = await upstream.json();
-  const contenido = data && data.choices && data.choices[0] && data.choices[0].message
-    ? data.choices[0].message.content : null;
-  return JSON.parse(contenido);
+  const choice = data && data.choices && data.choices[0];
+  const contenido = choice && choice.message ? choice.message.content : null;
+  try {
+    return JSON.parse(contenido);
+  } catch (e) {
+    if (choice && choice.finish_reason === 'length') {
+      throw new Error('respuesta_truncada');
+    }
+    throw new Error('parse_error');
+  }
 }
 
 export default async function handler(request) {
@@ -206,10 +223,7 @@ export default async function handler(request) {
         deepseekKey
       );
     } catch (e) {
-      const mensaje = e && e.message === 'timeout'
-        ? 'El análisis está tardando demasiado. Probá con un código más corto o intenta de nuevo.'
-        : 'No se pudo revisar el código en este momento. Intenta de nuevo.';
-      return jsonResponse(502, { error: mensaje });
+      return jsonResponse(502, { error: mensajeError(e, 'revisión') });
     }
 
     const hallazgos = parsed ? validarHallazgos(parsed.hallazgos) : null;
@@ -236,10 +250,7 @@ export default async function handler(request) {
       deepseekKey
     );
   } catch (e) {
-    const mensaje = e && e.message === 'timeout'
-      ? 'La generación está tardando demasiado. Probá con una descripción más simple o intenta de nuevo.'
-      : 'No se pudo generar el código en este momento. Intenta de nuevo.';
-    return jsonResponse(502, { error: mensaje });
+    return jsonResponse(502, { error: mensajeError(e, 'generación') });
   }
 
   if (!parsed || typeof parsed.codigo !== 'string' || typeof parsed.explicacion !== 'string' || !Array.isArray(parsed.notas_citadas)) {
