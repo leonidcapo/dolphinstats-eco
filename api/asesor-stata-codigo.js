@@ -8,13 +8,15 @@
 // Requiere DEEPSEEK_API_KEY en Vercel -> Settings -> Environment Variables.
 // Sin ella, responde 503.
 
-import { fetchFileRaw, fetchKnowledgeTree } from './_lib/asesor-stata-github.js';
+import { fetchFileRaw } from './_lib/asesor-stata-github.js';
+import { elegirNotasRelevantes } from './_lib/asesor-stata-relevancia.js';
 
 export const config = { runtime: 'edge' };
 
 const MAX_CODIGO_CHARS = 20000;
 const MAX_DESCRIPCION_CHARS = 1000;
 const MAX_CONTEXT_CHARS = 60000;
+const MAX_NOTAS_CONTEXTO = 8;
 
 const NIVEL_DEFAULT = 'intermedio';
 
@@ -63,15 +65,19 @@ function jsonResponse(status, body) {
   });
 }
 
-async function construirContextoOpcional() {
+async function construirContextoOpcional(textoConsulta) {
   const token = process.env.ASESOR_STATA_GITHUB_TOKEN;
+  const deepseekKey = process.env.DEEPSEEK_API_KEY;
   if (!token) return '';
   try {
-    const paths = await fetchKnowledgeTree(token);
+    const paths = await elegirNotasRelevantes(token, deepseekKey, textoConsulta, MAX_NOTAS_CONTEXTO);
+    if (!paths.length) return '';
+
+    const contenidos = await Promise.all(paths.map(function (p) { return fetchFileRaw(token, p); }));
     var bloques = [];
     var total = 0;
     for (var i = 0; i < paths.length; i++) {
-      const markdown = await fetchFileRaw(token, paths[i]);
+      const markdown = contenidos[i];
       if (markdown === null) continue;
       const bloque = '### ' + paths[i] + '\n' + markdown;
       if (total + bloque.length > MAX_CONTEXT_CHARS) break;
@@ -163,14 +169,14 @@ export default async function handler(request) {
   const nivelPedido = body && typeof body.nivel === 'string' ? body.nivel.trim().toLowerCase() : '';
   const nivel = INSTRUCCION_NIVEL[nivelPedido] ? nivelPedido : NIVEL_DEFAULT;
 
-  const contexto = await construirContextoOpcional();
-  const bloqueContexto = contexto ? '\n\nNotas de la base de conocimiento (usalas solo si aplican):\n' + contexto : '';
-
   if (modo === 'revisar') {
     const codigo = body && typeof body.codigo === 'string' ? body.codigo.trim().slice(0, MAX_CODIGO_CHARS) : '';
     if (!codigo) {
       return jsonResponse(400, { error: 'Pegá el código a revisar.' });
     }
+
+    const contexto = await construirContextoOpcional(codigo);
+    const bloqueContexto = contexto ? '\n\nNotas de la base de conocimiento (usalas solo si aplican):\n' + contexto : '';
 
     let parsed;
     try {
@@ -195,6 +201,9 @@ export default async function handler(request) {
   if (!descripcion) {
     return jsonResponse(400, { error: 'Describí qué análisis querés generar.' });
   }
+
+  const contexto = await construirContextoOpcional(descripcion);
+  const bloqueContexto = contexto ? '\n\nNotas de la base de conocimiento (usalas solo si aplican):\n' + contexto : '';
 
   let parsed;
   try {

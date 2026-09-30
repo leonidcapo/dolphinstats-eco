@@ -25,23 +25,23 @@ function deepseekOkResponse(contentObj) {
   return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(contentObj) } }] }), { status: 200 });
 }
 
-const TREE_UNA_NOTA = { tree: [{ type: 'blob', path: 'knowledge/sampling/nota.md' }] };
+const INDEX_EJEMPLO = '# Índice\n\n## sampling\n' +
+  '- [Una nota de prueba](knowledge/sampling/nota.md) — resumen. · 2026-09-29\n';
 const NOTA_CONTENIDO = '---\ntitle: Una nota de prueba\n---\n\n## Resumen\nContenido de prueba.';
 
-function routerConNota(url) {
-  if (url.indexOf('git/trees/master') !== -1) {
-    return new Response(JSON.stringify(TREE_UNA_NOTA), { status: 200 });
-  }
-  if (url.indexOf('contents/knowledge/sampling/nota.md') !== -1) {
-    return new Response(NOTA_CONTENIDO, { status: 200 });
-  }
-  if (url.indexOf('api.deepseek.com') !== -1) {
-    return deepseekOkResponse({
-      respuesta: 'Resumen basado en la nota.',
-      notas_citadas: [{ titulo: 'Una nota de prueba', path: 'knowledge/sampling/nota.md' }],
-    });
-  }
-  throw new Error('URL no mockeada: ' + url);
+// Alterna entre respuesta de router y respuesta final según cuántas veces se llamó a DeepSeek.
+function armarRouterSecuencial(respuestaFinal) {
+  let llamadas = 0;
+  return function (url, opts) {
+    if (url.indexOf('contents/INDEX.md') !== -1) return new Response(INDEX_EJEMPLO, { status: 200 });
+    if (url.indexOf('contents/knowledge/sampling/nota.md') !== -1) return new Response(NOTA_CONTENIDO, { status: 200 });
+    if (url.indexOf('api.deepseek.com') !== -1) {
+      llamadas++;
+      if (llamadas === 1) return deepseekOkResponse({ paths: ['knowledge/sampling/nota.md'] });
+      return deepseekOkResponse(respuestaFinal);
+    }
+    throw new Error('URL no mockeada: ' + url);
+  };
 }
 
 let pasados = 0, fallidos = 0;
@@ -90,7 +90,10 @@ async function main() {
   });
 
   await test('pregunta con nota relevante -> 200 con respuesta y notas_citadas', async () => {
-    const restore = mockFetch(routerConNota);
+    const restore = mockFetch(armarRouterSecuencial({
+      respuesta: 'Resumen basado en la nota.',
+      notas_citadas: [{ titulo: 'Una nota de prueba', path: 'knowledge/sampling/nota.md' }],
+    }));
     const res = await handler(req({ pregunta: '¿qué sabemos de xtdhazard?' }));
     restore();
     assert.equal(res.status, 200);
@@ -100,11 +103,28 @@ async function main() {
     assert.equal(data.notas_citadas[0].path, 'knowledge/sampling/nota.md');
   });
 
-  await test('base sin notas -> 200 sin llamar a DeepSeek', async () => {
+  await test('router no elige ninguna nota -> 200 sin llamar dos veces a DeepSeek', async () => {
+    let llamadasDeepseek = 0;
     const restore = mockFetch((url) => {
-      if (url.indexOf('git/trees/master') !== -1) {
-        return new Response(JSON.stringify({ tree: [] }), { status: 200 });
+      if (url.indexOf('contents/INDEX.md') !== -1) return new Response(INDEX_EJEMPLO, { status: 200 });
+      if (url.indexOf('api.deepseek.com') !== -1) {
+        llamadasDeepseek++;
+        return deepseekOkResponse({ paths: [] });
       }
+      throw new Error('no debería llamar a ' + url);
+    });
+    const res = await handler(req({ pregunta: 'algo sin relación con la base' }));
+    restore();
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.deepEqual(data.notas_citadas, []);
+    assert.match(data.respuesta, /todavía no tiene notas/);
+    assert.equal(llamadasDeepseek, 1); // solo el router, nunca la llamada de respuesta
+  });
+
+  await test('base sin notas en absoluto -> 200 sin llamar a DeepSeek', async () => {
+    const restore = mockFetch((url) => {
+      if (url.indexOf('contents/INDEX.md') !== -1) return new Response('# Índice\n\n## sampling\n_(sin notas aún)_\n', { status: 200 });
       throw new Error('no debería llamar a ' + url);
     });
     const res = await handler(req({ pregunta: 'una pregunta cualquiera' }));
@@ -115,23 +135,28 @@ async function main() {
     assert.match(data.respuesta, /todavía no tiene notas/);
   });
 
-  await test('error de GitHub al traer el árbol -> 502', async () => {
+  await test('error de GitHub al traer INDEX.md -> el router cae a vacío, 200 sin notas', async () => {
     const restore = mockFetch((url) => {
-      if (url.indexOf('git/trees/master') !== -1) {
-        return new Response('error', { status: 500 });
-      }
+      if (url.indexOf('contents/INDEX.md') !== -1) return new Response('error', { status: 500 });
       throw new Error('no debería llamar a ' + url);
     });
     const res = await handler(req({ pregunta: 'una pregunta cualquiera' }));
     restore();
-    assert.equal(res.status, 502);
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.deepEqual(data.notas_citadas, []);
   });
 
-  await test('error HTTP de DeepSeek -> 502', async () => {
+  await test('error HTTP de DeepSeek en la respuesta final -> 502', async () => {
+    let llamadasDeepseek = 0;
     const restore = mockFetch((url) => {
-      if (url.indexOf('git/trees/master') !== -1) return new Response(JSON.stringify(TREE_UNA_NOTA), { status: 200 });
+      if (url.indexOf('contents/INDEX.md') !== -1) return new Response(INDEX_EJEMPLO, { status: 200 });
       if (url.indexOf('contents/knowledge/sampling/nota.md') !== -1) return new Response(NOTA_CONTENIDO, { status: 200 });
-      if (url.indexOf('api.deepseek.com') !== -1) return new Response('error simulado', { status: 500 });
+      if (url.indexOf('api.deepseek.com') !== -1) {
+        llamadasDeepseek++;
+        if (llamadasDeepseek === 1) return deepseekOkResponse({ paths: ['knowledge/sampling/nota.md'] });
+        return new Response('error simulado', { status: 500 });
+      }
       throw new Error('URL no mockeada: ' + url);
     });
     const res = await handler(req({ pregunta: 'una pregunta cualquiera' }));
@@ -140,10 +165,13 @@ async function main() {
   });
 
   await test('JSON malformado en el content de DeepSeek -> 502', async () => {
+    let llamadasDeepseek = 0;
     const restore = mockFetch((url) => {
-      if (url.indexOf('git/trees/master') !== -1) return new Response(JSON.stringify(TREE_UNA_NOTA), { status: 200 });
+      if (url.indexOf('contents/INDEX.md') !== -1) return new Response(INDEX_EJEMPLO, { status: 200 });
       if (url.indexOf('contents/knowledge/sampling/nota.md') !== -1) return new Response(NOTA_CONTENIDO, { status: 200 });
       if (url.indexOf('api.deepseek.com') !== -1) {
+        llamadasDeepseek++;
+        if (llamadasDeepseek === 1) return deepseekOkResponse({ paths: ['knowledge/sampling/nota.md'] });
         return new Response(JSON.stringify({ choices: [{ message: { content: 'esto no es JSON' } }] }), { status: 200 });
       }
       throw new Error('URL no mockeada: ' + url);
@@ -154,32 +182,20 @@ async function main() {
   });
 
   await test('respuesta de DeepSeek sin notas_citadas -> 502', async () => {
-    const restore = mockFetch((url) => {
-      if (url.indexOf('git/trees/master') !== -1) return new Response(JSON.stringify(TREE_UNA_NOTA), { status: 200 });
-      if (url.indexOf('contents/knowledge/sampling/nota.md') !== -1) return new Response(NOTA_CONTENIDO, { status: 200 });
-      if (url.indexOf('api.deepseek.com') !== -1) return deepseekOkResponse({ respuesta: 'sin citas' });
-      throw new Error('URL no mockeada: ' + url);
-    });
+    const restore = mockFetch(armarRouterSecuencial({ respuesta: 'sin citas' }));
     const res = await handler(req({ pregunta: 'una pregunta cualquiera' }));
     restore();
     assert.equal(res.status, 502);
   });
 
   await test('notas_citadas con item malformado -> se filtra, queda solo el válido', async () => {
-    const restore = mockFetch((url) => {
-      if (url.indexOf('git/trees/master') !== -1) return new Response(JSON.stringify(TREE_UNA_NOTA), { status: 200 });
-      if (url.indexOf('contents/knowledge/sampling/nota.md') !== -1) return new Response(NOTA_CONTENIDO, { status: 200 });
-      if (url.indexOf('api.deepseek.com') !== -1) {
-        return deepseekOkResponse({
-          respuesta: 'Resumen basado en la nota.',
-          notas_citadas: [
-            { titulo: 'Una nota de prueba', path: 'knowledge/sampling/nota.md' },
-            { titulo: 123, path: 'knowledge/x.md' },
-          ],
-        });
-      }
-      throw new Error('URL no mockeada: ' + url);
-    });
+    const restore = mockFetch(armarRouterSecuencial({
+      respuesta: 'Resumen basado en la nota.',
+      notas_citadas: [
+        { titulo: 'Una nota de prueba', path: 'knowledge/sampling/nota.md' },
+        { titulo: 123, path: 'knowledge/x.md' },
+      ],
+    }));
     const res = await handler(req({ pregunta: '¿qué sabemos de xtdhazard?' }));
     restore();
     assert.equal(res.status, 200);
@@ -190,10 +206,13 @@ async function main() {
 
   await test('nivel "basico" se pasa al prompt del sistema', async () => {
     let promptEnviado = '';
+    let llamadasDeepseek = 0;
     const restore = mockFetch((url, opts) => {
-      if (url.indexOf('git/trees/master') !== -1) return new Response(JSON.stringify(TREE_UNA_NOTA), { status: 200 });
+      if (url.indexOf('contents/INDEX.md') !== -1) return new Response(INDEX_EJEMPLO, { status: 200 });
       if (url.indexOf('contents/knowledge/sampling/nota.md') !== -1) return new Response(NOTA_CONTENIDO, { status: 200 });
       if (url.indexOf('api.deepseek.com') !== -1) {
+        llamadasDeepseek++;
+        if (llamadasDeepseek === 1) return deepseekOkResponse({ paths: ['knowledge/sampling/nota.md'] });
         promptEnviado = JSON.parse(opts.body).messages[0].content;
         return deepseekOkResponse({ respuesta: 'ok', notas_citadas: [] });
       }
@@ -207,10 +226,13 @@ async function main() {
 
   await test('nivel inválido u omitido -> cae a intermedio', async () => {
     let promptEnviado = '';
+    let llamadasDeepseek = 0;
     const restore = mockFetch((url, opts) => {
-      if (url.indexOf('git/trees/master') !== -1) return new Response(JSON.stringify(TREE_UNA_NOTA), { status: 200 });
+      if (url.indexOf('contents/INDEX.md') !== -1) return new Response(INDEX_EJEMPLO, { status: 200 });
       if (url.indexOf('contents/knowledge/sampling/nota.md') !== -1) return new Response(NOTA_CONTENIDO, { status: 200 });
       if (url.indexOf('api.deepseek.com') !== -1) {
+        llamadasDeepseek++;
+        if (llamadasDeepseek === 1) return deepseekOkResponse({ paths: ['knowledge/sampling/nota.md'] });
         promptEnviado = JSON.parse(opts.body).messages[0].content;
         return deepseekOkResponse({ respuesta: 'ok', notas_citadas: [] });
       }

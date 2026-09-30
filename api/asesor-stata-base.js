@@ -6,7 +6,9 @@
 // sobre ese repo) en Vercel -> Settings -> Environment Variables. Sin el
 // token, responde 503 con un mensaje honesto en vez de romper.
 
-import { fetchFileRaw, GithubError } from './_lib/asesor-stata-github.js';
+import { fetchFileRaw, GithubError, parseIndex } from './_lib/asesor-stata-github.js';
+
+export { parseIndex };
 
 export const config = { runtime: 'edge' };
 
@@ -15,32 +17,6 @@ function jsonResponse(status, body) {
     status: status,
     headers: { 'Content-Type': 'application/json' },
   });
-}
-
-export function parseIndex(markdown) {
-  var lineas = markdown.split('\n');
-  var temas = [];
-  var actual = null;
-  for (var i = 0; i < lineas.length; i++) {
-    var linea = lineas[i];
-    var temaMatch = linea.match(/^##\s+(.+)$/);
-    if (temaMatch) {
-      actual = { nombre: temaMatch[1].trim(), notas: [] };
-      temas.push(actual);
-      continue;
-    }
-    if (!actual) continue;
-    var notaMatch = linea.match(/^-\s*\[(.+?)\]\((.+?)\)(?:\s*—\s*(.*?))?(?:\s*·\s*(\d{4}-\d{2}-\d{2}))?$/);
-    if (notaMatch) {
-      actual.notas.push({
-        titulo: notaMatch[1].trim(),
-        path: notaMatch[2].trim(),
-        resumen: (notaMatch[3] || '').trim(),
-        fecha: notaMatch[4] || null,
-      });
-    }
-  }
-  return { temas: temas };
 }
 
 export default async function handler(request) {

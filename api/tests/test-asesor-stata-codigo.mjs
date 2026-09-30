@@ -136,6 +136,31 @@ async function main() {
     assert.equal(data.hallazgos.length, 1);
   });
 
+  await test('con ASESOR_STATA_GITHUB_TOKEN, arma contexto vía router y lo manda a la respuesta final', async () => {
+    process.env.ASESOR_STATA_GITHUB_TOKEN = 'fake-token';
+    const INDEX_EJEMPLO = '# Índice\n\n## programming\n' +
+      '- [Macros mal escritas](knowledge/programming/macros-loops-programas-propios.md) — trampa de macros. · 2026-09-29\n';
+    const NOTA_CONTENIDO = '---\ntitle: Macros mal escritas\n---\n\n## Resumen\nCuidado con las macros.';
+    let promptEnviado = '';
+    let llamadasDeepseek = 0;
+    const restore = mockFetch((url, opts) => {
+      if (url.indexOf('contents/INDEX.md') !== -1) return new Response(INDEX_EJEMPLO, { status: 200 });
+      if (url.indexOf('contents/knowledge/programming/macros-loops-programas-propios.md') !== -1) return new Response(NOTA_CONTENIDO, { status: 200 });
+      if (url.indexOf('api.deepseek.com') !== -1) {
+        llamadasDeepseek++;
+        if (llamadasDeepseek === 1) return deepseekOkResponse({ paths: ['knowledge/programming/macros-loops-programas-propios.md'] });
+        promptEnviado = JSON.parse(opts.body).messages[1].content;
+        return deepseekOkResponse({ hallazgos: [] });
+      }
+      throw new Error('URL no mockeada: ' + url);
+    });
+    const res = await handler(req({ modo: 'revisar', codigo: 'local x foo' }));
+    restore();
+    delete process.env.ASESOR_STATA_GITHUB_TOKEN;
+    assert.equal(res.status, 200);
+    assert.match(promptEnviado, /Macros mal escritas/);
+  });
+
   await test('modo generar feliz', async () => {
     const restore = mockFetch(routerSinContexto({
       codigo: 'regress y x1 x2, vce(robust)',

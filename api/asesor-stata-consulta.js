@@ -6,12 +6,14 @@
 // Requiere ASESOR_STATA_GITHUB_TOKEN y DEEPSEEK_API_KEY en Vercel ->
 // Settings -> Environment Variables. Sin cualquiera de las dos, responde 503.
 
-import { fetchFileRaw, fetchKnowledgeTree } from './_lib/asesor-stata-github.js';
+import { fetchFileRaw } from './_lib/asesor-stata-github.js';
+import { elegirNotasRelevantes } from './_lib/asesor-stata-relevancia.js';
 
 export const config = { runtime: 'edge' };
 
 const MAX_PREGUNTA_CHARS = 500;
 const MAX_CONTEXT_CHARS = 100000;
+const MAX_NOTAS_CONTEXTO = 8;
 
 const NIVEL_DEFAULT = 'intermedio';
 
@@ -49,12 +51,15 @@ function jsonResponse(status, body) {
   });
 }
 
-async function construirContexto(token) {
-  const paths = await fetchKnowledgeTree(token);
+async function construirContexto(token, deepseekKey, pregunta) {
+  const paths = await elegirNotasRelevantes(token, deepseekKey, pregunta, MAX_NOTAS_CONTEXTO);
+  if (!paths.length) return '';
+
+  const contenidos = await Promise.all(paths.map(function (p) { return fetchFileRaw(token, p); }));
   var bloques = [];
   var total = 0;
   for (var i = 0; i < paths.length; i++) {
-    const markdown = await fetchFileRaw(token, paths[i]);
+    const markdown = contenidos[i];
     if (markdown === null) continue;
     const bloque = '### ' + paths[i] + '\n' + markdown;
     if (total + bloque.length > MAX_CONTEXT_CHARS) break;
@@ -95,7 +100,7 @@ export default async function handler(request) {
 
   let contexto;
   try {
-    contexto = await construirContexto(githubToken);
+    contexto = await construirContexto(githubToken, deepseekKey, pregunta);
   } catch (e) {
     return jsonResponse(502, { error: 'No se pudo conectar con la base de conocimiento. Intenta de nuevo.' });
   }
