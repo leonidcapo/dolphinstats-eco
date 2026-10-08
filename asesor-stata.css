@@ -27,8 +27,8 @@
   --radio: 14px;
   --radio-sm: 10px;
   --alto-barra: 64px;
-  --fuente-titulo: 'Syne', 'Segoe UI', system-ui, sans-serif;
-  --fuente-texto: 'DM Sans', 'Segoe UI', system-ui, sans-serif;
+  --fuente-titulo: Arial, Helvetica, sans-serif;
+  --fuente-texto: Arial, Helvetica, sans-serif;
   --fuente-codigo: Consolas, 'Courier New', monospace;
 }
 

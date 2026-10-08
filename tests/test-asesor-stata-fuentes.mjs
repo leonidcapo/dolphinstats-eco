@@ -1,11 +1,13 @@
-// Comprueba que las fuentes de marca están en el repositorio y son woff2 válidas.
+// Comprueba que la tipografía es Arial del sistema, sin fuentes externas ni archivos de fuentes.
 // Correr con: node tests/test-asesor-stata-fuentes.mjs
 import assert from 'node:assert/strict';
-import { readFileSync, existsSync, statSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const FUENTES = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'fonts');
+const RAIZ = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
+const css = readFileSync(path.join(RAIZ, 'asesor-stata.css'), 'utf8');
+const html = readFileSync(path.join(RAIZ, 'asesor-stata.html'), 'utf8');
 
 let pasados = 0, fallidos = 0;
 function test(nombre, fn) {
@@ -13,47 +15,25 @@ function test(nombre, fn) {
   catch (e) { fallidos++; console.log('FALLO ' + nombre + ' -- ' + e.message); }
 }
 
-function caras() {
-  const css = readFileSync(path.join(FUENTES, 'fonts.css'), 'utf8');
-  return [...css.matchAll(/@font-face\s*\{([^}]*)\}/g)].map(m => {
-    const c = m[1];
-    return {
-      familia: (/font-family:\s*'([^']+)'/.exec(c) || [])[1],
-      peso: (/font-weight:\s*(\d+)/.exec(c) || [])[1],
-      swap: /font-display:\s*swap/.test(c),
-      rango: /unicode-range:\s*U\+0000-00FF/.test(c),
-      url: (/url\('?([^')]+)'?\)\s*format\('woff2'\)/.exec(c) || [])[1],
-    };
-  });
-}
-
-test('fonts.css declara exactamente las cinco caras de la marca', () => {
-  assert.deepEqual(caras().map(c => c.familia + ' ' + c.peso).sort(),
-    ['DM Sans 400', 'DM Sans 500', 'DM Sans 700', 'Syne 700', 'Syne 800']);
-});
-
-test('cada cara usa font-display: swap y el subconjunto latino', () => {
-  for (const c of caras()) {
-    assert.ok(c.swap, c.familia + ' ' + c.peso + ' sin font-display: swap');
-    assert.ok(c.rango, c.familia + ' ' + c.peso + ' sin unicode-range latino');
+test('los tokens de títulos y de texto usan Arial', () => {
+  for (const token of ['--fuente-titulo', '--fuente-texto']) {
+    const m = new RegExp(token + ':\s*([^;]+);').exec(css);
+    assert.ok(m, 'falta ' + token);
+    assert.match(m[1].trim(), /^Arial,/, token + ' no empieza con Arial: ' + m[1]);
   }
 });
 
-test('cada archivo woff2 existe, empieza con la firma wOF2 y pesa entre 4 KB y 120 KB', () => {
-  for (const c of caras()) {
-    const ruta = path.join(FUENTES, c.url);
-    assert.ok(existsSync(ruta), 'falta ' + c.url);
-    assert.equal(readFileSync(ruta).subarray(0, 4).toString('latin1'), 'wOF2', c.url + ' no es woff2');
-    const kb = statSync(ruta).size / 1024;
-    assert.ok(kb >= 4 && kb <= 120, c.url + ' pesa ' + kb.toFixed(1) + ' KB');
-  }
+test('el CSS no declara @font-face ni nombra las fuentes anteriores', () => {
+  assert.doesNotMatch(css, /@font-face/);
+  assert.doesNotMatch(css, /Syne|DM Sans/);
 });
 
-test('las licencias SIL OFL acompañan a las fuentes', () => {
-  for (const f of ['LICENSE-syne.txt', 'LICENSE-dm-sans.txt']) {
-    assert.ok(existsSync(path.join(FUENTES, f)), 'falta ' + f);
-    assert.match(readFileSync(path.join(FUENTES, f), 'utf8'), /SIL OPEN FONT LICENSE/i);
-  }
+test('la página no carga fuentes externas ni de la carpeta fonts/', () => {
+  assert.doesNotMatch(html, /fonts\.googleapis|fonts\.gstatic|fonts\/|rel="preload"[^>]*as="font"/);
+});
+
+test('la carpeta fonts/ ya no existe', () => {
+  assert.equal(existsSync(path.join(RAIZ, 'fonts')), false);
 });
 
 console.log('\n' + pasados + ' pasados, ' + fallidos + ' fallidos');

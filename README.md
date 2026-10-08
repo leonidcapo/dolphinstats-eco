@@ -22,8 +22,9 @@ Middleware, funciona en el plan Hobby gratuito).
   DeepSeek en streaming (`api/_lib/asesor-stata-llm.js`). Interfaz de una
   sola página con rutas por `#` (`asesor-stata.html` + `asesor-stata.js` +
   una vista por archivo en `vistas/`), con las funciones puras en
-  `asesor-stata-nucleo.js`, los estilos en `asesor-stata.css` y las fuentes
-  de marca en `fonts/` (la política de seguridad bloquea las de Google).
+  `asesor-stata-nucleo.js` y los estilos en `asesor-stata.css` (tipografía
+  Arial del sistema: no se cargan fuentes externas, que la política de
+  seguridad bloquea).
   Pruebas: `node tests/test-asesor-stata-*.mjs` y `node api/tests/test-asesor-stata-*.mjs`.
   Diseño en `docs/superpowers/specs/`: el del rediseño de la interfaz es
   `2026-10-07-asesor-stata-rediseno-frontend-design.md` y el de las funciones

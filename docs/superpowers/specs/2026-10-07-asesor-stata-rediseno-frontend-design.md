@@ -1,5 +1,7 @@
 # Diseño: rediseño del frontend de Asesor Stata
 
+> **Actualización 2026-10-08:** por pedido del usuario la tipografía pasó a **Arial** del sistema (títulos y texto) y se eliminó la carpeta `fonts/`. Las menciones de Syne y DM Sans de este documento describen el diseño original y ya no aplican.
+
 Fecha: 2026-10-07
 
 ## Propósito y qué se busca
