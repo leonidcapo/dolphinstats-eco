@@ -17,10 +17,10 @@ const MAX_CODIGO_CHARS = 20000;
 const MAX_DESCRIPCION_CHARS = 1000;
 const MAX_CONTEXT_CHARS = 60000;
 const MAX_NOTAS_CONTEXTO = 8;
-// Con un texto largo (p.ej. un do-file completo pegado en "Revisar"), el
-// router de relevancia aporta poco y suma una llamada extra a DeepSeek --
-// dos llamadas secuenciales largas pueden superar el límite de tiempo de la
-// función Edge. Por eso se salta el router y se va directo al análisis.
+// Con un texto largo (p.ej. un do-file completo pegado en "Revisar") no se le
+// pasa el archivo entero al router de relevancia: se le pasa un extracto
+// (comentarios + comandos únicos), que dice qué análisis se hace sin inflar
+// la llamada. Ver extractoParaRouter.
 const MAX_CHARS_PARA_ROUTER = 3000;
 // La respuesta al navegador se abre de inmediato y se mantiene viva con
 // espacios mientras DeepSeek genera (una revisión de un do-file largo tarda
@@ -45,14 +45,14 @@ const INSTRUCCION_NIVEL = {
 const PROMPT_REVISAR = 'Eres un revisor experto de código Stata para DolphinStats (consultoría ' +
   'en investigación clínica y bioestadística). Se te da un script .do y, opcionalmente, notas de ' +
   'una base de conocimiento interna que pueden ser relevantes.\n\n' +
-  'Revisá el código y devolvé una lista de hallazgos: buenas prácticas faltantes, errores ' +
-  'probables, riesgos de reproducibilidad, o mejoras metodológicas. Usá tu conocimiento general ' +
+  'Revisa el código y devuelve una lista de hallazgos: buenas prácticas faltantes, errores ' +
+  'probables, riesgos de reproducibilidad, o mejoras metodológicas. Usa tu conocimiento general ' +
   'de Stata — no te limites a lo que aparezca en las notas. Si una nota de la base aplica ' +
-  'directamente a un hallazgo, citala por su título y path exactos (como aparecen en el ' +
-  'encabezado "### <path>" de cada nota); si no aplica ninguna, dejá nota_citada en null.\n\n' +
+  'directamente a un hallazgo, cítala por su título y path exactos (como aparecen en el ' +
+  'encabezado "### <path>" de cada nota); si no aplica ninguna, deja nota_citada en null.\n\n' +
   'Si el código no tiene problemas relevantes, devolvé un array de hallazgos vacío — no ' +
   'inventes hallazgos triviales solo para tener algo que decir.\n\n' +
-  'Devolvé como MÁXIMO 8 hallazgos, los más relevantes, ordenados con los "importante" primero. ' +
+  'Devuelve como MÁXIMO 8 hallazgos, los más relevantes, ordenados con los "importante" primero. ' +
   'Cada campo de texto en 1-2 oraciones breves.\n\n' +
   'Responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional antes ni después:\n' +
   '{"hallazgos": [{"severidad": "importante"|"sugerencia", "que": "<qué está mal o se puede ' +
@@ -63,10 +63,10 @@ const PROMPT_GENERAR = 'Eres un generador de código Stata para DolphinStats (co
   'investigación clínica y bioestadística). Se te da una descripción en lenguaje natural de un ' +
   'análisis y, opcionalmente, notas de una base de conocimiento interna que pueden ser ' +
   'relevantes.\n\n' +
-  'Generá un do-file completo y funcional que haga lo que se describe, usando buenas prácticas ' +
-  '(version fija, comandos claros, comentarios breves si ayudan). Usá tu conocimiento general de ' +
+  'Genera un do-file completo y funcional que haga lo que se describe, usando buenas prácticas ' +
+  '(version fija, comandos claros, comentarios breves si ayudan). Usa tu conocimiento general de ' +
   'Stata — no te limites a lo que aparezca en las notas. Si una nota de la base aplica ' +
-  'directamente, citala en notas_citadas (título y path exactos); si no aplica ninguna, dejá ese ' +
+  'directamente, cítala en notas_citadas (título y path exactos); si no aplica ninguna, deja ese ' +
   'array vacío.\n\n' +
   'Responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional antes ni después:\n' +
   '{"codigo": "<do-file completo>", "explicacion": "<2-4 oraciones, qué hace el código>", ' +
@@ -79,11 +79,33 @@ function jsonResponse(status, body) {
   });
 }
 
+// Resume un do-file para el router: comentarios (qué se analiza) y la lista
+// de comandos distintos usados (cómo), recortado a MAX_CHARS_PARA_ROUTER.
+function extractoParaRouter(codigo) {
+  if (codigo.length <= MAX_CHARS_PARA_ROUTER) return codigo;
+  const comentarios = [];
+  const comandos = [];
+  const lineas = codigo.split(/\r?\n/);
+  for (var i = 0; i < lineas.length; i++) {
+    const l = lineas[i].trim();
+    if (!l) continue;
+    if (l.charAt(0) === '*' || l.indexOf('//') === 0) {
+      const texto = l.replace(/^[*\/\s=\-#]+/, '').replace(/[*=\-#\s]+$/, '');
+      if (texto && comentarios.indexOf(texto) === -1) comentarios.push(texto);
+      continue;
+    }
+    const m = l.match(/^(?:quietly\s+|qui\s+|capture\s+|cap\s+|noisily\s+|bysort\s+[^:]+:\s*|by\s+[^:]+:\s*)*([a-z_][a-z0-9_]*)/i);
+    if (m && comandos.indexOf(m[1].toLowerCase()) === -1) comandos.push(m[1].toLowerCase());
+  }
+  const extracto = 'Comandos usados: ' + comandos.join(', ') + '\n\nComentarios del do-file:\n' + comentarios.join('\n');
+  return extracto.slice(0, MAX_CHARS_PARA_ROUTER);
+}
+
 async function construirContextoOpcional(textoConsulta) {
   const token = process.env.ASESOR_STATA_GITHUB_TOKEN;
   const deepseekKey = process.env.DEEPSEEK_API_KEY;
   if (!token) return '';
-  if (textoConsulta.length > MAX_CHARS_PARA_ROUTER) return '';
+  textoConsulta = extractoParaRouter(textoConsulta);
   try {
     const paths = await elegirNotasRelevantes(token, deepseekKey, textoConsulta, MAX_NOTAS_CONTEXTO);
     if (!paths.length) return '';
@@ -107,10 +129,10 @@ async function construirContextoOpcional(textoConsulta) {
 
 function mensajeError(e, accion) {
   if (e && e.message === 'timeout') {
-    return 'La ' + accion + ' está tardando demasiado. Probá con un texto más corto o intenta de nuevo.';
+    return 'La ' + accion + ' está tardando demasiado. Prueba con un texto más corto o intenta de nuevo.';
   }
   if (e && e.message === 'respuesta_truncada') {
-    return 'La respuesta fue demasiado larga y se cortó. Probá con un texto más corto.';
+    return 'La respuesta fue demasiado larga y se cortó. Prueba con un texto más corto.';
   }
   return 'No se pudo completar la ' + accion + ' en este momento. Intenta de nuevo.';
 }
@@ -274,7 +296,7 @@ export default async function handler(request) {
   if (modo === 'revisar') {
     const codigo = body && typeof body.codigo === 'string' ? body.codigo.trim().slice(0, MAX_CODIGO_CHARS) : '';
     if (!codigo) {
-      return jsonResponse(400, { error: 'Pegá el código a revisar.' });
+      return jsonResponse(400, { error: 'Pega el código a revisar.' });
     }
 
     return respuestaEnStreaming(async function () {
@@ -303,7 +325,7 @@ export default async function handler(request) {
   // modo === 'generar'
   const descripcion = body && typeof body.descripcion === 'string' ? body.descripcion.trim().slice(0, MAX_DESCRIPCION_CHARS) : '';
   if (!descripcion) {
-    return jsonResponse(400, { error: 'Describí qué análisis querés generar.' });
+    return jsonResponse(400, { error: 'Describe qué análisis quieres generar.' });
   }
 
   return respuestaEnStreaming(async function () {

@@ -179,24 +179,41 @@ async function main() {
     assert.match(promptEnviado, /Macros mal escritas/);
   });
 
-  await test('código largo -> se salta el router (una sola llamada a DeepSeek, sin pedir INDEX.md)', async () => {
+  await test('código largo -> el router recibe un extracto (comentarios + comandos), el análisis el código completo', async () => {
     process.env.ASESOR_STATA_GITHUB_TOKEN = 'fake-token';
+    const INDEX_EJEMPLO = '# Índice\n\n## estadistica\n' +
+      '- [Chi² vs Fisher](knowledge/estadistica/chi2-fisher.md) — cuándo usar exacta. · 2026-09-29\n';
+    let promptRouter = '';
+    let promptAnalisis = '';
     let llamadasDeepseek = 0;
-    const restore = mockFetch((url) => {
-      if (url.indexOf('contents/INDEX.md') !== -1) throw new Error('no debería pedir INDEX.md con código largo');
+    const restore = mockFetch((url, opts) => {
+      if (url.indexOf('contents/INDEX.md') !== -1) return new Response(INDEX_EJEMPLO, { status: 200 });
+      if (url.indexOf('contents/knowledge/estadistica/chi2-fisher.md') !== -1) return new Response('## Resumen\nUsar Fisher con celdas < 5.', { status: 200 });
       if (url.indexOf('api.deepseek.com') !== -1) {
         llamadasDeepseek++;
+        if (llamadasDeepseek === 1) {
+          promptRouter = JSON.parse(opts.body).messages[1].content;
+          return deepseekOkResponse({ paths: ['knowledge/estadistica/chi2-fisher.md'] });
+        }
+        promptAnalisis = JSON.parse(opts.body).messages[1].content;
         return deepseekStream({ hallazgos: [] });
       }
       throw new Error('URL no mockeada: ' + url);
     });
-    const codigoLargo = 'di "linea"\n'.repeat(400); // > MAX_CHARS_PARA_ROUTER
+    const codigoLargo = '*=== 5. BIVARIADO: Chi2 + Fisher ===*\n' +
+      'quietly tabulate sexo epe, chi2 exact\n' +
+      'bysort grupo: summarize edad\n' +
+      'di "linea de relleno"\n'.repeat(300); // > MAX_CHARS_PARA_ROUTER
     const res = await handler(req({ modo: 'revisar', codigo: codigoLargo }));
     await res.json();
     restore();
     delete process.env.ASESOR_STATA_GITHUB_TOKEN;
-    assert.equal(res.status, 200);
-    assert.equal(llamadasDeepseek, 1);
+    assert.equal(llamadasDeepseek, 2);
+    assert.match(promptRouter, /BIVARIADO: Chi2 \+ Fisher/);
+    assert.match(promptRouter, /Comandos usados: tabulate, summarize, di/);
+    assert.ok(promptRouter.length < 3500, 'el router no debe recibir el do-file entero');
+    assert.match(promptAnalisis, /linea de relleno/);
+    assert.match(promptAnalisis, /Usar Fisher con celdas < 5/);
   });
 
   await test('modo generar feliz', async () => {
