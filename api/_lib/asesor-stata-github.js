@@ -43,13 +43,16 @@ export function parseIndex(markdown) {
       continue;
     }
     if (!actual) continue;
-    var notaMatch = linea.match(/^-\s*\[(.+?)\]\((.+?)\)(?:\s*—\s*(.*?))?(?:\s*·\s*(\d{4}-\d{2}-\d{2}))?$/);
+    // La marca opcional "· auto" (tras la fecha) la pone el monitoreo semanal:
+    // distingue el Radar de las guías escritas a mano.
+    var notaMatch = linea.match(/^-\s*\[(.+?)\]\((.+?)\)(?:\s*—\s*(.*?))?(?:\s*·\s*(\d{4}-\d{2}-\d{2})(?:\s*·\s*(auto))?)?\s*$/);
     if (notaMatch) {
       actual.notas.push({
         titulo: notaMatch[1].trim(),
         path: notaMatch[2].trim(),
         resumen: (notaMatch[3] || '').trim(),
         fecha: notaMatch[4] || null,
+        auto: notaMatch[5] === 'auto',
       });
     }
   }

@@ -49,6 +49,7 @@
   .ncard .ntitulo{font-weight:700;font-size:.95rem;color:var(--white)}
   .ncard .nresumen{color:var(--muted);font-size:.82rem;margin-top:.25rem;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
   .ncard .nfecha{color:var(--aqua);font-size:.7rem;font-weight:700;margin-top:.4rem}
+  .insignia{display:inline-block;margin-left:.5rem;vertical-align:1px;font-size:.66rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:#fff;background:var(--aqua);border-radius:100px;padding:.1rem .6rem}
   .nota-barra{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem}
   #as-nota-contenido{background:#fff;border:1px solid var(--border);border-radius:14px;padding:1.5rem}
   .nota-titulo{font-family:'Syne',sans-serif;font-size:1.3rem;margin:0 0 .6rem}
@@ -59,6 +60,14 @@
   .nota-cuerpo p,.nota-cuerpo ul{font-size:.9rem;color:var(--white)}
   .nota-cuerpo ul{padding-left:1.2rem}
   .nota-cuerpo code,.hallazgo code{font-family:Consolas,'Courier New',monospace;font-size:.85em;background:#eef2f8;border-radius:4px;padding:.1rem .35rem}
+
+  pre.bloque-codigo{margin:0 0 1rem;background:var(--surface);border:1px solid var(--border);border-radius:0 0 8px 8px;padding:.9rem 1rem;overflow-x:auto;white-space:pre;tab-size:4}
+  pre.bloque-codigo code{font-family:Consolas,'Courier New',monospace;font-size:.83rem;line-height:1.5;background:none;padding:0}
+  .bloque-barra{display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-top:.8rem;padding:.3rem .5rem .3rem 1rem;background:#e6edf6;border:1px solid var(--border);border-bottom:none;border-radius:8px 8px 0 0;font-size:.72rem;font-weight:700;color:var(--muted)}
+  .bloque-barra button.copiar{margin-top:0;min-height:32px;padding:.2rem .8rem}
+  details.nota-interna{margin-top:1.5rem;padding-top:.9rem;border-top:1px dashed var(--border)}
+  details.nota-interna > summary{cursor:pointer;font-size:.8rem;font-weight:700;color:var(--muted);min-height:36px}
+  .nota-interna-cuerpo{font-size:.85rem;color:var(--muted);margin-top:.5rem}
 
   /* Formularios */
   textarea{width:100%;padding:.7rem .8rem;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:.9rem;background:#fff;color:var(--white);min-height:90px;resize:vertical}
@@ -121,20 +130,20 @@
 </nav>
 <div class="wrap">
   <h1>Asesor Stata</h1>
-  <p class="lead">Guías y notas sobre Stata, estadística aplicada y metodología, que se amplían cada semana con artículos de revistas de estadística. Explora las notas, pregunta algo puntual o pide que revisen tu código.</p>
+  <p class="lead">Guías con ejemplos sobre Stata, estadística aplicada y metodología, más un radar semanal de artículos y módulos de revistas de estadística. Explora las guías, pregunta algo puntual o pide que revisen tu código.</p>
 
   <div class="tabs" id="as-tabs" role="tablist">
     <button type="button" class="tab activo" id="as-tab-explorar" role="tab" aria-selected="true">Explorar</button>
     <button type="button" class="tab" id="as-tab-buscar" role="tab" aria-selected="false">Preguntar</button>
-    <button type="button" class="tab" id="as-tab-novedades" role="tab" aria-selected="false">Novedades</button>
+    <button type="button" class="tab" id="as-tab-radar" role="tab" aria-selected="false">Radar</button>
     <button type="button" class="tab" id="as-tab-codigo" role="tab" aria-selected="false">Código</button>
   </div>
 
   <div id="as-explorar-panel">
     <div id="as-explorar-lista">
-      <p class="intro">Todas las notas guardadas, agrupadas por tema. Escribe una palabra para filtrarlas (por ejemplo: <em>regresión</em>, <em>chi2</em>, <em>svy</em>).</p>
+      <p class="intro">Guías cortas, agrupadas por tema y ordenadas para aprender: cada una explica la idea en simple y trae un ejemplo de código para copiar. Si recién empiezas, comienza por la que dice «Empieza aquí». Escribe una palabra para filtrarlas (por ejemplo: <em>regresión</em>, <em>chi2</em>, <em>svy</em>).</p>
       <div class="buscador">
-        <input type="search" id="as-filtro" placeholder="Filtrar notas…" aria-label="Filtrar notas por palabra" autocomplete="off">
+        <input type="search" id="as-filtro" placeholder="Filtrar guías…" aria-label="Filtrar guías por palabra" autocomplete="off">
         <span class="conteo" id="as-conteo" aria-live="polite"></span>
       </div>
       <div class="panel" id="as-indice">
@@ -150,10 +159,14 @@
     </div>
   </div>
 
-  <div id="as-novedades-panel" class="campo-oculto">
-    <p class="intro">Lo último que se agregó a la base en los últimos 30 días (incluye lo que encuentra la búsqueda semanal en revistas).</p>
-    <div class="panel" id="as-novedades">
-      <p class="vacio">Cargando novedades…</p>
+  <div id="as-radar-panel" class="campo-oculto">
+    <p class="intro">Artículos y módulos de Stata que la búsqueda semanal en revistas de estadística consideró relevantes para DolphinStats. Se agregan solos cada lunes, lo más reciente primero. Son notas técnicas (a veces con títulos en inglés): para aprender desde cero, usa las guías de Explorar.</p>
+    <div class="buscador">
+      <input type="search" id="as-filtro-radar" placeholder="Filtrar el Radar…" aria-label="Filtrar el Radar por palabra" autocomplete="off">
+      <span class="conteo" id="as-conteo-radar" aria-live="polite"></span>
+    </div>
+    <div class="panel" id="as-radar">
+      <p class="vacio">Cargando el Radar…</p>
     </div>
   </div>
 

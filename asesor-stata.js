@@ -75,6 +75,11 @@
     var html = [];
     var items = null;
     var parrafoActual = null;
+    var bloque = null; // líneas de un bloque ``` abierto
+
+    function renderBloque(lineasBloque) {
+      return '<pre class="bloque-codigo"><code>' + escapeHtml(lineasBloque.join('\n')) + '</code></pre>';
+    }
 
     function flushLista() {
       if (!items) return;
@@ -91,7 +96,18 @@
     }
 
     for (var i = 0; i < lineas.length; i++) {
-      var linea = lineas[i].replace(/\s+$/, '');
+      var cruda = lineas[i].replace(/\r$/, '');
+      if (bloque) {
+        if (cruda.trim() === '```') { html.push(renderBloque(bloque)); bloque = null; }
+        else bloque.push(cruda);
+        continue;
+      }
+      if (/^```[A-Za-z0-9_-]*$/.test(cruda.trim())) {
+        flushLista(); flushParrafo();
+        bloque = [];
+        continue;
+      }
+      var linea = cruda.replace(/\s+$/, '');
       if (linea.trim() === '') { flushLista(); flushParrafo(); continue; }
 
       var encabezado = linea.match(/^##\s+(.+)$/);
@@ -129,7 +145,19 @@
     }
     flushLista();
     flushParrafo();
+    if (bloque) html.push(renderBloque(bloque)); // bloque sin cerrar: el resto es código
     return html.join('\n');
+  }
+
+  // Separa la sección «Relevancia para DolphinStats» (notas internas del equipo)
+  // del resto de la nota, para mostrarla plegada al final.
+  function separarNotaInterna(cuerpo) {
+    var m = cuerpo.match(/^##\s+Relevancia para DolphinStats\s*$/m);
+    if (!m) return { principal: cuerpo, interna: '' };
+    return {
+      principal: cuerpo.slice(0, m.index).replace(/\s+$/, ''),
+      interna: cuerpo.slice(m.index + m[0].length).replace(/^\s+/, ''),
+    };
   }
 
   var TEMAS_ES = {
@@ -183,6 +211,39 @@
     return resultado;
   }
 
+  // Guías = notas escritas a mano; Radar = notas que agrega el monitoreo
+  // semanal (marcadas con `auto` en INDEX.md). Los temas que quedan vacíos se omiten.
+  function separarPorOrigen(indice) {
+    function parte(esAuto) {
+      return {
+        temas: indice.temas
+          .map(function (t) {
+            return { nombre: t.nombre, notas: t.notas.filter(function (n) { return !!n.auto === esAuto; }) };
+          })
+          .filter(function (t) { return t.notas.length > 0; }),
+      };
+    }
+    return { guias: parte(false), radar: parte(true) };
+  }
+
+  // Lista plana del Radar (filtrada por palabras): lo más reciente primero y,
+  // a igual fecha, en el orden del índice; sin fecha va al final.
+  function listarRadar(radar, texto) {
+    var plano = [];
+    filtrarIndice(radar, texto).forEach(function (tema) {
+      tema.notas.forEach(function (n) {
+        plano.push({ titulo: n.titulo, path: n.path, resumen: n.resumen, fecha: n.fecha, tema: tema.nombre, orden: plano.length });
+      });
+    });
+    plano.sort(function (a, b) {
+      var fa = a.fecha || '';
+      var fb = b.fecha || '';
+      if (fa !== fb) return fa < fb ? 1 : -1;
+      return a.orden - b.orden;
+    });
+    return plano;
+  }
+
   var FUENTES = {
     libro: 'Libro',
     SSC: 'Módulo SSC',
@@ -202,6 +263,9 @@
     normalizarTexto: normalizarTexto,
     filtrarIndice: filtrarIndice,
     etiquetaFuente: etiquetaFuente,
+    separarNotaInterna: separarNotaInterna,
+    separarPorOrigen: separarPorOrigen,
+    listarRadar: listarRadar,
   };
 
   if (typeof window === 'undefined') {
@@ -219,8 +283,9 @@
   var MAX_CODIGO = 20000;
   var MAX_DESCRIPCION = 1000;
   var MAX_PREGUNTA = 500;
-  var DIAS_NOVEDADES = 30;
-  var NOVEDADES_VISIBLES = 10;
+  var RADAR_TANDA = 15;
+  // La guía por la que se recomienda empezar (se marca en la lista de Explorar).
+  var EMPIEZA_AQUI = 'knowledge/stata-basics/tour-rapido-interfaz-flujo-trabajo.md';
   var CLAVE_NIVEL = 'asesor-stata-nivel';
 
   var EJEMPLO_DO = [
@@ -238,7 +303,9 @@
   var tabAnterior = 'explorar';
   var notaAbierta = false;
   var scrollIndice = 0;
-  var indiceGlobal = null;
+  var indiceGlobal = null; // solo guías (Explorar)
+  var indiceRadar = null;  // solo notas del monitoreo (Radar)
+  var radarVisibles = RADAR_TANDA;
   var subModoCodigo = 'revisar';
 
   function leerGuardado(clave) {
@@ -295,7 +362,8 @@
     return 'No se pudo completar el pedido. Revisa tu conexión e intenta de nuevo.';
   }
 
-  function copiarTexto(texto, boton, etiqueta) {
+  // Si el navegador no deja copiar, deja `elemento` seleccionado para usar Ctrl+C.
+  function copiarTexto(texto, boton, etiqueta, elemento) {
     function listo() {
       boton.textContent = '¡Copiado!';
       setTimeout(function () { boton.textContent = etiqueta; }, 1600);
@@ -310,8 +378,16 @@
       var ok = false;
       try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
       document.body.removeChild(area);
-      if (ok) listo();
-      else boton.textContent = 'No se pudo copiar: selecciona y usa Ctrl+C';
+      if (ok) { listo(); return; }
+      if (elemento) {
+        var rango = document.createRange();
+        rango.selectNodeContents(elemento);
+        var seleccion = window.getSelection();
+        seleccion.removeAllRanges();
+        seleccion.addRange(rango);
+      }
+      boton.textContent = 'Usa Ctrl+C';
+      setTimeout(function () { boton.textContent = etiqueta; }, 3000);
     }
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(texto).then(listo, alternativa);
@@ -338,7 +414,7 @@
 
   function mostrarTab(nombre) {
     tabActual = nombre;
-    ['explorar', 'buscar', 'novedades', 'codigo'].forEach(function (t) {
+    ['explorar', 'buscar', 'radar', 'codigo'].forEach(function (t) {
       var activa = t === nombre;
       $('as-tab-' + t).classList.toggle('activo', activa);
       $('as-tab-' + t).setAttribute('aria-selected', activa ? 'true' : 'false');
@@ -360,19 +436,19 @@
 
     var conteo = $('as-conteo');
     if (!totalGeneral) {
-      cont.innerHTML = '<p class="vacio">La base de conocimiento todavía no tiene notas guardadas.</p>';
+      cont.innerHTML = '<p class="vacio">Todavía no hay guías publicadas.</p>';
       conteo.textContent = '';
       return;
     }
     conteo.textContent = texto
-      ? total + ' de ' + totalGeneral + ' notas'
-      : totalGeneral + ' notas en ' + temas.length + ' temas';
+      ? total + ' de ' + totalGeneral + ' guías'
+      : totalGeneral + ' guías en ' + temas.length + ' temas';
 
     if (!temas.length) {
       var vacio = document.createElement('div');
       vacio.className = 'vacio';
       vacio.innerHTML = '<p></p><button type="button" class="subtab">Preguntar esto en Buscar</button>';
-      vacio.querySelector('p').textContent = 'Ninguna nota coincide con «' + texto + '». Prueba con otra palabra, o pregúntalo directamente.';
+      vacio.querySelector('p').textContent = 'Ninguna guía coincide con «' + texto + '». Prueba con otra palabra, o pregúntalo directamente.';
       vacio.querySelector('button').addEventListener('click', function () {
         $('as-buscar-input').value = texto.slice(0, MAX_PREGUNTA);
         $('as-buscar-input').dispatchEvent(new Event('input'));
@@ -405,6 +481,12 @@
         btn.innerHTML = '<div class="ntitulo"></div><div class="nresumen"></div>';
         btn.querySelector('.ntitulo').textContent = nota.titulo;
         btn.querySelector('.nresumen').textContent = nota.resumen;
+        if (nota.path === EMPIEZA_AQUI) {
+          var insignia = document.createElement('span');
+          insignia.className = 'insignia';
+          insignia.textContent = 'Empieza aquí';
+          btn.querySelector('.ntitulo').appendChild(insignia);
+        }
         btn.addEventListener('click', function () { verNota(nota.path); });
         det.appendChild(btn);
       });
@@ -444,7 +526,34 @@
     var cont = $('as-nota-contenido');
     cont.innerHTML = '<h2 class="nota-titulo"></h2><div class="nota-meta"></div><div class="nota-cuerpo"></div>';
     cont.querySelector('.nota-titulo').textContent = parsed.meta.title || path;
-    cont.querySelector('.nota-cuerpo').innerHTML = cuerpoMarkdownAHtml(parsed.cuerpo);
+    var secciones = separarNotaInterna(parsed.cuerpo);
+    var cuerpoEl = cont.querySelector('.nota-cuerpo');
+    cuerpoEl.innerHTML = cuerpoMarkdownAHtml(secciones.principal);
+
+    // Cada bloque de código lleva su botón «Copiar».
+    cuerpoEl.querySelectorAll('pre.bloque-codigo').forEach(function (pre) {
+      var barra = document.createElement('div');
+      barra.className = 'bloque-barra';
+      var etiqueta = document.createElement('span');
+      etiqueta.textContent = 'Código Stata';
+      var boton = document.createElement('button');
+      boton.type = 'button';
+      boton.className = 'copiar';
+      boton.textContent = 'Copiar';
+      boton.addEventListener('click', function () { copiarTexto(pre.textContent, boton, 'Copiar', pre); });
+      barra.appendChild(etiqueta);
+      barra.appendChild(boton);
+      pre.parentNode.insertBefore(barra, pre);
+    });
+
+    // La relevancia para DolphinStats es una nota del equipo: va plegada al final.
+    if (secciones.interna) {
+      var det = document.createElement('details');
+      det.className = 'nota-interna';
+      det.innerHTML = '<summary>Nota interna: relevancia para DolphinStats</summary><div class="nota-interna-cuerpo"></div>';
+      det.querySelector('.nota-interna-cuerpo').innerHTML = cuerpoMarkdownAHtml(secciones.interna);
+      cont.appendChild(det);
+    }
 
     var meta = cont.querySelector('.nota-meta');
     function chip(texto) {
@@ -500,53 +609,47 @@
     if (notaAbierta) cerrarNota();
   }
 
-  // -------------------------------------------------------------- Novedades
+  // ------------------------------------------------------------------ Radar
 
-  function notasRecientes(indice) {
-    var limite = Date.now() - DIAS_NOVEDADES * 24 * 60 * 60 * 1000;
-    var recientes = [];
-    indice.temas.forEach(function (tema) {
-      tema.notas.forEach(function (nota) {
-        if (!nota.fecha) return;
-        var t = Date.parse(nota.fecha);
-        if (!isNaN(t) && t >= limite) {
-          recientes.push({ titulo: nota.titulo, path: nota.path, resumen: nota.resumen, fecha: nota.fecha, tema: nombreTema(tema.nombre) });
-        }
-      });
-    });
-    recientes.sort(function (a, b) { return b.fecha < a.fecha ? -1 : b.fecha > a.fecha ? 1 : 0; });
-    return recientes;
-  }
-
-  function renderNovedades(indice) {
-    var cont = $('as-novedades');
-    var recientes = notasRecientes(indice);
+  // Notas que agrega solo el monitoreo semanal. Se listan todas (la más
+  // reciente primero) y se muestran por tandas para que la lista no crezca sin fin.
+  function pintarRadar(reiniciar) {
+    var cont = $('as-radar');
+    var texto = $('as-filtro-radar').value.trim();
+    var lista = listarRadar(indiceRadar, texto);
+    var totalRadar = listarRadar(indiceRadar, '').length;
+    if (reiniciar) radarVisibles = RADAR_TANDA;
     cont.innerHTML = '';
-    if (!recientes.length) {
-      cont.innerHTML = '<p class="vacio">No hay notas nuevas en los últimos ' + DIAS_NOVEDADES + ' días.</p>';
+
+    $('as-conteo-radar').textContent = !totalRadar ? '' :
+      (texto ? lista.length + ' de ' + totalRadar + ' notas' : totalRadar + ' notas del monitoreo');
+    if (!totalRadar) {
+      cont.innerHTML = '<p class="vacio">Todavía no hay notas del monitoreo semanal.</p>';
       return;
     }
-    function tarjeta(nota) {
+    if (!lista.length) {
+      cont.innerHTML = '<p class="vacio"></p>';
+      cont.firstChild.textContent = 'Ninguna nota del Radar coincide con «' + texto + '».';
+      return;
+    }
+
+    lista.slice(0, radarVisibles).forEach(function (nota) {
       var btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'ncard';
       btn.innerHTML = '<div class="ntitulo"></div><div class="nresumen"></div><div class="nfecha"></div>';
       btn.querySelector('.ntitulo').textContent = nota.titulo;
       btn.querySelector('.nresumen').textContent = nota.resumen;
-      btn.querySelector('.nfecha').textContent = nota.tema + ' · ' + nota.fecha;
+      btn.querySelector('.nfecha').textContent = nota.tema + (nota.fecha ? ' · ' + nota.fecha : '');
       btn.addEventListener('click', function () { verNota(nota.path); });
-      return btn;
-    }
-    recientes.slice(0, NOVEDADES_VISIBLES).forEach(function (n) { cont.appendChild(tarjeta(n)); });
-    if (recientes.length > NOVEDADES_VISIBLES) {
+      cont.appendChild(btn);
+    });
+    if (lista.length > radarVisibles) {
       var mas = document.createElement('button');
       mas.type = 'button';
       mas.className = 'subtab';
-      mas.textContent = 'Mostrar las ' + (recientes.length - NOVEDADES_VISIBLES) + ' restantes';
-      mas.addEventListener('click', function () {
-        recientes.slice(NOVEDADES_VISIBLES).forEach(function (n) { cont.insertBefore(tarjeta(n), mas); });
-        cont.removeChild(mas);
-      });
+      mas.textContent = 'Mostrar ' + Math.min(RADAR_TANDA, lista.length - radarVisibles) + ' más (quedan ' + (lista.length - radarVisibles) + ')';
+      mas.addEventListener('click', function () { radarVisibles += RADAR_TANDA; pintarRadar(false); });
       cont.appendChild(mas);
     }
   }
@@ -554,7 +657,7 @@
   function cargarIndice() {
     function fallo(mensaje) {
       var html = '<p class="vacio"></p>';
-      ['as-indice', 'as-novedades'].forEach(function (id) {
+      ['as-indice', 'as-radar'].forEach(function (id) {
         $(id).innerHTML = html;
         $(id).firstChild.textContent = mensaje;
       });
@@ -563,9 +666,11 @@
       .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
       .then(function (r) {
         if (!r.ok) { fallo(r.data.error || 'No se pudo cargar el índice.'); return; }
-        indiceGlobal = r.data;
+        var partes = separarPorOrigen(r.data);
+        indiceGlobal = partes.guias;
+        indiceRadar = partes.radar;
         pintarIndice();
-        renderNovedades(r.data);
+        pintarRadar(true);
         aplicarHash();
       })
       .catch(function () { fallo('No se pudo cargar el índice. Intenta de nuevo.'); });
@@ -778,7 +883,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', function () {
-    ['explorar', 'buscar', 'novedades', 'codigo'].forEach(function (t) {
+    ['explorar', 'buscar', 'radar', 'codigo'].forEach(function (t) {
       $('as-tab-' + t).addEventListener('click', function () {
         if (t === 'explorar' && notaAbierta) { limpiarHash(); tabAnterior = 'explorar'; scrollIndice = 0; cerrarNota(); return; }
         mostrarTab(t);
@@ -790,6 +895,7 @@
     window.addEventListener('hashchange', aplicarHash);
 
     $('as-filtro').addEventListener('input', function () { if (indiceGlobal) pintarIndice(); });
+    $('as-filtro-radar').addEventListener('input', function () { if (indiceRadar) pintarRadar(true); });
 
     $('as-subtab-revisar').addEventListener('click', function () { mostrarSubModoCodigo('revisar'); });
     $('as-subtab-generar').addEventListener('click', function () { mostrarSubModoCodigo('generar'); });

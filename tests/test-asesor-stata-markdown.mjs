@@ -88,7 +88,43 @@ async function main() {
     assert.equal(cuerpoMarkdownAHtml('## Titulo\r\n- uno\r\n- dos\r\n'), '<h2>Titulo</h2>\n<ul><li>uno</li><li>dos</li></ul>');
   });
 
-  const { nombreTema, normalizarTexto, filtrarIndice, etiquetaFuente } = mod.default || mod;
+  await test('cuerpoMarkdownAHtml: un bloque ``` se muestra como <pre> con el código escapado', () => {
+    const html = cuerpoMarkdownAHtml('## Ejemplo\n```stata\nsysuse auto, clear   // base\nsummarize if x < 3\n```\nTexto después.');
+    assert.equal(html, '<h2>Ejemplo</h2>\n<pre class="bloque-codigo"><code>sysuse auto, clear   // base\nsummarize if x &lt; 3</code></pre>\n<p>Texto después.</p>');
+  });
+
+  await test('cuerpoMarkdownAHtml: dentro de un bloque se respetan sangría, líneas en blanco y asteriscos', () => {
+    const html = cuerpoMarkdownAHtml('```\n* comentario con **asteriscos**\n\n    sangrado\n```');
+    assert.equal(html, '<pre class="bloque-codigo"><code>* comentario con **asteriscos**\n\n    sangrado</code></pre>');
+  });
+
+  await test('cuerpoMarkdownAHtml: un bloque sin cerrar toma el resto del texto como código', () => {
+    const html = cuerpoMarkdownAHtml('Antes.\n```stata\nlinea1\nlinea2');
+    assert.equal(html, '<p>Antes.</p>\n<pre class="bloque-codigo"><code>linea1\nlinea2</code></pre>');
+  });
+
+  await test('cuerpoMarkdownAHtml: un bloque cierra la lista que lo precede', () => {
+    const html = cuerpoMarkdownAHtml('- uno\n- dos\n```\ncodigo\n```');
+    assert.equal(html, '<ul><li>uno</li><li>dos</li></ul>\n<pre class="bloque-codigo"><code>codigo</code></pre>');
+  });
+
+  await test('cuerpoMarkdownAHtml: los bloques toleran CRLF', () => {
+    assert.equal(cuerpoMarkdownAHtml('```\r\na\r\nb\r\n```\r\n'), '<pre class="bloque-codigo"><code>a\nb</code></pre>');
+  });
+
+  const { nombreTema, normalizarTexto, filtrarIndice, etiquetaFuente, separarNotaInterna } = mod.default || mod;
+
+  await test('separarNotaInterna: parte la nota en el encabezado «Relevancia para DolphinStats»', () => {
+    const r = separarNotaInterna('## Resumen\nTexto.\n\n## Ejemplo\nAlgo.\n\n## Relevancia para DolphinStats\nImporta porque sí.\nSegunda línea.');
+    assert.equal(r.principal, '## Resumen\nTexto.\n\n## Ejemplo\nAlgo.');
+    assert.equal(r.interna, 'Importa porque sí.\nSegunda línea.');
+  });
+
+  await test('separarNotaInterna: sin ese encabezado devuelve todo como principal', () => {
+    const r = separarNotaInterna('## Resumen\nTexto.');
+    assert.equal(r.principal, '## Resumen\nTexto.');
+    assert.equal(r.interna, '');
+  });
 
   await test('nombreTema: traduce los temas conocidos y arma un nombre legible para los demás', () => {
     assert.equal(nombreTema('hypothesis-testing'), 'Pruebas de hipótesis');
@@ -130,6 +166,49 @@ async function main() {
     assert.equal(filtrarIndice(indice, 'chi cuadrado').length, 1);
     assert.equal(filtrarIndice(indice, 'chi-cuadrado odds').length, 1);
     assert.equal(filtrarIndice(indice, 'fisher').length, 0);
+  });
+
+  const { separarPorOrigen, listarRadar } = mod.default || mod;
+
+  const INDICE_MIXTO = { temas: [
+    { nombre: 'regression', notas: [
+      { titulo: 'Paquete nuevo', resumen: 'logit raro', path: 'knowledge/regression/p1.md', fecha: '2026-10-06', auto: true },
+      { titulo: 'Regresión lineal', resumen: 'guía', path: 'knowledge/regression/g1.md', fecha: '2026-09-29', auto: false },
+    ] },
+    { nombre: 'panel-data', notas: [] },
+    { nombre: 'sampling', notas: [
+      { titulo: 'Artículo viejo', resumen: 'muestra', path: 'knowledge/sampling/a1.md', fecha: '2026-09-29', auto: true },
+      { titulo: 'Artículo reciente', resumen: 'muestra', path: 'knowledge/sampling/a2.md', fecha: '2026-10-06', auto: true },
+      { titulo: 'Sin fecha', resumen: 'muestra', path: 'knowledge/sampling/a3.md', fecha: null, auto: true },
+    ] },
+  ] };
+
+  await test('separarPorOrigen: guías (sin marca auto) y radar (con marca), sin temas vacíos', () => {
+    const { guias, radar } = separarPorOrigen(INDICE_MIXTO);
+    assert.deepEqual(guias.temas.map(t => t.nombre), ['regression']);
+    assert.deepEqual(guias.temas[0].notas.map(n => n.titulo), ['Regresión lineal']);
+    assert.deepEqual(radar.temas.map(t => t.nombre), ['regression', 'sampling']);
+    assert.equal(radar.temas[1].notas.length, 3);
+  });
+
+  await test('separarPorOrigen: una nota sin el campo auto cuenta como guía', () => {
+    const { guias, radar } = separarPorOrigen({ temas: [{ nombre: 'x', notas: [{ titulo: 'T', resumen: '', path: 'knowledge/x/t.md', fecha: null }] }] });
+    assert.equal(guias.temas[0].notas.length, 1);
+    assert.equal(radar.temas.length, 0);
+  });
+
+  await test('listarRadar: lista plana, la más reciente primero, sin fecha al final y con el tema en español', () => {
+    const { radar } = separarPorOrigen(INDICE_MIXTO);
+    const lista = listarRadar(radar, '');
+    assert.deepEqual(lista.map(n => n.titulo), ['Paquete nuevo', 'Artículo reciente', 'Artículo viejo', 'Sin fecha']);
+    assert.equal(lista[0].tema, 'Regresión');
+    assert.equal(lista[1].tema, 'Muestreo');
+  });
+
+  await test('listarRadar: respeta el filtro de palabras', () => {
+    const { radar } = separarPorOrigen(INDICE_MIXTO);
+    assert.deepEqual(listarRadar(radar, 'logit').map(n => n.titulo), ['Paquete nuevo']);
+    assert.deepEqual(listarRadar(radar, 'zzz'), []);
   });
 
   await test('etiquetaFuente: nombres legibles para el tipo de fuente', () => {

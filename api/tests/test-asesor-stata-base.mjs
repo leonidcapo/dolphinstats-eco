@@ -59,6 +59,21 @@ async function main() {
     assert.equal(indice.temas[0].notas[0].fecha, null);
   });
 
+  await test('parseIndex: la marca "· auto" tras la fecha identifica una nota del monitoreo y no ensucia el resumen', () => {
+    const indice = parseIndex('## sampling\n' +
+      '- [Del monitoreo](knowledge/sampling/a.md) — resumen A. · 2026-09-29 · auto\n' +
+      '- [Guía](knowledge/sampling/g.md) — resumen G. · 2026-09-29\n' +
+      '- [Vieja](knowledge/sampling/v.md) — sin fecha ni marca.\n');
+    const [a, g, v] = indice.temas[0].notas;
+    assert.equal(a.auto, true);
+    assert.equal(a.resumen, 'resumen A.');
+    assert.equal(a.fecha, '2026-09-29');
+    assert.equal(g.auto, false);
+    assert.equal(g.fecha, '2026-09-29');
+    assert.equal(v.auto, false);
+    assert.equal(v.fecha, null);
+  });
+
   await test('sin token -> 503, no llama a fetch', async () => {
     const restore = mockFetchOnce(() => { throw new Error('no debería llamarse'); });
     const res = await handler(req());
