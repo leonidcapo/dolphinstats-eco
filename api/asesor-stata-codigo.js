@@ -1,20 +1,30 @@
-// api/asesor-stata-codigo.js — Vercel Edge Function: revisa código Stata
-// pegado por el usuario o genera un do-file nuevo a partir de una
-// descripción, sintetizando con DeepSeek. A diferencia de
-// asesor-stata-consulta.js, NO restringe al modelo a solo lo documentado en
-// knowledge/ -- usa su conocimiento general de Stata; el contexto de la base
-// es apoyo opcional (si falla traerlo, se sigue sin él, no es fatal acá).
+// api/asesor-stata-codigo.js — Vercel Edge Function con cuatro modos sobre
+// código y resultados de Stata, sintetizados con DeepSeek:
+//   revisar     -> hallazgos sobre un do-file (con número de línea y arreglo)
+//   explicar    -> qué hace un do-file, paso a paso
+//   interpretar -> qué dice la salida pegada de Stata (tabla, modelo, prueba)
+//   generar     -> do-file nuevo a partir de una descripción (o ajuste de uno previo)
+// A diferencia de asesor-stata-consulta.js, NO restringe al modelo a solo lo
+// documentado en knowledge/ -- usa su conocimiento general de Stata; en
+// revisar y generar el contexto de la base es apoyo opcional (si falla traerlo,
+// se sigue sin él, no es fatal acá).
 //
 // Requiere DEEPSEEK_API_KEY en Vercel -> Settings -> Environment Variables.
 // Sin ella, responde 503.
 
 import { fetchFileRaw } from './_lib/asesor-stata-github.js';
 import { elegirNotasRelevantes } from './_lib/asesor-stata-relevancia.js';
+import { llamarDeepSeek, respuestaEnStreaming, mensajeError } from './_lib/asesor-stata-llm.js';
 
 export const config = { runtime: 'edge' };
 
 const MAX_CODIGO_CHARS = 20000;
 const MAX_DESCRIPCION_CHARS = 1000;
+const MAX_AJUSTE_CHARS = 500;
+const MAX_CODIGO_PREVIO_CHARS = 12000;
+const MAX_SALIDA_CHARS = 8000;
+const MAX_CONTEXTO_ESTUDIO_CHARS = 500;
+const MAX_CODIGO_CORREGIDO_CHARS = 1500;
 const MAX_CONTEXT_CHARS = 60000;
 const MAX_NOTAS_CONTEXTO = 8;
 // Con un texto largo (p.ej. un do-file completo pegado en "Revisar") no se le
@@ -22,13 +32,6 @@ const MAX_NOTAS_CONTEXTO = 8;
 // (comentarios + comandos únicos), que dice qué análisis se hace sin inflar
 // la llamada. Ver extractoParaRouter.
 const MAX_CHARS_PARA_ROUTER = 3000;
-// La respuesta al navegador se abre de inmediato y se mantiene viva con
-// espacios mientras DeepSeek genera (una revisión de un do-file largo tarda
-// más que el límite de ~25s para *empezar* a responder de una Edge Function;
-// una vez empezada, puede seguir transmitiendo). El JSON final va al cierre
-// -- JSON.parse ignora los espacios iniciales.
-const TIMEOUT_DEEPSEEK_MS = 120000;
-const INTERVALO_KEEPALIVE_MS = 5000;
 
 const NIVEL_DEFAULT = 'intermedio';
 
@@ -42,6 +45,9 @@ const INSTRUCCION_NIVEL = {
     'directo: sintaxis exacta, sin explicaciones introductorias de conceptos básicos.',
 };
 
+const NOTA_LINEAS = 'El código llega con las líneas numeradas ("  12| comando"): el número y la barra ' +
+  'NO son parte del código; úsalos solo para indicar líneas y no los copies en ningún fragmento de código.';
+
 const PROMPT_REVISAR = 'Eres un revisor experto de código Stata para DolphinStats (consultoría ' +
   'en investigación clínica y bioestadística). Se te da un script .do y, opcionalmente, notas de ' +
   'una base de conocimiento interna que pueden ser relevantes.\n\n' +
@@ -50,14 +56,46 @@ const PROMPT_REVISAR = 'Eres un revisor experto de código Stata para DolphinSta
   'de Stata — no te limites a lo que aparezca en las notas. Si una nota de la base aplica ' +
   'directamente a un hallazgo, cítala por su título y path exactos (como aparecen en el ' +
   'encabezado "### <path>" de cada nota); si no aplica ninguna, deja nota_citada en null.\n\n' +
-  'Si el código no tiene problemas relevantes, devolvé un array de hallazgos vacío — no ' +
+  'Si el código no tiene problemas relevantes, devuelve un array de hallazgos vacío — no ' +
   'inventes hallazgos triviales solo para tener algo que decir.\n\n' +
+  NOTA_LINEAS + ' En "lineas" pon la línea o el rango donde está el problema ("12" o "12-15"); ' +
+  'null si el hallazgo es general. En "codigo_corregido" pon cómo debería quedar ese fragmento ' +
+  '(máximo 6 líneas) solo cuando el arreglo se entiende mejor viéndolo; si no, null.\n\n' +
   'Devuelve como MÁXIMO 8 hallazgos, los más relevantes, ordenados con los "importante" primero. ' +
   'Cada campo de texto en 1-2 oraciones breves.\n\n' +
   'Responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional antes ni después:\n' +
-  '{"hallazgos": [{"severidad": "importante"|"sugerencia", "que": "<qué está mal o se puede ' +
-  'mejorar>", "por_que": "<por qué importa>", "como_arreglar": "<cómo solucionarlo>", ' +
+  '{"hallazgos": [{"severidad": "importante"|"sugerencia", "lineas": "12-15"|null, "que": "<qué ' +
+  'está mal o se puede mejorar>", "por_que": "<por qué importa>", "como_arreglar": "<cómo ' +
+  'solucionarlo>", "codigo_corregido": "<fragmento>"|null, ' +
   '"nota_citada": {"titulo": "...", "path": "..."} | null}]}';
+
+const PROMPT_EXPLICAR = 'Eres un tutor de Stata para DolphinStats (consultoría en investigación ' +
+  'clínica y bioestadística). Se te da un do-file y debes explicar qué hace, paso a paso, para que ' +
+  'quien lo escribió o lo heredó lo entienda.\n\n' +
+  'Agrupa las líneas consecutivas que forman un mismo paso (por ejemplo, "importar y limpiar", ' +
+  '"crear variables", "tabla 1", "modelo") en MÁXIMO 12 pasos, en el orden del archivo. Para cada ' +
+  'paso explica qué hace y para qué sirve en el análisis. Si un paso tiene una trampa o un riesgo ' +
+  'real (valores perdidos tratados como números grandes, una ruta absoluta, un modelo sin revisar ' +
+  'supuestos), señálalo en "ojo"; si no, null. No inventes lo que no está en el código.\n\n' +
+  NOTA_LINEAS + ' En "lineas" pon la línea o el rango del paso ("5" o "5-12").\n\n' +
+  'Responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional antes ni después:\n' +
+  '{"resumen": "<2-3 oraciones: qué hace el do-file en conjunto>", "pasos": [{"lineas": "5-12", ' +
+  '"que_hace": "<explicación del paso>", "ojo": "<advertencia>"|null}]}';
+
+const PROMPT_INTERPRETAR = 'Eres un bioestadístico que explica resultados de Stata a quien los ' +
+  'obtuvo, para DolphinStats (consultoría en investigación clínica). Se te da la salida pegada de ' +
+  'Stata (una tabla, un modelo, una prueba) y, opcionalmente, una frase con el contexto del estudio.\n\n' +
+  'Interpreta lo que dicen los números, citando valores CONCRETOS de la salida (coeficiente, OR, ' +
+  'HR, diferencia de medias, IC y valor p según corresponda). No inventes números que no estén en ' +
+  'la salida. Distingue asociación de causalidad, comenta la precisión (ancho del IC, tamaño de ' +
+  'muestra) y menciona los supuestos que conviene verificar. Si el texto no parece una salida de ' +
+  'Stata interpretable, déjalo claro en "que_se_hizo" y devuelve "resultados" vacío.\n\n' +
+  'Responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional antes ni después:\n' +
+  '{"que_se_hizo": "<1-2 oraciones: qué análisis es>", "resultados": [{"dato": "<nombre del ' +
+  'resultado con su valor citado de la salida>", "significado": "<qué significa>"}], ' +
+  '"precauciones": ["<cuidado al interpretar o supuesto a verificar>"], ' +
+  '"como_reportarlo": "<una frase modelo para la sección de resultados>"|null}\n' +
+  'Máximo 6 resultados y 4 precauciones, cada texto en 1-2 oraciones.';
 
 const PROMPT_GENERAR = 'Eres un generador de código Stata para DolphinStats (consultoría en ' +
   'investigación clínica y bioestadística). Se te da una descripción en lenguaje natural de un ' +
@@ -68,6 +106,8 @@ const PROMPT_GENERAR = 'Eres un generador de código Stata para DolphinStats (co
   'Stata — no te limites a lo que aparezca en las notas. Si una nota de la base aplica ' +
   'directamente, cítala en notas_citadas (título y path exactos); si no aplica ninguna, deja ese ' +
   'array vacío.\n\n' +
+  'Si además se te da el código actual y un ajuste pedido, devuelve el do-file COMPLETO ya ' +
+  'modificado con ese ajuste (no solo el cambio) y di en "explicacion" qué cambiaste.\n\n' +
   'Responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional antes ni después:\n' +
   '{"codigo": "<do-file completo>", "explicacion": "<2-4 oraciones, qué hace el código>", ' +
   '"notas_citadas": [{"titulo": "...", "path": "..."}]}';
@@ -127,14 +167,31 @@ async function construirContextoOpcional(textoConsulta) {
   }
 }
 
-function mensajeError(e, accion) {
-  if (e && e.message === 'timeout') {
-    return 'La ' + accion + ' está tardando demasiado. Prueba con un texto más corto o intenta de nuevo.';
-  }
-  if (e && e.message === 'respuesta_truncada') {
-    return 'La respuesta fue demasiado larga y se cortó. Prueba con un texto más corto.';
-  }
-  return 'No se pudo completar la ' + accion + ' en este momento. Intenta de nuevo.';
+function bloqueDeContexto(contexto) {
+  return contexto ? '\n\nNotas de la base de conocimiento (úsalas solo si aplican):\n' + contexto : '';
+}
+
+// "  1| linea" -- el modelo cita líneas reales en vez de contarlas a ojo.
+function numerarLineas(codigo) {
+  const lineas = codigo.split(/\r?\n/);
+  const ancho = String(lineas.length).length;
+  return {
+    texto: lineas.map(function (l, i) { return String(i + 1).padStart(ancho, ' ') + '| ' + l; }).join('\n'),
+    total: lineas.length,
+  };
+}
+
+// "12", "12-15" o 12 -> "12" / "12-15"; cualquier otra cosa, o fuera del
+// archivo, o rango invertido -> null.
+function normalizarLineas(valor, totalLineas) {
+  if (typeof valor === 'number') valor = String(valor);
+  if (typeof valor !== 'string') return null;
+  const m = valor.trim().match(/^(\d+)(?:\s*[-–]\s*(\d+))?$/);
+  if (!m) return null;
+  const desde = Number(m[1]);
+  const hasta = m[2] !== undefined ? Number(m[2]) : desde;
+  if (desde < 1 || hasta < desde || hasta > totalLineas) return null;
+  return desde === hasta ? String(desde) : desde + '-' + hasta;
 }
 
 function filtrarNotaCitada(n) {
@@ -145,7 +202,14 @@ function filtrarNotaCitada(n) {
   return null;
 }
 
-function validarHallazgos(lista) {
+// Si el modelo copió el prefijo "12| " de las líneas numeradas, se quita.
+function limpiarCodigoCorregido(valor) {
+  if (typeof valor !== 'string') return null;
+  const limpio = valor.replace(/^[ \t]*\d+\|[ ]?/gm, '').trim();
+  return limpio ? limpio.slice(0, MAX_CODIGO_CORREGIDO_CHARS) : null;
+}
+
+function validarHallazgos(lista, totalLineas) {
   if (!Array.isArray(lista)) return null;
   var validos = [];
   for (var i = 0; i < lista.length; i++) {
@@ -155,118 +219,59 @@ function validarHallazgos(lista) {
     if (typeof h.que !== 'string' || typeof h.por_que !== 'string' || typeof h.como_arreglar !== 'string') continue;
     validos.push({
       severidad: h.severidad,
+      lineas: normalizarLineas(h.lineas, totalLineas),
       que: h.que,
       por_que: h.por_que,
       como_arreglar: h.como_arreglar,
+      codigo_corregido: limpiarCodigoCorregido(h.codigo_corregido),
       nota_citada: filtrarNotaCitada(h.nota_citada),
     });
   }
   return validos;
 }
 
-// Lee el stream SSE de DeepSeek acumulando solo el contenido visible (el
-// razonamiento llega en otro campo y se descarta).
-async function leerStreamDeepSeek(body) {
-  const reader = body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
-  let contenido = '';
-  let finishReason = null;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const lineas = buffer.split('\n');
-    buffer = lineas.pop();
-    for (const linea of lineas) {
-      const l = linea.trim();
-      if (l.indexOf('data:') !== 0) continue;
-      const payload = l.slice(5).trim();
-      if (!payload || payload === '[DONE]') continue;
-      let evento;
-      try { evento = JSON.parse(payload); } catch (e) { continue; }
-      const choice = evento && evento.choices && evento.choices[0];
-      if (!choice) continue;
-      if (choice.delta && typeof choice.delta.content === 'string') contenido += choice.delta.content;
-      if (choice.finish_reason) finishReason = choice.finish_reason;
-    }
-  }
-  return { contenido: contenido, finishReason: finishReason };
+function textoONull(v) {
+  return typeof v === 'string' && v.trim() ? v.trim() : null;
 }
 
-async function llamarDeepSeek(promptSistema, promptUsuario, deepseekKey) {
-  const controlador = new AbortController();
-  const corteTimeout = setTimeout(function () { controlador.abort(); }, TIMEOUT_DEEPSEEK_MS);
-  let resultado;
-  try {
-    const upstream = await fetch('https://api.deepseek.com/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: 'Bearer ' + deepseekKey,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: process.env.DEEPSEEK_MODEL || 'deepseek-v4-flash',
-        messages: [
-          { role: 'system', content: promptSistema },
-          { role: 'user', content: promptUsuario },
-        ],
-        max_tokens: 6000 + (Number(process.env.DEEPSEEK_REASONING_MARGIN) || 1500),
-        temperature: 0.2,
-        response_format: { type: 'json_object' },
-        stream: true,
-      }),
-      signal: controlador.signal,
-    });
-    if (!upstream.ok || !upstream.body) {
-      throw new Error('upstream_error');
-    }
-    resultado = await leerStreamDeepSeek(upstream.body);
-  } catch (e) {
-    if (e && e.name === 'AbortError') {
-      throw new Error('timeout');
-    }
-    throw e;
-  } finally {
-    clearTimeout(corteTimeout);
+// {resumen, pasos:[{lineas, que_hace, ojo}]} o null si no sirve.
+function validarExplicacion(parsed, totalLineas) {
+  if (!parsed || typeof parsed.resumen !== 'string' || !parsed.resumen.trim() || !Array.isArray(parsed.pasos)) return null;
+  const pasos = [];
+  for (var i = 0; i < parsed.pasos.length; i++) {
+    const p = parsed.pasos[i];
+    if (!p || typeof p !== 'object' || typeof p.que_hace !== 'string' || !p.que_hace.trim()) continue;
+    pasos.push({ lineas: normalizarLineas(p.lineas, totalLineas), que_hace: p.que_hace.trim(), ojo: textoONull(p.ojo) });
   }
-  try {
-    return JSON.parse(resultado.contenido);
-  } catch (e) {
-    if (resultado.finishReason === 'length') {
-      throw new Error('respuesta_truncada');
-    }
-    throw new Error('parse_error');
-  }
+  if (!pasos.length) return null;
+  return { resumen: parsed.resumen.trim(), pasos: pasos };
 }
 
-// Abre la respuesta ya (status 200), manda un espacio cada pocos segundos y
-// al final escribe el JSON que devuelva `trabajo`. Los errores que ocurren
-// después de abrir llegan como {error} dentro del cuerpo.
-function respuestaEnStreaming(trabajo) {
-  const encoder = new TextEncoder();
-  let intervalo;
-  const stream = new ReadableStream({
-    async start(controller) {
-      controller.enqueue(encoder.encode(' '));
-      intervalo = setInterval(function () { controller.enqueue(encoder.encode(' ')); }, INTERVALO_KEEPALIVE_MS);
-      let cuerpo;
-      try {
-        cuerpo = await trabajo();
-      } catch (e) {
-        cuerpo = { error: 'No se pudo procesar el pedido. Intenta de nuevo.' };
-      }
-      clearInterval(intervalo);
-      controller.enqueue(encoder.encode(JSON.stringify(cuerpo)));
-      controller.close();
-    },
-    cancel() { clearInterval(intervalo); },
+// {que_se_hizo, resultados:[{dato, significado}], precauciones:[str], como_reportarlo} o null.
+function validarInterpretacion(parsed) {
+  if (!parsed || typeof parsed.que_se_hizo !== 'string' || !parsed.que_se_hizo.trim()) return null;
+  const resultados = [];
+  (Array.isArray(parsed.resultados) ? parsed.resultados : []).forEach(function (r) {
+    if (r && typeof r.dato === 'string' && r.dato.trim() && typeof r.significado === 'string' && r.significado.trim()) {
+      resultados.push({ dato: r.dato.trim(), significado: r.significado.trim() });
+    }
   });
-  return new Response(stream, {
-    status: 200,
-    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
-  });
+  const precauciones = (Array.isArray(parsed.precauciones) ? parsed.precauciones : [])
+    .filter(function (p) { return typeof p === 'string' && p.trim(); })
+    .map(function (p) { return p.trim(); });
+  return {
+    que_se_hizo: parsed.que_se_hizo.trim(),
+    resultados: resultados,
+    precauciones: precauciones,
+    como_reportarlo: textoONull(parsed.como_reportarlo),
+  };
 }
+
+function textoDe(body, campo, max) {
+  return body && typeof body[campo] === 'string' ? body[campo].trim().slice(0, max) : '';
+}
+
+const ERROR_INTERPRETAR = 'No se pudo interpretar la respuesta. Intenta de nuevo.';
 
 export default async function handler(request) {
   if (request.method !== 'POST') {
@@ -286,57 +291,112 @@ export default async function handler(request) {
   }
 
   const modo = body && typeof body.modo === 'string' ? body.modo : '';
-  if (modo !== 'revisar' && modo !== 'generar') {
-    return jsonResponse(400, { error: 'El modo debe ser "revisar" o "generar".' });
+  if (modo !== 'revisar' && modo !== 'explicar' && modo !== 'interpretar' && modo !== 'generar') {
+    return jsonResponse(400, { error: 'El modo debe ser "revisar", "explicar", "interpretar" o "generar".' });
   }
 
   const nivelPedido = body && typeof body.nivel === 'string' ? body.nivel.trim().toLowerCase() : '';
   const nivel = INSTRUCCION_NIVEL[nivelPedido] ? nivelPedido : NIVEL_DEFAULT;
+  const sistema = function (prompt) { return prompt + '\n\n' + INSTRUCCION_NIVEL[nivel]; };
 
   if (modo === 'revisar') {
-    const codigo = body && typeof body.codigo === 'string' ? body.codigo.trim().slice(0, MAX_CODIGO_CHARS) : '';
+    const codigo = textoDe(body, 'codigo', MAX_CODIGO_CHARS);
     if (!codigo) {
       return jsonResponse(400, { error: 'Pega el código a revisar.' });
     }
+    const numerado = numerarLineas(codigo);
 
     return respuestaEnStreaming(async function () {
       const contexto = await construirContextoOpcional(codigo);
-      const bloqueContexto = contexto ? '\n\nNotas de la base de conocimiento (usalas solo si aplican):\n' + contexto : '';
-
       let parsed;
       try {
         parsed = await llamarDeepSeek(
-          PROMPT_REVISAR + '\n\n' + INSTRUCCION_NIVEL[nivel],
-          'Código a revisar:\n```\n' + codigo + '\n```' + bloqueContexto,
+          sistema(PROMPT_REVISAR),
+          'Código a revisar:\n```\n' + numerado.texto + '\n```' + bloqueDeContexto(contexto),
           deepseekKey
         );
       } catch (e) {
         return { error: mensajeError(e, 'revisión') };
       }
-
-      const hallazgos = parsed ? validarHallazgos(parsed.hallazgos) : null;
-      if (hallazgos === null) {
-        return { error: 'No se pudo interpretar la respuesta. Intenta de nuevo.' };
-      }
+      const hallazgos = parsed ? validarHallazgos(parsed.hallazgos, numerado.total) : null;
+      if (hallazgos === null) return { error: ERROR_INTERPRETAR };
       return { hallazgos: hallazgos };
     });
   }
 
+  if (modo === 'explicar') {
+    const codigo = textoDe(body, 'codigo', MAX_CODIGO_CHARS);
+    if (!codigo) {
+      return jsonResponse(400, { error: 'Pega el do-file que quieres que te explique.' });
+    }
+    const numerado = numerarLineas(codigo);
+
+    return respuestaEnStreaming(async function () {
+      let parsed;
+      try {
+        parsed = await llamarDeepSeek(
+          sistema(PROMPT_EXPLICAR),
+          'Do-file a explicar:\n```\n' + numerado.texto + '\n```',
+          deepseekKey,
+          { maxTokens: 5000 }
+        );
+      } catch (e) {
+        return { error: mensajeError(e, 'explicación') };
+      }
+      const explicacion = validarExplicacion(parsed, numerado.total);
+      if (!explicacion) return { error: ERROR_INTERPRETAR };
+      return explicacion;
+    });
+  }
+
+  if (modo === 'interpretar') {
+    const salida = textoDe(body, 'salida', MAX_SALIDA_CHARS);
+    if (!salida) {
+      return jsonResponse(400, { error: 'Pega la salida de Stata que quieres interpretar.' });
+    }
+    const contextoEstudio = textoDe(body, 'contexto', MAX_CONTEXTO_ESTUDIO_CHARS);
+
+    return respuestaEnStreaming(async function () {
+      let parsed;
+      try {
+        parsed = await llamarDeepSeek(
+          sistema(PROMPT_INTERPRETAR),
+          (contextoEstudio ? 'Contexto del estudio: ' + contextoEstudio + '\n\n' : '') +
+            'Salida de Stata:\n```\n' + salida + '\n```',
+          deepseekKey,
+          { maxTokens: 3500 }
+        );
+      } catch (e) {
+        return { error: mensajeError(e, 'interpretación') };
+      }
+      const interpretacion = validarInterpretacion(parsed);
+      if (!interpretacion) return { error: ERROR_INTERPRETAR };
+      return interpretacion;
+    });
+  }
+
   // modo === 'generar'
-  const descripcion = body && typeof body.descripcion === 'string' ? body.descripcion.trim().slice(0, MAX_DESCRIPCION_CHARS) : '';
+  const descripcion = textoDe(body, 'descripcion', MAX_DESCRIPCION_CHARS);
   if (!descripcion) {
     return jsonResponse(400, { error: 'Describe qué análisis quieres generar.' });
+  }
+  const codigoPrevio = textoDe(body, 'codigo_previo', MAX_CODIGO_PREVIO_CHARS);
+  const ajuste = textoDe(body, 'ajuste', MAX_AJUSTE_CHARS);
+  if (!!codigoPrevio !== !!ajuste) {
+    return jsonResponse(400, { error: 'Para pedir un ajuste hace falta el código actual y lo que quieres cambiar.' });
   }
 
   return respuestaEnStreaming(async function () {
     const contexto = await construirContextoOpcional(descripcion);
-    const bloqueContexto = contexto ? '\n\nNotas de la base de conocimiento (usalas solo si aplican):\n' + contexto : '';
+    const bloqueAjuste = codigoPrevio
+      ? '\n\nCódigo actual:\n```\n' + codigoPrevio + '\n```\n\nAjuste pedido: ' + ajuste
+      : '';
 
     let parsed;
     try {
       parsed = await llamarDeepSeek(
-        PROMPT_GENERAR + '\n\n' + INSTRUCCION_NIVEL[nivel],
-        'Descripción del análisis:\n' + descripcion + bloqueContexto,
+        sistema(PROMPT_GENERAR),
+        'Descripción del análisis:\n' + descripcion + bloqueAjuste + bloqueDeContexto(contexto),
         deepseekKey
       );
     } catch (e) {
@@ -344,7 +404,7 @@ export default async function handler(request) {
     }
 
     if (!parsed || typeof parsed.codigo !== 'string' || typeof parsed.explicacion !== 'string' || !Array.isArray(parsed.notas_citadas)) {
-      return { error: 'No se pudo interpretar la respuesta. Intenta de nuevo.' };
+      return { error: ERROR_INTERPRETAR };
     }
 
     const notasCitadas = parsed.notas_citadas.map(filtrarNotaCitada).filter(function (n) { return n !== null; });

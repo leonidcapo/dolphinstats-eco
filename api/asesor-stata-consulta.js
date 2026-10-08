@@ -8,8 +8,12 @@
 
 import { fetchFileRaw } from './_lib/asesor-stata-github.js';
 import { elegirNotasRelevantes } from './_lib/asesor-stata-relevancia.js';
+import { llamarDeepSeek, respuestaEnStreaming, mensajeError } from './_lib/asesor-stata-llm.js';
 
 export const config = { runtime: 'edge' };
+
+const MENSAJE_SIN_NOTAS = 'No encontré notas relacionadas con tu pregunta en la base. Prueba con otras ' +
+  'palabras o revisa las guías en la pestaña Explorar.';
 
 const MAX_PREGUNTA_CHARS = 500;
 const MAX_CONTEXT_CHARS = 100000;
@@ -42,7 +46,7 @@ const PROMPT_SISTEMA = 'Eres el asistente de consulta de la base de conocimiento
   'esta forma exacta:\n' +
   '{"respuesta": "<respuesta en español, 2-6 oraciones>", "notas_citadas": ' +
   '[{"titulo": "<título exacto de la nota>", "path": "<path exacto>"}]}\n' +
-  'Si no citás ninguna nota, "notas_citadas" debe ser un array vacío.';
+  'Si no citas ninguna nota, "notas_citadas" debe ser un array vacío.';
 
 function jsonResponse(status, body) {
   return new Response(JSON.stringify(body), {
@@ -98,67 +102,40 @@ export default async function handler(request) {
   const nivelPedido = body && typeof body.nivel === 'string' ? body.nivel.trim().toLowerCase() : '';
   const nivel = INSTRUCCION_NIVEL[nivelPedido] ? nivelPedido : NIVEL_DEFAULT;
 
-  let contexto;
-  try {
-    contexto = await construirContexto(githubToken, deepseekKey, pregunta);
-  } catch (e) {
-    return jsonResponse(502, { error: 'No se pudo conectar con la base de conocimiento. Intenta de nuevo.' });
-  }
+  // Los pedidos válidos se responden en streaming (ver _lib/asesor-stata-llm.js):
+  // los fallos de aquí en adelante llegan como {error} dentro del cuerpo.
+  return respuestaEnStreaming(async function () {
+    let contexto;
+    try {
+      contexto = await construirContexto(githubToken, deepseekKey, pregunta);
+    } catch (e) {
+      return { error: 'No se pudo conectar con la base de conocimiento. Intenta de nuevo.' };
+    }
 
-  if (!contexto) {
-    return jsonResponse(200, { respuesta: 'La base de conocimiento todavía no tiene notas guardadas.', notas_citadas: [] });
-  }
+    if (!contexto) {
+      return { respuesta: MENSAJE_SIN_NOTAS, notas_citadas: [] };
+    }
 
-  let upstream;
-  try {
-    upstream = await fetch('https://api.deepseek.com/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: 'Bearer ' + deepseekKey,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: process.env.DEEPSEEK_MODEL || 'deepseek-v4-flash',
-        messages: [
-          { role: 'system', content: PROMPT_SISTEMA + '\n\n' + INSTRUCCION_NIVEL[nivel] },
-          { role: 'user', content: contexto + '\n\nPregunta: ' + pregunta },
-        ],
-        max_tokens: 800 + (Number(process.env.DEEPSEEK_REASONING_MARGIN) || 1500),
-        temperature: 0.2,
-        response_format: { type: 'json_object' },
-      }),
+    let parsed;
+    try {
+      parsed = await llamarDeepSeek(
+        PROMPT_SISTEMA + '\n\n' + INSTRUCCION_NIVEL[nivel],
+        contexto + '\n\nPregunta: ' + pregunta,
+        deepseekKey,
+        { maxTokens: 800 }
+      );
+    } catch (e) {
+      return { error: mensajeError(e, 'consulta') };
+    }
+
+    if (!parsed || typeof parsed.respuesta !== 'string' || !Array.isArray(parsed.notas_citadas)) {
+      return { error: 'No se pudo interpretar la respuesta. Intenta de nuevo.' };
+    }
+
+    const notasCitadas = parsed.notas_citadas.filter(function (n) {
+      return n && typeof n.titulo === 'string' && n.titulo.trim() && typeof n.path === 'string' && n.path.trim();
     });
-  } catch (e) {
-    return jsonResponse(502, { error: 'No se pudo responder la consulta en este momento. Intenta de nuevo.' });
-  }
 
-  if (!upstream.ok) {
-    return jsonResponse(502, { error: 'No se pudo responder la consulta en este momento. Intenta de nuevo.' });
-  }
-
-  let data;
-  try {
-    data = await upstream.json();
-  } catch (e) {
-    return jsonResponse(502, { error: 'No se pudo interpretar la respuesta. Intenta de nuevo.' });
-  }
-
-  const contenido = data && data.choices && data.choices[0] && data.choices[0].message
-    ? data.choices[0].message.content : null;
-  let parsed;
-  try {
-    parsed = JSON.parse(contenido);
-  } catch (e) {
-    return jsonResponse(502, { error: 'No se pudo interpretar la respuesta. Intenta de nuevo.' });
-  }
-
-  if (!parsed || typeof parsed.respuesta !== 'string' || !Array.isArray(parsed.notas_citadas)) {
-    return jsonResponse(502, { error: 'No se pudo interpretar la respuesta. Intenta de nuevo.' });
-  }
-
-  const notasCitadas = parsed.notas_citadas.filter(function (n) {
-    return n && typeof n.titulo === 'string' && n.titulo.trim() && typeof n.path === 'string' && n.path.trim();
+    return { respuesta: parsed.respuesta, notas_citadas: notasCitadas };
   });
-
-  return jsonResponse(200, { respuesta: parsed.respuesta, notas_citadas: notasCitadas });
 }

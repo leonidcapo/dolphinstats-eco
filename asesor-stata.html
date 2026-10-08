@@ -91,8 +91,44 @@
   .nivel-ayuda{font-size:.75rem;color:var(--muted);margin:-.5rem 0 1rem}
   .ejemplos{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;margin:.6rem 0 0}
   .ejemplos-titulo{font-size:.75rem;color:var(--muted)}
-  .ejemplo{cursor:pointer;border:1px dashed var(--aqua);background:#fff;color:var(--aqua);border-radius:100px;padding:.3rem .8rem;font-family:inherit;font-size:.78rem;text-align:left}
-  .subtabs{display:flex;gap:.5rem;margin-bottom:1rem}
+  .ejemplo{cursor:pointer;border:1px dashed var(--aqua);background:#fff;color:var(--aqua);border-radius:100px;padding:.3rem .8rem;min-height:36px;font-family:inherit;font-size:.78rem;text-align:left}
+  .subtabs{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem}
+  .hallazgos-barra{display:flex;align-items:center;justify-content:space-between;gap:.6rem;flex-wrap:wrap;margin-bottom:.8rem}
+  .hallazgos-barra .hallazgos-resumen{margin-bottom:0}
+  .informe-acciones{display:flex;gap:.5rem;flex-wrap:wrap}
+  .informe-acciones button.copiar{margin-top:0}
+  .h-cabecera{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+  .h-lineas{font-size:.68rem;font-weight:700;color:var(--aqua);background:var(--surface);border:1px solid var(--border);border-radius:100px;padding:.05rem .6rem}
+  .h-codigo .bloque-barra{margin-top:.6rem}
+  .h-codigo pre.bloque-codigo{margin-bottom:.2rem}
+  #as-codigo-explicacion{margin-top:1.5rem}
+  .explica-resumen{background:#fff;border:1px solid var(--border);border-radius:10px;padding:.9rem 1.1rem;margin-bottom:.9rem;font-size:.92rem;line-height:1.6}
+  .paso{background:#fff;border:1px solid var(--border);border-left:4px solid var(--aqua);border-radius:10px;padding:.8rem 1.1rem;margin-bottom:.6rem}
+  .paso-cabecera{display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem}
+  .paso-numero{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+  .paso-texto{font-size:.9rem;line-height:1.55}
+  .paso-ojo{margin-top:.5rem;font-size:.83rem;color:var(--accent);background:#fff5f5;border-radius:8px;padding:.45rem .7rem}
+  #as-codigo-interpretacion{margin-top:1.5rem;background:#fff;border:1px solid var(--border);border-radius:14px;padding:1.5rem}
+  .interp-titulo{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:1.1rem 0 .4rem}
+  .interp-titulo:first-child{margin-top:0}
+  .interp-texto{font-size:.92rem;line-height:1.6;margin:0 0 .5rem}
+  .resultado{border:1px solid var(--border);border-radius:10px;padding:.7rem .9rem;margin-bottom:.5rem;background:var(--surface)}
+  .resultado-dato{font-weight:700;font-size:.86rem;font-family:Consolas,'Courier New',monospace;word-break:break-word}
+  .resultado-significado{font-size:.88rem;margin-top:.25rem;line-height:1.55}
+  .interp-precauciones ul{margin:0;padding-left:1.2rem;font-size:.88rem;line-height:1.55}
+  .reporte-texto{margin:0 0 .5rem;padding:.7rem 1rem;border-left:3px solid var(--aqua);background:var(--surface);font-size:.9rem;line-height:1.55}
+  .salida-input{min-height:220px}
+  .campo-contexto{display:block;margin-top:.8rem;font-size:.78rem;font-weight:700;color:var(--muted)}
+  .campo-contexto input,.guia-grid input,.guia-grid select{display:block;width:100%;margin-top:.25rem;min-height:40px;padding:.5rem .7rem;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:.88rem;background:#fff;color:var(--white)}
+  details.guia-form{margin-bottom:.8rem;background:#fff;border:1px solid var(--border);border-radius:10px;padding:.6rem 1rem}
+  details.guia-form > summary{cursor:pointer;font-size:.82rem;font-weight:700;color:var(--aqua);min-height:36px;display:flex;align-items:center}
+  .guia-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.7rem;margin:.7rem 0}
+  .guia-grid label{font-size:.78rem;font-weight:700;color:var(--muted)}
+  .guia-salidas{display:flex;flex-wrap:wrap;gap:.4rem .9rem;align-items:center;margin:.3rem 0 .8rem;font-size:.82rem}
+  .guia-salidas label{display:inline-flex;align-items:center;gap:.3rem;min-height:32px;cursor:pointer}
+  .ajuste{margin-top:1.4rem;padding-top:1rem;border-top:1px dashed var(--border)}
+  .ajuste-titulo{display:block;font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:.4rem}
+  .ajuste-texto{min-height:70px}
   .subtab{cursor:pointer;border:1px solid var(--border);background:#fff;padding:.5rem 1rem;min-height:40px;border-radius:100px;font-family:inherit;font-size:.85rem;font-weight:700;color:var(--muted)}
   .subtab.activo{background:var(--aqua);border-color:var(--aqua);color:#fff}
   .herramientas{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.6rem}
@@ -197,11 +233,13 @@
   </div>
 
   <div id="as-codigo-panel" class="campo-oculto">
-    <p class="intro"><strong>Revisar</strong> analiza un do-file que ya escribiste y señala errores y mejoras. <strong>Generar</strong> escribe un do-file nuevo a partir de una descripción.</p>
-    <p class="aviso">Tu texto se envía a un servicio de inteligencia artificial externo para analizarlo. <strong>No pegues datos de pacientes ni información que permita identificar a alguien.</strong> No se ejecuta nada en Stata: verifica el resultado antes de usarlo.</p>
+    <p class="intro" id="as-codigo-ayuda">Pega tu do-file y te indico errores y mejoras, con la línea donde están y cómo corregirlos.</p>
+    <p class="aviso">Tu texto se envía a un servicio de inteligencia artificial externo para analizarlo. <strong>No pegues datos de pacientes ni información que permita identificar a alguien</strong> (si pegas salidas de Stata, quita los listados de personas). No se ejecuta nada en Stata: verifica el resultado antes de usarlo.</p>
     <div class="subtabs" id="as-codigo-subtabs">
       <button type="button" class="subtab activo" id="as-subtab-revisar">Revisar</button>
+      <button type="button" class="subtab" id="as-subtab-explicar">Explicar</button>
       <button type="button" class="subtab" id="as-subtab-generar">Generar</button>
+      <button type="button" class="subtab" id="as-subtab-interpretar">Interpretar resultados</button>
     </div>
     <div class="panel">
       <form id="as-codigo-form">
@@ -223,6 +261,48 @@
         </div>
 
         <div id="as-bloque-generar" class="campo-oculto">
+          <details class="guia-form" id="as-guia">
+            <summary>Ayuda guiada: responde unas preguntas y armo la descripción por ti</summary>
+            <div class="guia-grid">
+              <label>Tipo de estudio
+                <select id="as-guia-estudio">
+                  <option value="">(sin indicar)</option>
+                  <option>Estudio transversal</option>
+                  <option>Estudio de casos y controles</option>
+                  <option>Estudio de cohorte</option>
+                  <option>Ensayo clínico aleatorizado</option>
+                  <option>Estudio antes y después</option>
+                </select>
+              </label>
+              <label>Variable de resultado
+                <input type="text" id="as-guia-resultado" maxlength="60" placeholder="Ej.: presion_sistolica">
+              </label>
+              <label>Tipo del resultado
+                <select id="as-guia-tipo">
+                  <option>numérica continua</option>
+                  <option>sí/no (0/1)</option>
+                  <option>categórica de varios niveles</option>
+                  <option>tiempo hasta un evento</option>
+                  <option>conteo</option>
+                </select>
+              </label>
+              <label>Variables explicativas
+                <input type="text" id="as-guia-explicativas" maxlength="200" placeholder="Ej.: edad, sexo, imc">
+              </label>
+              <label>Grupos a comparar
+                <input type="text" id="as-guia-grupos" maxlength="60" placeholder="Ej.: tratamiento">
+              </label>
+            </div>
+            <div class="guia-salidas">
+              <span class="ejemplos-titulo">Quiero:</span>
+              <label><input type="checkbox" name="as-guia-salida" value="tabla 1 por grupo"> Tabla 1</label>
+              <label><input type="checkbox" name="as-guia-salida" value="una prueba de hipótesis"> Prueba de hipótesis</label>
+              <label><input type="checkbox" name="as-guia-salida" value="un modelo de regresión"> Modelo de regresión</label>
+              <label><input type="checkbox" name="as-guia-salida" value="un gráfico"> Gráfico</label>
+              <label><input type="checkbox" name="as-guia-salida" value="una tabla lista para el artículo"> Tabla para el artículo</label>
+            </div>
+            <button type="button" class="ejemplo" id="as-guia-armar">Armar la descripción</button>
+          </details>
           <textarea id="as-codigo-generar-input" maxlength="1000" placeholder="Describe el análisis. Cuanto más concreto (variables, tipo de estudio, qué quieres reportar), mejor."></textarea>
           <div class="contador" id="as-codigo-generar-contador"></div>
           <div class="ejemplos">
@@ -233,15 +313,28 @@
           </div>
         </div>
 
+        <div id="as-bloque-interpretar" class="campo-oculto">
+          <textarea id="as-codigo-interpretar-input" class="codigo-input salida-input" spellcheck="false" wrap="off" placeholder="Pega aquí la salida de Stata: una tabla de regresión, un chi cuadrado, un t-test, el resultado de un modelo de Cox…"></textarea>
+          <div class="contador" id="as-codigo-interpretar-contador"></div>
+          <label class="campo-contexto">Contexto del estudio (opcional, ayuda a interpretar mejor)
+            <input type="text" id="as-interpretar-contexto" maxlength="500" placeholder="Ej.: factores asociados a bajo peso al nacer en un hospital de Lima">
+          </label>
+          <div class="herramientas">
+            <button type="button" class="ejemplo" id="as-interpretar-ejemplo">Probar con un ejemplo</button>
+          </div>
+        </div>
+
         <button type="submit" class="enviar" id="as-codigo-enviar">Revisar</button>
       </form>
       <div class="estado" id="as-codigo-status" role="status" aria-live="polite"></div>
     </div>
     <div id="as-codigo-hallazgos" class="campo-oculto"></div>
+    <div id="as-codigo-explicacion" class="campo-oculto"></div>
+    <div id="as-codigo-interpretacion" class="campo-oculto"></div>
     <div id="as-codigo-generado" class="campo-oculto"></div>
   </div>
 
-  <p class="pie">Las respuestas de Preguntar, Revisar y Generar las produce una inteligencia artificial a partir de las notas de la base y puede equivocarse: confirma lo importante en la documentación de Stata o con tu asesor.</p>
+  <p class="pie">Las respuestas de Preguntar, Revisar, Explicar, Generar e Interpretar las produce una inteligencia artificial y puede equivocarse: confirma lo importante en la documentación de Stata o con tu asesor.</p>
 </div>
 <script src="asesor-stata.js"></script>
 </body>

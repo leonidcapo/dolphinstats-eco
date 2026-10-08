@@ -211,6 +211,58 @@ async function main() {
     assert.deepEqual(listarRadar(radar, 'zzz'), []);
   });
 
+  const { etiquetaLineas, armarInformeRevision, armarDescripcionGuiada } = mod.default || mod;
+
+  await test('etiquetaLineas: «Línea N», «Líneas N-M» o vacío', () => {
+    assert.equal(etiquetaLineas('12'), 'Línea 12');
+    assert.equal(etiquetaLineas('12-15'), 'Líneas 12-15');
+    assert.equal(etiquetaLineas(null), '');
+    assert.equal(etiquetaLineas(''), '');
+  });
+
+  const HALLAZGOS = [
+    { severidad: 'sugerencia', lineas: null, que: 'Falta `log using`', por_que: 'Sin registro no se reproduce', como_arreglar: 'Abrir un log', codigo_corregido: null, nota_citada: null },
+    { severidad: 'importante', lineas: '3-4', que: 'Los missing cuentan como mayores que 40', por_que: 'edad >= 40 incluye perdidos', como_arreglar: 'Agregar !missing(edad)',
+      codigo_corregido: 'replace edad_cat = 2 if edad >= 40 & !missing(edad)', nota_citada: { titulo: 'Manejo de datos', path: 'knowledge/data-management/manejo.md' } },
+  ];
+
+  await test('armarInformeRevision: encabezado, conteo, importantes primero, líneas, código y nota', () => {
+    const md = armarInformeRevision(HALLAZGOS, '2026-10-07');
+    assert.match(md, /^# Informe de revisión de código — Asesor Stata\nFecha: 2026-10-07\n/);
+    assert.match(md, /2 hallazgos: 1 importante, 1 sugerencia\./);
+    assert.ok(md.indexOf('## 1. Importante — Los missing') !== -1);
+    assert.ok(md.indexOf('## 1. Importante') < md.indexOf('## 2. Sugerencia'));
+    assert.match(md, /Líneas 3-4/);
+    assert.match(md, /- \*\*Por qué:\*\* edad >= 40 incluye perdidos/);
+    assert.match(md, /- \*\*Cómo arreglarlo:\*\* Agregar !missing\(edad\)/);
+    assert.match(md, /```stata\nreplace edad_cat = 2 if edad >= 40 & !missing\(edad\)\n```/);
+    assert.match(md, /Nota relacionada: Manejo de datos \(knowledge\/data-management\/manejo\.md\)/);
+    assert.match(md, /inteligencia artificial; verifica/);
+  });
+
+  await test('armarInformeRevision: el hallazgo general no lleva línea ni bloque de código; singular y vacío', () => {
+    const md = armarInformeRevision([HALLAZGOS[0]], '2026-10-07');
+    assert.match(md, /1 hallazgo: 0 importantes, 1 sugerencia\./);
+    assert.ok(!/Líneas?\s\d/.test(md));
+    assert.ok(!/```stata/.test(md));
+    assert.match(armarInformeRevision([], '2026-10-07'), /Sin hallazgos/);
+  });
+
+  await test('armarDescripcionGuiada: junta solo los campos con contenido', () => {
+    const d = armarDescripcionGuiada({
+      estudio: 'Estudio transversal', resultado: 'presion', tipoResultado: 'numérica continua',
+      explicativas: 'edad, sexo, imc', grupos: 'tratamiento', salidas: ['tabla 1 por grupo', 'modelo de regresión'],
+    });
+    assert.equal(d, 'Estudio transversal. Variable de resultado: presion (numérica continua). ' +
+      'Variables explicativas: edad, sexo, imc. Grupos a comparar: tratamiento. Quiero: tabla 1 por grupo, modelo de regresión.');
+    assert.equal(armarDescripcionGuiada({ resultado: '  enfermo  ', salidas: [] }), 'Variable de resultado: enfermo.');
+    assert.equal(armarDescripcionGuiada({}), '');
+  });
+
+  await test('armarDescripcionGuiada: no pasa de 1000 caracteres', () => {
+    assert.ok(armarDescripcionGuiada({ explicativas: 'x'.repeat(3000) }).length <= 1000);
+  });
+
   await test('etiquetaFuente: nombres legibles para el tipo de fuente', () => {
     assert.equal(etiquetaFuente('SSC'), 'Módulo SSC');
     assert.equal(etiquetaFuente('libro'), 'Libro');

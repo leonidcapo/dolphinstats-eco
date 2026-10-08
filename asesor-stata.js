@@ -244,6 +244,61 @@
     return plano;
   }
 
+  function etiquetaLineas(lineas) {
+    if (!lineas) return '';
+    return (String(lineas).indexOf('-') !== -1 ? 'Líneas ' : 'Línea ') + lineas;
+  }
+
+  function plural(n, singular, pluralTexto) {
+    return n + ' ' + (n === 1 ? singular : pluralTexto);
+  }
+
+  // Informe en Markdown de una revisión (para descargar o copiar). Los
+  // hallazgos importantes van primero, igual que en pantalla.
+  function armarInformeRevision(hallazgos, fechaIso) {
+    var ordenados = hallazgos.slice().sort(function (a, b) {
+      return (a.severidad === 'importante' ? 0 : 1) - (b.severidad === 'importante' ? 0 : 1);
+    });
+    var importantes = ordenados.filter(function (h) { return h.severidad === 'importante'; }).length;
+    var partes = ['# Informe de revisión de código — Asesor Stata', 'Fecha: ' + fechaIso, ''];
+
+    if (!ordenados.length) {
+      partes.push('Sin hallazgos: no se encontró nada para observar en este código.');
+    } else {
+      partes.push(plural(ordenados.length, 'hallazgo', 'hallazgos') + ': ' +
+        plural(importantes, 'importante', 'importantes') + ', ' +
+        plural(ordenados.length - importantes, 'sugerencia', 'sugerencias') + '.');
+      ordenados.forEach(function (h, i) {
+        partes.push('', '## ' + (i + 1) + '. ' + (h.severidad === 'importante' ? 'Importante' : 'Sugerencia') + ' — ' + h.que);
+        if (h.lineas) partes.push(etiquetaLineas(h.lineas));
+        partes.push('- **Por qué:** ' + h.por_que, '- **Cómo arreglarlo:** ' + h.como_arreglar);
+        if (h.codigo_corregido) partes.push('', 'Código sugerido:', '', '```stata', h.codigo_corregido, '```');
+        if (h.nota_citada) partes.push('', 'Nota relacionada: ' + h.nota_citada.titulo + ' (' + h.nota_citada.path + ')');
+      });
+    }
+    partes.push('', '---', 'Informe generado con inteligencia artificial; verifica cada punto antes de aplicarlo.', '');
+    return partes.join('\n');
+  }
+
+  // Convierte las respuestas del formulario guiado de «Generar» en la
+  // descripción que entiende el endpoint (máx. 1000 caracteres).
+  function armarDescripcionGuiada(campos) {
+    function limpio(v) { return typeof v === 'string' ? v.trim() : ''; }
+    var partes = [];
+    var estudio = limpio(campos.estudio);
+    var resultado = limpio(campos.resultado);
+    var tipo = limpio(campos.tipoResultado);
+    var explicativas = limpio(campos.explicativas);
+    var grupos = limpio(campos.grupos);
+    var salidas = (Array.isArray(campos.salidas) ? campos.salidas : []).map(limpio).filter(Boolean);
+    if (estudio) partes.push(estudio + '.');
+    if (resultado) partes.push('Variable de resultado: ' + resultado + (tipo ? ' (' + tipo + ')' : '') + '.');
+    if (explicativas) partes.push('Variables explicativas: ' + explicativas + '.');
+    if (grupos) partes.push('Grupos a comparar: ' + grupos + '.');
+    if (salidas.length) partes.push('Quiero: ' + salidas.join(', ') + '.');
+    return partes.join(' ').slice(0, 1000);
+  }
+
   var FUENTES = {
     libro: 'Libro',
     SSC: 'Módulo SSC',
@@ -266,6 +321,9 @@
     separarNotaInterna: separarNotaInterna,
     separarPorOrigen: separarPorOrigen,
     listarRadar: listarRadar,
+    etiquetaLineas: etiquetaLineas,
+    armarInformeRevision: armarInformeRevision,
+    armarDescripcionGuiada: armarDescripcionGuiada,
   };
 
   if (typeof window === 'undefined') {
@@ -283,6 +341,7 @@
   var MAX_CODIGO = 20000;
   var MAX_DESCRIPCION = 1000;
   var MAX_PREGUNTA = 500;
+  var MAX_SALIDA = 8000;
   var RADAR_TANDA = 15;
   // La guía por la que se recomienda empezar (se marca en la lista de Explorar).
   var EMPIEZA_AQUI = 'knowledge/stata-basics/tour-rapido-interfaz-flujo-trabajo.md';
@@ -532,18 +591,7 @@
 
     // Cada bloque de código lleva su botón «Copiar».
     cuerpoEl.querySelectorAll('pre.bloque-codigo').forEach(function (pre) {
-      var barra = document.createElement('div');
-      barra.className = 'bloque-barra';
-      var etiqueta = document.createElement('span');
-      etiqueta.textContent = 'Código Stata';
-      var boton = document.createElement('button');
-      boton.type = 'button';
-      boton.className = 'copiar';
-      boton.textContent = 'Copiar';
-      boton.addEventListener('click', function () { copiarTexto(pre.textContent, boton, 'Copiar', pre); });
-      barra.appendChild(etiqueta);
-      barra.appendChild(boton);
-      pre.parentNode.insertBefore(barra, pre);
+      agregarBarraCopiar(pre, 'Código Stata');
     });
 
     // La relevancia para DolphinStats es una nota del equipo: va plegada al final.
@@ -730,16 +778,116 @@
 
   // ----------------------------------------------------------------- Código
 
+  var EJEMPLO_SALIDA = [
+    '. tab smoke low, row chi2',
+    '',
+    '           |          low',
+    '     smoke |         0          1 |     Total',
+    '-----------+----------------------+----------',
+    '         0 |        86         29 |       115',
+    '           |     74.78      25.22 |    100.00',
+    '-----------+----------------------+----------',
+    '         1 |        44         30 |        74',
+    '           |     59.46      40.54 |    100.00',
+    '-----------+----------------------+----------',
+    '     Total |       130         59 |       189',
+    '           |     68.78      31.22 |    100.00',
+    '',
+    '          Pearson chi2(1) =   4.9237   Pr = 0.026',
+  ].join('\n');
+
+  // Qué cambia en la pantalla según el modo.
+  var MODOS_CODIGO = {
+    revisar: {
+      etiqueta: 'Revisar', bloque: 'as-bloque-revisar', resultado: 'as-codigo-hallazgos',
+      ayuda: 'Pega tu do-file y te indico errores y mejoras, con la línea donde están y cómo corregirlos.',
+      placeholder: 'Pega aquí tu do-file, o súbelo con el botón de abajo…',
+      frases: ['Leyendo tu código…', 'Buscando notas relacionadas en la base…', 'Redactando los hallazgos…', 'Ordenando los hallazgos…'],
+      largo: true,
+    },
+    explicar: {
+      etiqueta: 'Explicar', bloque: 'as-bloque-revisar', resultado: 'as-codigo-explicacion',
+      ayuda: 'Pega un do-file (tuyo o heredado) y te explico qué hace, paso a paso.',
+      placeholder: 'Pega aquí el do-file que quieres entender, o súbelo con el botón de abajo…',
+      frases: ['Leyendo el do-file…', 'Agrupando las líneas en pasos…', 'Redactando la explicación…'],
+      largo: true,
+    },
+    generar: {
+      etiqueta: 'Generar', bloque: 'as-bloque-generar', resultado: 'as-codigo-generado',
+      ayuda: 'Describe el análisis y escribo el do-file. Después puedes pedir ajustes sobre el resultado.',
+      frases: ['Entendiendo tu pedido…', 'Buscando notas relacionadas…', 'Escribiendo el do-file…'],
+      largo: false,
+    },
+    interpretar: {
+      etiqueta: 'Interpretar', bloque: 'as-bloque-interpretar', resultado: 'as-codigo-interpretacion',
+      ayuda: 'Pega la salida de Stata (una tabla, un modelo, una prueba) y te explico qué dice, citando solo los números que aparecen.',
+      frases: ['Leyendo la salida…', 'Interpretando los resultados…', 'Redactando la explicación…'],
+      largo: false,
+    },
+  };
+
+  var ultimaDescripcion = ''; // descripción con la que se generó el código que se ve (para los ajustes)
+
   function mostrarSubModoCodigo(modo) {
     subModoCodigo = modo;
-    $('as-subtab-revisar').classList.toggle('activo', modo === 'revisar');
-    $('as-subtab-generar').classList.toggle('activo', modo === 'generar');
-    $('as-bloque-revisar').classList.toggle('campo-oculto', modo !== 'revisar');
-    $('as-bloque-generar').classList.toggle('campo-oculto', modo !== 'generar');
-    $('as-codigo-enviar').textContent = modo === 'revisar' ? 'Revisar' : 'Generar';
-    $('as-codigo-hallazgos').classList.add('campo-oculto');
-    $('as-codigo-generado').classList.add('campo-oculto');
+    var def = MODOS_CODIGO[modo];
+    Object.keys(MODOS_CODIGO).forEach(function (m) {
+      $('as-subtab-' + m).classList.toggle('activo', m === modo);
+      $(MODOS_CODIGO[m].resultado).classList.add('campo-oculto');
+    });
+    ['as-bloque-revisar', 'as-bloque-generar', 'as-bloque-interpretar'].forEach(function (id) {
+      $(id).classList.toggle('campo-oculto', id !== def.bloque);
+    });
+    if (def.placeholder) $('as-codigo-revisar-input').placeholder = def.placeholder;
+    $('as-codigo-ayuda').textContent = def.ayuda;
+    $('as-codigo-enviar').textContent = def.etiqueta;
     mostrarEstado($('as-codigo-status'), '', '');
+  }
+
+  // Inserta sobre un <pre> una barra con el rótulo y un botón «Copiar».
+  function agregarBarraCopiar(pre, rotulo) {
+    var barra = document.createElement('div');
+    barra.className = 'bloque-barra';
+    var etiqueta = document.createElement('span');
+    etiqueta.textContent = rotulo;
+    var boton = document.createElement('button');
+    boton.type = 'button';
+    boton.className = 'copiar';
+    boton.textContent = 'Copiar';
+    boton.addEventListener('click', function () { copiarTexto(pre.textContent, boton, 'Copiar', pre); });
+    barra.appendChild(etiqueta);
+    barra.appendChild(boton);
+    pre.parentNode.insertBefore(barra, pre);
+  }
+
+  function crearBloqueCodigo(codigo, rotulo) {
+    var envoltura = document.createElement('div');
+    var pre = document.createElement('pre');
+    pre.className = 'bloque-codigo';
+    var code = document.createElement('code');
+    code.textContent = codigo;
+    pre.appendChild(code);
+    envoltura.appendChild(pre);
+    agregarBarraCopiar(pre, rotulo);
+    return envoltura;
+  }
+
+  function hoyIso() {
+    var d = new Date();
+    function dos(n) { return (n < 10 ? '0' : '') + n; }
+    return d.getFullYear() + '-' + dos(d.getMonth() + 1) + '-' + dos(d.getDate());
+  }
+
+  function descargarArchivo(contenido, nombre, tipo) {
+    var blob = new Blob([contenido], { type: tipo });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = nombre;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
   function renderHallazgos(hallazgos) {
@@ -753,22 +901,42 @@
       return (a.severidad === 'importante' ? 0 : 1) - (b.severidad === 'importante' ? 0 : 1);
     });
     var importantes = ordenados.filter(function (h) { return h.severidad === 'importante'; }).length;
-    cont.innerHTML = '<div class="hallazgos-resumen"></div>';
-    cont.firstChild.textContent = ordenados.length + (ordenados.length === 1 ? ' hallazgo' : ' hallazgos') +
+    cont.innerHTML = '<div class="hallazgos-barra"><div class="hallazgos-resumen"></div>' +
+      '<div class="informe-acciones"><button type="button" class="copiar informe-copiar">Copiar informe</button>' +
+      '<button type="button" class="copiar informe-descargar">Descargar informe (.md)</button></div></div>';
+    cont.querySelector('.hallazgos-resumen').textContent = ordenados.length + (ordenados.length === 1 ? ' hallazgo' : ' hallazgos') +
       ' · ' + importantes + (importantes === 1 ? ' importante' : ' importantes') +
       ' · ' + (ordenados.length - importantes) + (ordenados.length - importantes === 1 ? ' sugerencia' : ' sugerencias');
+    var botonInforme = cont.querySelector('.informe-copiar');
+    botonInforme.addEventListener('click', function () {
+      copiarTexto(armarInformeRevision(hallazgos, hoyIso()), botonInforme, 'Copiar informe');
+    });
+    cont.querySelector('.informe-descargar').addEventListener('click', function () {
+      descargarArchivo(armarInformeRevision(hallazgos, hoyIso()), 'informe-revision-' + hoyIso() + '.md', 'text/markdown');
+    });
+
     ordenados.forEach(function (h) {
       var div = document.createElement('div');
       div.className = 'hallazgo ' + (h.severidad === 'importante' ? 'importante' : 'sugerencia');
-      div.innerHTML = '<div class="h-severidad"></div><div class="h-que"></div>' +
+      div.innerHTML = '<div class="h-cabecera"><span class="h-severidad"></span><span class="h-lineas campo-oculto"></span></div>' +
+        '<div class="h-que"></div>' +
         '<div class="h-detalle"><b>Por qué:</b> <span class="h-porque"></span></div>' +
         '<div class="h-detalle"><b>Cómo arreglarlo:</b> <span class="h-arreglo"></span></div>' +
+        '<div class="h-codigo"></div>' +
         '<div class="h-nota campo-oculto"><a href="#"></a></div>';
       div.querySelector('.h-severidad').textContent = h.severidad === 'importante' ? 'Importante' : 'Sugerencia';
+      if (h.lineas) {
+        var chip = div.querySelector('.h-lineas');
+        chip.textContent = etiquetaLineas(h.lineas);
+        chip.classList.remove('campo-oculto');
+      }
       // inlineMarkdown escapa el HTML: solo agrega <code>, <strong> y <em>.
       div.querySelector('.h-que').innerHTML = inlineMarkdown(h.que);
       div.querySelector('.h-porque').innerHTML = inlineMarkdown(h.por_que);
       div.querySelector('.h-arreglo').innerHTML = inlineMarkdown(h.como_arreglar);
+      if (h.codigo_corregido) {
+        div.querySelector('.h-codigo').appendChild(crearBloqueCodigo(h.codigo_corregido, 'Así quedaría'));
+      }
       if (h.nota_citada) {
         var notaDiv = div.querySelector('.h-nota');
         notaDiv.classList.remove('campo-oculto');
@@ -783,29 +951,92 @@
     });
   }
 
-  function descargarComoDo(codigo) {
-    var blob = new Blob([codigo], { type: 'text/plain' });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.href = url;
-    a.download = 'analisis.do';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  function renderExplicacion(data) {
+    var cont = $('as-codigo-explicacion');
+    cont.classList.remove('campo-oculto');
+    cont.innerHTML = '<div class="explica-resumen"></div><div class="pasos"></div>';
+    cont.querySelector('.explica-resumen').innerHTML = inlineMarkdown(data.resumen);
+    var pasos = cont.querySelector('.pasos');
+    data.pasos.forEach(function (p, i) {
+      var div = document.createElement('div');
+      div.className = 'paso';
+      div.innerHTML = '<div class="paso-cabecera"><span class="paso-numero"></span><span class="h-lineas campo-oculto"></span></div>' +
+        '<div class="paso-texto"></div><div class="paso-ojo campo-oculto"></div>';
+      div.querySelector('.paso-numero').textContent = 'Paso ' + (i + 1);
+      if (p.lineas) {
+        var chip = div.querySelector('.h-lineas');
+        chip.textContent = etiquetaLineas(p.lineas);
+        chip.classList.remove('campo-oculto');
+      }
+      div.querySelector('.paso-texto').innerHTML = inlineMarkdown(p.que_hace);
+      if (p.ojo) {
+        var ojo = div.querySelector('.paso-ojo');
+        ojo.classList.remove('campo-oculto');
+        ojo.innerHTML = '<b>Ojo:</b> ' + inlineMarkdown(p.ojo);
+      }
+      pasos.appendChild(div);
+    });
+  }
+
+  function renderInterpretacion(data) {
+    var cont = $('as-codigo-interpretacion');
+    cont.classList.remove('campo-oculto');
+    cont.innerHTML = '<div class="interp-titulo">Qué análisis es</div><p class="interp-texto interp-que"></p>' +
+      '<div class="interp-seccion interp-resultados campo-oculto"><div class="interp-titulo">Qué dicen los números</div><div class="resultados"></div></div>' +
+      '<div class="interp-seccion interp-precauciones campo-oculto"><div class="interp-titulo">Precauciones</div><ul></ul></div>' +
+      '<div class="interp-seccion interp-reporte campo-oculto"><div class="interp-titulo">Cómo reportarlo</div>' +
+      '<blockquote class="reporte-texto"></blockquote><button type="button" class="copiar">Copiar frase</button></div>';
+    cont.querySelector('.interp-que').innerHTML = inlineMarkdown(data.que_se_hizo);
+
+    if (data.resultados.length) {
+      cont.querySelector('.interp-resultados').classList.remove('campo-oculto');
+      var lista = cont.querySelector('.resultados');
+      data.resultados.forEach(function (r) {
+        var div = document.createElement('div');
+        div.className = 'resultado';
+        div.innerHTML = '<div class="resultado-dato"></div><div class="resultado-significado"></div>';
+        div.querySelector('.resultado-dato').textContent = r.dato;
+        div.querySelector('.resultado-significado').innerHTML = inlineMarkdown(r.significado);
+        lista.appendChild(div);
+      });
+    }
+    if (data.precauciones.length) {
+      cont.querySelector('.interp-precauciones').classList.remove('campo-oculto');
+      var ul = cont.querySelector('.interp-precauciones ul');
+      data.precauciones.forEach(function (p) {
+        var li = document.createElement('li');
+        li.innerHTML = inlineMarkdown(p);
+        ul.appendChild(li);
+      });
+    }
+    if (data.como_reportarlo) {
+      cont.querySelector('.interp-reporte').classList.remove('campo-oculto');
+      cont.querySelector('.reporte-texto').textContent = data.como_reportarlo;
+      var boton = cont.querySelector('.interp-reporte button');
+      boton.addEventListener('click', function () { copiarTexto(data.como_reportarlo, boton, 'Copiar frase'); });
+    }
   }
 
   function renderCodigoGenerado(data) {
     var cont = $('as-codigo-generado');
     cont.classList.remove('campo-oculto');
     cont.innerHTML = '<pre></pre><button type="button" class="copiar">Copiar</button>' +
-      '<button type="button" class="copiar descargar">Descargar .do</button><div class="explicacion"></div>';
+      '<button type="button" class="copiar descargar">Descargar .do</button><div class="explicacion"></div>' +
+      '<div class="ajuste"><label class="ajuste-titulo">¿Quieres cambiar algo?</label>' +
+      '<textarea class="ajuste-texto" maxlength="500" placeholder="Ej.: agrega una tabla por sexo; usa errores estándar robustos; guarda los gráficos como PNG"></textarea>' +
+      '<button type="button" class="enviar ajuste-aplicar">Aplicar ajuste</button></div>';
     cont.querySelector('pre').textContent = data.codigo;
     cont.querySelector('.explicacion').textContent = data.explicacion;
     var botonCopiar = cont.querySelector('button.copiar:not(.descargar)');
     botonCopiar.addEventListener('click', function () { copiarTexto(data.codigo, botonCopiar, 'Copiar'); });
     cont.querySelector('button.descargar').addEventListener('click', function () {
-      descargarComoDo(data.codigo);
+      descargarArchivo(data.codigo, 'analisis.do', 'text/plain');
+    });
+    var areaAjuste = cont.querySelector('.ajuste-texto');
+    cont.querySelector('.ajuste-aplicar').addEventListener('click', function () {
+      var ajuste = areaAjuste.value.trim();
+      if (!ajuste) { mostrarEstado($('as-codigo-status'), 'error', 'Escribe qué quieres cambiar del código.'); return; }
+      enviarCodigo({ ajuste: ajuste, codigoPrevio: data.codigo });
     });
   }
 
@@ -820,37 +1051,52 @@
     });
   }
 
-  function enviarCodigo() {
+  function enviarCodigo(extra) {
+    extra = extra || {};
     var status = $('as-codigo-status');
     var boton = $('as-codigo-enviar');
-    $('as-codigo-hallazgos').classList.add('campo-oculto');
-    $('as-codigo-generado').classList.add('campo-oculto');
-    var cuerpo = { modo: subModoCodigo, nivel: nivelSeleccionadoDe('as-nivel-codigo') };
-    var frases;
-    if (subModoCodigo === 'revisar') {
+    var modo = subModoCodigo;
+    var def = MODOS_CODIGO[modo];
+    var cuerpo = { modo: modo, nivel: nivelSeleccionadoDe('as-nivel-codigo') };
+
+    if (modo === 'revisar' || modo === 'explicar') {
       var codigo = $('as-codigo-revisar-input').value.trim();
-      if (!codigo) { mostrarEstado(status, 'error', 'Pega o sube primero el do-file que quieres revisar.'); return; }
+      if (!codigo) {
+        mostrarEstado(status, 'error', modo === 'revisar' ? 'Pega o sube primero el do-file que quieres revisar.' : 'Pega o sube primero el do-file que quieres entender.');
+        return;
+      }
       cuerpo.codigo = codigo;
-      frases = ['Leyendo tu código…', 'Buscando notas relacionadas en la base…', 'Redactando los hallazgos…', 'Ordenando los hallazgos…'];
+    } else if (modo === 'interpretar') {
+      var salida = $('as-codigo-interpretar-input').value.trim();
+      if (!salida) { mostrarEstado(status, 'error', 'Pega primero la salida de Stata que quieres interpretar.'); return; }
+      cuerpo.salida = salida;
+      var contexto = $('as-interpretar-contexto').value.trim();
+      if (contexto) cuerpo.contexto = contexto;
     } else {
-      var descripcion = $('as-codigo-generar-input').value.trim();
+      var descripcion = extra.ajuste ? ultimaDescripcion : $('as-codigo-generar-input').value.trim();
       if (!descripcion) { mostrarEstado(status, 'error', 'Describe primero el análisis que quieres generar.'); return; }
       cuerpo.descripcion = descripcion;
-      frases = ['Entendiendo tu pedido…', 'Buscando notas relacionadas…', 'Escribiendo el do-file…'];
+      if (extra.ajuste) {
+        cuerpo.codigo_previo = extra.codigoPrevio;
+        cuerpo.ajuste = extra.ajuste;
+      }
     }
+
+    Object.keys(MODOS_CODIGO).forEach(function (m) { $(MODOS_CODIGO[m].resultado).classList.add('campo-oculto'); });
     boton.disabled = true;
-    var detener = iniciarEspera(status, frases, subModoCodigo === 'revisar');
-    var modoEnviado = subModoCodigo;
+    var frases = extra.ajuste ? ['Leyendo tu código…', 'Aplicando el ajuste…', 'Reescribiendo el do-file…'] : def.frases;
+    var detener = iniciarEspera(status, frases, def.largo);
     pedirJson('/api/asesor-stata-codigo', cuerpo, 90000)
       .then(function (r) {
         detener();
         boton.disabled = false;
         if (!r.ok || r.data.error) { mostrarEstado(status, 'error', r.data.error || 'No se pudo procesar el pedido.'); return; }
         mostrarEstado(status, '', '');
-        if (modoEnviado === 'revisar') { renderHallazgos(r.data.hallazgos); }
-        else { renderCodigoGenerado(r.data); }
-        var destino = modoEnviado === 'revisar' ? $('as-codigo-hallazgos') : $('as-codigo-generado');
-        destino.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (modo === 'revisar') renderHallazgos(r.data.hallazgos);
+        else if (modo === 'explicar') renderExplicacion(r.data);
+        else if (modo === 'interpretar') renderInterpretacion(r.data);
+        else { ultimaDescripcion = cuerpo.descripcion; renderCodigoGenerado(r.data); }
+        $(def.resultado).scrollIntoView({ behavior: 'smooth', block: 'start' });
       })
       .catch(function (e) {
         detener();
@@ -897,13 +1143,44 @@
     $('as-filtro').addEventListener('input', function () { if (indiceGlobal) pintarIndice(); });
     $('as-filtro-radar').addEventListener('input', function () { if (indiceRadar) pintarRadar(true); });
 
-    $('as-subtab-revisar').addEventListener('click', function () { mostrarSubModoCodigo('revisar'); });
-    $('as-subtab-generar').addEventListener('click', function () { mostrarSubModoCodigo('generar'); });
+    Object.keys(MODOS_CODIGO).forEach(function (m) {
+      $('as-subtab-' + m).addEventListener('click', function () { mostrarSubModoCodigo(m); });
+    });
     $('as-codigo-form').addEventListener('submit', function (e) { e.preventDefault(); enviarCodigo(); });
 
     enlazarContador('as-codigo-revisar-input', 'as-codigo-revisar-contador', MAX_CODIGO,
-      'solo se revisarán los primeros ' + MAX_CODIGO.toLocaleString('es-PE') + '.');
+      'solo se usarán los primeros ' + MAX_CODIGO.toLocaleString('es-PE') + '.');
     enlazarContador('as-codigo-generar-input', 'as-codigo-generar-contador', MAX_DESCRIPCION, 'se recortará.');
+    enlazarContador('as-codigo-interpretar-input', 'as-codigo-interpretar-contador', MAX_SALIDA,
+      'solo se usarán los primeros ' + MAX_SALIDA.toLocaleString('es-PE') + '.');
+
+    $('as-interpretar-ejemplo').addEventListener('click', function () {
+      var area = $('as-codigo-interpretar-input');
+      area.value = EJEMPLO_SALIDA;
+      area.dispatchEvent(new Event('input'));
+      $('as-interpretar-contexto').value = 'Bajo peso al nacer (low) según si la madre fumó (smoke)';
+      area.focus();
+    });
+
+    // Formulario guiado de «Generar»: arma la descripción a partir de las respuestas.
+    $('as-guia-armar').addEventListener('click', function () {
+      var salidas = [];
+      document.querySelectorAll('input[name="as-guia-salida"]:checked').forEach(function (c) { salidas.push(c.value); });
+      var descripcion = armarDescripcionGuiada({
+        estudio: $('as-guia-estudio').value,
+        resultado: $('as-guia-resultado').value,
+        tipoResultado: $('as-guia-resultado').value.trim() ? $('as-guia-tipo').value : '',
+        explicativas: $('as-guia-explicativas').value,
+        grupos: $('as-guia-grupos').value,
+        salidas: salidas,
+      });
+      if (!descripcion) { mostrarEstado($('as-codigo-status'), 'error', 'Completa al menos un campo del formulario para armar la descripción.'); return; }
+      mostrarEstado($('as-codigo-status'), '', '');
+      var area = $('as-codigo-generar-input');
+      area.value = descripcion;
+      area.dispatchEvent(new Event('input'));
+      area.focus();
+    });
     enlazarContador('as-buscar-input', 'as-buscar-contador', MAX_PREGUNTA, 'se recortará.');
 
     $('as-codigo-subir').addEventListener('click', function () { $('as-codigo-archivo').click(); });
