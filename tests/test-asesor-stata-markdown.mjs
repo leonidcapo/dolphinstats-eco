@@ -205,6 +205,18 @@ async function main() {
     assert.equal(lista[1].tema, 'Muestreo');
   });
 
+  await test('listarRadar: conserva la explicación simple y el filtro también busca en ella', () => {
+    const radar = { temas: [{ nombre: 'sampling', notas: [
+      { titulo: 'CALIBRA: Stata module', resumen: 'Calibración por Deville y Särndal.', simple: 'Ajusta los pesos de una encuesta.', path: 'knowledge/sampling/c.md', fecha: '2026-09-29', auto: true },
+      { titulo: 'OTRO: Stata module', resumen: 'Algo técnico.', path: 'knowledge/sampling/o.md', fecha: '2026-09-29', auto: true },
+    ] }] };
+    const lista = listarRadar(radar, '');
+    assert.equal(lista[0].simple, 'Ajusta los pesos de una encuesta.');
+    assert.equal(lista[1].simple, '');
+    assert.deepEqual(listarRadar(radar, 'encuesta').map(n => n.titulo), ['CALIBRA: Stata module']);
+    assert.deepEqual(listarRadar(radar, 'deville').map(n => n.titulo), ['CALIBRA: Stata module']);
+  });
+
   await test('listarRadar: respeta el filtro de palabras', () => {
     const { radar } = separarPorOrigen(INDICE_MIXTO);
     assert.deepEqual(listarRadar(radar, 'logit').map(n => n.titulo), ['Paquete nuevo']);

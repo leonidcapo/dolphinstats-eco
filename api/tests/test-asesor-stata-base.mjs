@@ -74,6 +74,22 @@ async function main() {
     assert.equal(v.fecha, null);
   });
 
+  await test('parseIndex: "resumen || en simple" separa la explicación simple del resumen técnico', () => {
+    const indice = parseIndex('## sampling\n' +
+      '- [CALIBRA: Stata module](knowledge/sampling/c.md) — Calibra pesos por Deville y Särndal. || Ajusta los pesos de una encuesta. · 2026-09-29 · auto\n' +
+      '- [Sin simple](knowledge/sampling/s.md) — Solo resumen técnico. · 2026-09-29 · auto\n' +
+      '- [Guía](knowledge/sampling/g.md) — resumen de guía. · 2026-09-29\n');
+    const [c, s, g] = indice.temas[0].notas;
+    assert.equal(c.resumen, 'Calibra pesos por Deville y Särndal.');
+    assert.equal(c.simple, 'Ajusta los pesos de una encuesta.');
+    assert.equal(c.fecha, '2026-09-29');
+    assert.equal(c.auto, true);
+    assert.equal(s.resumen, 'Solo resumen técnico.');
+    assert.equal(s.simple, '');
+    assert.equal(g.simple, '');
+    assert.equal(g.auto, false);
+  });
+
   await test('sin token -> 503, no llama a fetch', async () => {
     const restore = mockFetchOnce(() => { throw new Error('no debería llamarse'); });
     const res = await handler(req());

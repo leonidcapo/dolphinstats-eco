@@ -201,7 +201,7 @@
     indice.temas.forEach(function (tema) {
       var notas = tema.notas.filter(function (n) {
         if (!palabras.length) return true;
-        var pajar = normalizarTexto(n.titulo + ' ' + n.resumen + ' ' + nombreTema(tema.nombre));
+        var pajar = normalizarTexto(n.titulo + ' ' + n.resumen + ' ' + (n.simple || '') + ' ' + nombreTema(tema.nombre));
         return palabras.every(function (p) {
           return pajar.indexOf(p) !== -1 || (ALIAS_BUSQUEDA[p] && pajar.indexOf(ALIAS_BUSQUEDA[p]) !== -1);
         });
@@ -232,7 +232,7 @@
     var plano = [];
     filtrarIndice(radar, texto).forEach(function (tema) {
       tema.notas.forEach(function (n) {
-        plano.push({ titulo: n.titulo, path: n.path, resumen: n.resumen, fecha: n.fecha, tema: tema.nombre, orden: plano.length });
+        plano.push({ titulo: n.titulo, path: n.path, resumen: n.resumen, simple: n.simple || '', fecha: n.fecha, tema: tema.nombre, orden: plano.length });
       });
     });
     plano.sort(function (a, b) {
@@ -687,7 +687,9 @@
       btn.className = 'ncard';
       btn.innerHTML = '<div class="ntitulo"></div><div class="nresumen"></div><div class="nfecha"></div>';
       btn.querySelector('.ntitulo').textContent = nota.titulo;
-      btn.querySelector('.nresumen').textContent = nota.resumen;
+      // Si la nota trae explicación en simple, la tarjeta muestra esa (el
+      // resumen técnico queda dentro de la nota).
+      btn.querySelector('.nresumen').textContent = nota.simple || nota.resumen;
       btn.querySelector('.nfecha').textContent = nota.tema + (nota.fecha ? ' · ' + nota.fecha : '');
       btn.addEventListener('click', function () { verNota(nota.path); });
       cont.appendChild(btn);

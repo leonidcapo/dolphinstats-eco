@@ -47,10 +47,14 @@ export function parseIndex(markdown) {
     // distingue el Radar de las guías escritas a mano.
     var notaMatch = linea.match(/^-\s*\[(.+?)\]\((.+?)\)(?:\s*—\s*(.*?))?(?:\s*·\s*(\d{4}-\d{2}-\d{2})(?:\s*·\s*(auto))?)?\s*$/);
     if (notaMatch) {
+      // "resumen técnico || explicación en simple": la segunda parte es opcional
+      // (la escribe el monitoreo) y es la que muestran las tarjetas del Radar.
+      var textos = (notaMatch[3] || '').split(' || ');
       actual.notas.push({
         titulo: notaMatch[1].trim(),
         path: notaMatch[2].trim(),
-        resumen: (notaMatch[3] || '').trim(),
+        resumen: textos[0].trim(),
+        simple: textos.slice(1).join(' || ').trim(),
         fecha: notaMatch[4] || null,
         auto: notaMatch[5] === 'auto',
       });
