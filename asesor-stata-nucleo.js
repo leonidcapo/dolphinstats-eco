@@ -437,7 +437,50 @@
     };
   }
 
+  // ----------------------------------------------------------- líneas de código
+
+  // Misma separación que usa el servidor para numerar el código que le llega.
+  function dividirLineas(texto) {
+    return String(texto === undefined || texto === null ? '' : texto).split(/\r?\n/);
+  }
+
+  // Lo que el servidor hace antes de numerar: recortar y limitar. Si el visor
+  // muestra este texto, sus números de línea son los mismos que ve el modelo.
+  function prepararCodigo(texto, max) {
+    return String(texto === undefined || texto === null ? '' : texto).trim().slice(0, max);
+  }
+
+  // "12" o "12-15" -> [12] o [12,13,14,15]; vacío si es nulo, mal formado,
+  // invertido, menor que 1 o mayor que total.
+  function lineasDeRango(rango, total) {
+    var m = /^(\d+)(?:\s*[-–]\s*(\d+))?$/.exec(String(rango === undefined || rango === null ? '' : rango).trim());
+    if (!m) return [];
+    var desde = Number(m[1]);
+    var hasta = m[2] !== undefined ? Number(m[2]) : desde;
+    if (desde < 1 || hasta < desde || hasta > total) return [];
+    var lineas = [];
+    for (var n = desde; n <= hasta; n++) lineas.push(n);
+    return lineas;
+  }
+
+  function hallazgosEnLinea(rangos, n, total) {
+    var indices = [];
+    rangos.forEach(function (r, i) { if (lineasDeRango(r, total).indexOf(n) !== -1) indices.push(i); });
+    return indices;
+  }
+
+  function siguienteEnCiclo(indices, actual) {
+    if (!indices.length) return -1;
+    var p = indices.indexOf(actual);
+    return p === -1 ? indices[0] : indices[(p + 1) % indices.length];
+  }
+
   var API = {
+    dividirLineas: dividirLineas,
+    prepararCodigo: prepararCodigo,
+    lineasDeRango: lineasDeRango,
+    hallazgosEnLinea: hallazgosEnLinea,
+    siguienteEnCiclo: siguienteEnCiclo,
     separarSecciones: separarSecciones,
     vecinosDeGuia: vecinosDeGuia,
     parsearRuta: parsearRuta,

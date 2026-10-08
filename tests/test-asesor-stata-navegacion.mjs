@@ -155,6 +155,64 @@ test('vecinosDeGuia: una ruta que no es una guía devuelve null; un índice vac�
   assert.equal(N.vecinosDeGuia({ temas: [] }, 'knowledge/a/b.md'), null);
 });
 
+test('dividirLineas: separa por LF y CRLF, y siempre devuelve al menos una línea', () => {
+  assert.deepEqual(N.dividirLineas('a\nb'), ['a', 'b']);
+  assert.deepEqual(N.dividirLineas('a\r\nb\r\n'), ['a', 'b', '']);
+  assert.deepEqual(N.dividirLineas(''), ['']);
+  assert.deepEqual(N.dividirLineas(null), ['']);
+  assert.deepEqual(N.dividirLineas(undefined), ['']);
+});
+
+test('prepararCodigo: recorta espacios y líneas en blanco de los extremos y limita los caracteres', () => {
+  assert.equal(N.prepararCodigo('\n\n  use x\r\ngen y\n\n', 20000), 'use x\r\ngen y');
+  assert.equal(N.prepararCodigo('   ', 100), '');
+  assert.equal(N.prepararCodigo(null, 100), '');
+  assert.equal(N.prepararCodigo('abcdef', 3), 'abc');
+  // el recorte es primero y el límite después, como en el servidor
+  assert.equal(N.prepararCodigo('   abcdef', 3), 'abc');
+});
+
+test('prepararCodigo: el número de líneas coincide con el que cuenta el servidor (trim + CRLF)', () => {
+  const crudo = '\r\n\r\n  use datos, clear\r\n\r\ngen edad_cat = 1\r\nreplace edad_cat = 2\r\n\r\n';
+  const preparado = N.prepararCodigo(crudo, 20000);
+  assert.equal(N.dividirLineas(preparado).length, 4);
+  assert.equal(N.dividirLineas(preparado)[0], 'use datos, clear');
+  const largo = ('di "linea"\n').repeat(3000);
+  assert.equal(N.prepararCodigo(largo, 20000).length, 20000);
+});
+
+test('lineasDeRango: una línea, un rango, con guion largo y espacios', () => {
+  assert.deepEqual(N.lineasDeRango('12', 50), [12]);
+  assert.deepEqual(N.lineasDeRango('12-15', 50), [12, 13, 14, 15]);
+  assert.deepEqual(N.lineasDeRango('3 – 5', 50), [3, 4, 5]);
+  assert.deepEqual(N.lineasDeRango(7, 50), [7]);
+  assert.deepEqual(N.lineasDeRango('50', 50), [50]);
+});
+
+test('lineasDeRango: nulo, mal formado, invertido, cero o fuera del archivo da lista vacía', () => {
+  for (const r of [null, undefined, '', 'abc', '5-', '-5', '5-3', '0', '0-2', '51', '40-60', '1.5', 'toda la sección']) {
+    assert.deepEqual(N.lineasDeRango(r, 50), [], String(r));
+  }
+});
+
+test('hallazgosEnLinea: índices de los hallazgos que cubren una línea', () => {
+  const rangos = ['2-3', null, '3', '10-12', 'basura'];
+  assert.deepEqual(N.hallazgosEnLinea(rangos, 3, 20), [0, 2]);
+  assert.deepEqual(N.hallazgosEnLinea(rangos, 11, 20), [3]);
+  assert.deepEqual(N.hallazgosEnLinea(rangos, 1, 20), []);
+  assert.deepEqual(N.hallazgosEnLinea([], 1, 20), []);
+});
+
+test('siguienteEnCiclo: recorre los índices en círculo', () => {
+  assert.equal(N.siguienteEnCiclo([], 0), -1);
+  assert.equal(N.siguienteEnCiclo([4], -1), 4);
+  assert.equal(N.siguienteEnCiclo([0, 2, 5], -1), 0);
+  assert.equal(N.siguienteEnCiclo([0, 2, 5], 1), 0);
+  assert.equal(N.siguienteEnCiclo([0, 2, 5], 0), 2);
+  assert.equal(N.siguienteEnCiclo([0, 2, 5], 5), 0);
+  assert.equal(N.siguienteEnCiclo([4], 4), 4);
+});
+
 // ---- las tareas siguientes agregan pruebas arriba de esta línea ----
 
 console.log('\n' + pasados + ' pasados, ' + fallidos + ' fallidos');
