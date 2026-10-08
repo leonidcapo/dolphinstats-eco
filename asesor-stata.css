@@ -1,0 +1,163 @@
+/* asesor-stata.css — estilo de Asesor Stata (rediseño de octubre de 2026).
+   Las variables de color van primero y en hexadecimal puro: la prueba
+   tests/test-asesor-stata-contraste.mjs las lee de este bloque. */
+:root {
+  --marino: #003060;
+  --muted: #4a6285;
+  --azul: #0075c6;
+  --azul-oscuro: #005a9c;
+  --cian: #067583;
+  --cian-claro: #0899a8;
+  --violeta: #7b3ff2;
+  --naranja: #c2410c;
+  --rojo: #c62828;
+  --blanco: #ffffff;
+  --superficie: #f5f7fb;
+  --tinte-azul: #e6f1fb;
+  --tinte-rojo: #ffe9e8;
+  --sobre-marino-azul: #bcd9f2;
+  --sobre-marino-cian: #7fd6e0;
+  --banda-1: #003060;
+  --banda-2: #00508f;
+  --banda-3: #0a7a9a;
+  --marca-linea: #fff4c2;
+  --marca-numero: #ffe58f;
+  --borde: rgba(0, 48, 96, .12);
+  --sombra: 0 8px 22px rgba(0, 48, 96, .12);
+  --radio: 14px;
+  --radio-sm: 10px;
+  --alto-barra: 64px;
+  --fuente-titulo: 'Syne', 'Segoe UI', system-ui, sans-serif;
+  --fuente-texto: 'DM Sans', 'Segoe UI', system-ui, sans-serif;
+  --fuente-codigo: Consolas, 'Courier New', monospace;
+}
+
+/* ---------------------------------------------------------------- base */
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; position: relative; min-height: 100vh;
+  font-family: var(--fuente-texto); font-size: 1rem; line-height: 1.55;
+  color: var(--marino); background: var(--blanco);
+}
+h1, h2, h3 { font-family: var(--fuente-titulo); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; margin: 0; }
+h2 { font-size: 1.5rem; }
+h3 { font-size: 1.1rem; }
+p { margin: 0 0 .8rem; }
+a { color: var(--azul); }
+code { font-family: var(--fuente-codigo); font-size: .88em; background: #eef2f8; border-radius: 4px; padding: .08rem .35rem; }
+.campo-oculto { display: none !important; }
+.ico { width: 1.15em; height: 1.15em; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.ico-mini { width: .85em; height: .85em; }
+:focus-visible { outline: 2px solid var(--azul); outline-offset: 2px; }
+.barra :focus-visible, .hero :focus-visible { outline-color: #fff; }
+
+/* ------------------------------------------------- barra superior y banda */
+.saltar { position: absolute; left: -999px; top: 0; z-index: 100; background: var(--marino); color: #fff; padding: .7rem 1rem; border-radius: 0 0 var(--radio-sm) 0; }
+.saltar:focus { left: 0; }
+.barra {
+  display: flex; align-items: center; gap: 1rem; min-height: var(--alto-barra); padding: 0 1.25rem;
+  background: var(--marino); color: #fff;
+}
+/* Con una banda debajo, la barra se funde con ella (la banda ya lleva el degradado). */
+body.con-hero .barra { position: absolute; inset: 0 0 auto 0; z-index: 5; background: transparent; }
+.marca { font-family: var(--fuente-titulo); font-weight: 800; color: #fff; text-decoration: none; white-space: nowrap; }
+.marca span { font-family: var(--fuente-texto); font-weight: 500; font-size: .85rem; color: var(--sobre-marino-azul); margin-left: .45rem; }
+.nav { display: flex; gap: .25rem; flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.nav::-webkit-scrollbar { display: none; }
+.nav a {
+  display: inline-flex; align-items: center; gap: .4rem; min-height: 44px; padding: 0 .85rem; border-radius: 100px;
+  color: var(--sobre-marino-azul); text-decoration: none; font-weight: 700; font-size: .9rem; white-space: nowrap;
+  transition: background .15s;
+}
+.nav a:hover { background: rgba(255, 255, 255, .12); color: #fff; }
+.nav a[aria-current="page"] { background: #fff; color: var(--marino); }
+.portal { display: inline-flex; align-items: center; gap: .35rem; min-height: 44px; color: var(--sobre-marino-azul); text-decoration: none; font-size: .85rem; white-space: nowrap; }
+.portal:hover { color: #fff; }
+@media (max-width: 640px) {
+  .barra { gap: .5rem; padding: 0 .75rem; }
+  .marca span, .portal span { display: none; }
+}
+
+.hero {
+  background: linear-gradient(135deg, var(--banda-1) 0%, var(--banda-2) 65%, var(--banda-3) 100%);
+  color: #fff; padding: calc(var(--alto-barra) + 1.6rem) 1.25rem 4.2rem;
+}
+.hero-in { max-width: 880px; margin: 0 auto; }
+.hero h1 { font-size: clamp(1.9rem, 4.2vw, 2.6rem); color: #fff; outline: none; }
+.hero-texto { color: #fff; max-width: 560px; margin: .7rem 0 0; }
+.kicker { display: flex; align-items: center; gap: .6rem; margin-bottom: .6rem; color: var(--sobre-marino-cian); font-size: .75rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
+.kicker::before { content: ''; width: 22px; height: 1px; background: currentColor; }
+.miga { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; margin-bottom: .7rem; font-size: .85rem; font-weight: 700; color: var(--sobre-marino-cian); }
+.miga a { color: inherit; text-decoration: none; }
+.miga a:hover { text-decoration: underline; }
+.cuerpo { max-width: 880px; margin: 0 auto; padding: 1.5rem 1.25rem 3rem; }
+.cuerpo-flota { position: relative; margin-top: -3rem; }
+
+/* ----------------------------------------------------------- tarjetas de tarea */
+.tareas { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+.tarea {
+  --c: var(--azul);
+  display: flex; flex-direction: column; gap: .5rem; padding: 1.15rem 1.25rem; background: #fff;
+  border: 1px solid var(--borde); border-radius: var(--radio); box-shadow: var(--sombra);
+  color: var(--marino); text-decoration: none; transition: transform .18s, box-shadow .18s;
+}
+.tarea:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(0, 48, 96, .18); }
+.tarea--azul { --c: var(--azul); } .tarea--cian { --c: var(--cian); }
+.tarea--naranja { --c: var(--naranja); } .tarea--violeta { --c: var(--violeta); }
+.tarea-ico { display: flex; align-items: center; justify-content: center; width: 42px; height: 42px; border-radius: 50%; background: var(--c); color: #fff; }
+.tarea-ico .ico { width: 1.3rem; height: 1.3rem; }
+.tarea-titulo { font-weight: 700; font-size: 1.08rem; }
+.tarea-texto { color: var(--muted); font-size: .9rem; }
+@media (max-width: 640px) { .tareas { grid-template-columns: 1fr; } }
+
+/* -------------------------------------------------------- botones y etiquetas */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: .45rem; min-height: 44px; padding: 0 1.3rem;
+  border: 2px solid var(--azul); border-radius: 100px; background: var(--azul); color: #fff;
+  font: 700 .95rem var(--fuente-texto); text-decoration: none; cursor: pointer;
+}
+.btn:hover { filter: brightness(.93); }
+.btn:disabled { opacity: .55; cursor: wait; }
+.btn-sec { background: #fff; color: var(--azul); }
+.chips { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .9rem; }
+.chip {
+  display: inline-flex; align-items: center; gap: .3rem; min-height: 28px; padding: 0 .75rem; border-radius: 100px;
+  background: var(--superficie); border: 1px solid var(--borde); color: var(--muted); font-size: .8rem; font-weight: 700; text-decoration: none;
+}
+.hero .chip { background: rgba(255, 255, 255, .14); border-color: rgba(255, 255, 255, .4); color: #fff; }
+
+/* ------------------------------------------------------------------- estados */
+.estado-vista { display: flex; align-items: center; gap: .7rem; padding: 1.4rem; color: var(--muted); }
+.estado-vista.error { flex-direction: column; align-items: flex-start; border-radius: var(--radio-sm); background: var(--tinte-rojo); color: var(--rojo); }
+.estado-vista.error p { margin: 0; font-weight: 700; }
+.giro { flex: 0 0 auto; width: 18px; height: 18px; border: 2px solid var(--borde); border-top-color: var(--azul); border-radius: 50%; animation: giro .8s linear infinite; }
+@keyframes giro { to { transform: rotate(360deg); } }
+.linea-estado { min-height: 1.4rem; margin-top: .7rem; font-size: .9rem; color: var(--muted); }
+.linea-estado.error { color: var(--rojo); font-weight: 700; }
+.linea-estado.esperando { display: flex; align-items: center; gap: .6rem; }
+.linea-estado.esperando::before { content: ''; flex: 0 0 auto; width: 14px; height: 14px; border: 2px solid var(--borde); border-top-color: var(--azul); border-radius: 50%; animation: giro .8s linear infinite; }
+
+/* ------------------------------------------------------------------ formularios */
+.campo {
+  display: block; width: 100%; min-height: 44px; padding: .65rem .9rem; border: 1px solid #b8c6d8; border-radius: var(--radio-sm);
+  background: #fff; color: var(--marino); font: inherit;
+}
+textarea.campo { min-height: 110px; resize: vertical; }
+.contador { margin-top: .3rem; font-size: .8rem; color: var(--muted); }
+.contador.sobre { color: var(--rojo); font-weight: 700; }
+.nivel { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }
+.nivel-rotulo { margin-right: .3rem; font-size: .78rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.nivel-op { position: relative; display: inline-flex; align-items: center; min-height: 44px; padding: 0 1rem; border: 1px solid var(--borde); border-radius: 100px; background: #fff; color: var(--muted); font-weight: 500; cursor: pointer; }
+.nivel-op input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.nivel-op:has(input:checked) { background: var(--marino); border-color: var(--marino); color: #fff; font-weight: 700; }
+.nivel-op:has(input:focus-visible) { outline: 2px solid var(--azul); outline-offset: 2px; }
+
+/* --------------------------------------------------------------- pie y movimiento */
+.pie-pagina { max-width: 880px; margin: 0 auto; padding: 1rem 1.25rem 3rem; border-top: 1px solid var(--borde); color: var(--muted); font-size: .85rem; }
+#vista { outline: none; }
+#vista.entra { animation: entra .18s ease-out; }
+@keyframes entra { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
