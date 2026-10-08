@@ -91,6 +91,70 @@ test('traducirEnlaceViejo: traduce los válidos y devuelve null si no es antiguo
   assert.equal(N.traducirEnlaceViejo('#/aprender', PARTES), null);
 });
 
+test('separarSecciones: reparte por encabezado ## y normaliza la clave', () => {
+  const md = 'Texto previo\n\n## Resumen\nTécnico.\n\n## En simple\nSencillo.\n\n## Ejemplo\nIntro.\n\n```stata\nsummarize\n```\n\n## Relevancia para DolphinStats\nInterna.\n';
+  const s = N.separarSecciones(md);
+  assert.deepEqual(s.map(x => x.clave), ['resumen', 'en simple', 'ejemplo', 'relevancia para dolphinstats']);
+  assert.equal(s[1].cuerpo, 'Sencillo.');
+  assert.equal(s[2].cuerpo, 'Intro.\n\n```stata\nsummarize\n```');
+});
+
+test('separarSecciones: un ## dentro de un bloque de código no parte la sección; tolera CRLF y texto vacío', () => {
+  const s = N.separarSecciones('## Ejemplo\r\n```\r\n## no es encabezado\r\n```\r\n## Resumen\r\nok');
+  assert.deepEqual(s.map(x => x.clave), ['ejemplo', 'resumen']);
+  assert.match(s[0].cuerpo, /## no es encabezado/);
+  assert.deepEqual(N.separarSecciones(''), []);
+  assert.deepEqual(N.separarSecciones(undefined), []);
+});
+
+const GUIAS = { temas: [
+  { nombre: 'stata-basics', notas: [
+    { path: 'knowledge/stata-basics/a.md', titulo: 'A' }, { path: 'knowledge/stata-basics/b.md', titulo: 'B' }, { path: 'knowledge/stata-basics/c.md', titulo: 'C' } ] },
+  { nombre: 'graphics', notas: [{ path: 'knowledge/graphics/solo.md', titulo: 'Sola' }] },
+  { nombre: 'regression', notas: [
+    { path: 'knowledge/regression/x.md', titulo: 'X' }, { path: 'knowledge/regression/y.md', titulo: 'Y' } ] },
+] };
+
+test('vecinosDeGuia: guía del medio de un tema', () => {
+  const v = N.vecinosDeGuia(GUIAS, 'knowledge/stata-basics/b.md');
+  assert.equal(v.tema, 'Primeros pasos en Stata');
+  assert.equal(v.posicion, 2);
+  assert.equal(v.totalTema, 3);
+  assert.equal(v.anterior.titulo, 'A');
+  assert.equal(v.anterior.otroTema, false);
+  assert.equal(v.siguiente.titulo, 'C');
+  assert.equal(v.siguiente.otroTema, false);
+});
+
+test('vecinosDeGuia: el límite entre temas marca otroTema y nombra el otro tema', () => {
+  const v = N.vecinosDeGuia(GUIAS, 'knowledge/stata-basics/c.md');
+  assert.equal(v.siguiente.titulo, 'Sola');
+  assert.equal(v.siguiente.otroTema, true);
+  assert.equal(v.siguiente.tema, 'Gráficos');
+  const w = N.vecinosDeGuia(GUIAS, 'knowledge/regression/x.md');
+  assert.equal(w.anterior.titulo, 'Sola');
+  assert.equal(w.anterior.otroTema, true);
+});
+
+test('vecinosDeGuia: guía única de su tema (Guía 1 de 1) con vecinos de otros temas', () => {
+  const v = N.vecinosDeGuia(GUIAS, 'knowledge/graphics/solo.md');
+  assert.equal(v.posicion, 1);
+  assert.equal(v.totalTema, 1);
+  assert.equal(v.anterior.titulo, 'C');
+  assert.equal(v.siguiente.titulo, 'X');
+});
+
+test('vecinosDeGuia: la primera de todas no tiene anterior y la última no tiene siguiente', () => {
+  assert.equal(N.vecinosDeGuia(GUIAS, 'knowledge/stata-basics/a.md').anterior, null);
+  assert.equal(N.vecinosDeGuia(GUIAS, 'knowledge/regression/y.md').siguiente, null);
+  assert.equal(N.vecinosDeGuia(GUIAS, 'knowledge/regression/y.md').anterior.titulo, 'X');
+});
+
+test('vecinosDeGuia: una ruta que no es una guía devuelve null; un índice vacío también', () => {
+  assert.equal(N.vecinosDeGuia(GUIAS, 'knowledge/otra/cosa.md'), null);
+  assert.equal(N.vecinosDeGuia({ temas: [] }, 'knowledge/a/b.md'), null);
+});
+
 // ---- las tareas siguientes agregan pruebas arriba de esta línea ----
 
 console.log('\n' + pasados + ' pasados, ' + fallidos + ' fallidos');

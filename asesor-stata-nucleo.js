@@ -387,7 +387,59 @@
     return rutaDeNota(r.path, partes);
   }
 
+  // ------------------------------------------------- secciones y guías vecinas
+
+  // Parte el cuerpo de una nota en secciones por encabezado "## ". Un "## " dentro
+  // de un bloque ``` no cuenta. El texto previo al primer encabezado se descarta.
+  function separarSecciones(cuerpo) {
+    var secciones = [];
+    var actual = null;
+    var enBloque = false;
+    String(cuerpo === undefined || cuerpo === null ? '' : cuerpo).split(/\r?\n/).forEach(function (linea) {
+      if (/^```/.test(linea.trim())) enBloque = !enBloque;
+      var m = enBloque ? null : /^##\s+(.+?)\s*$/.exec(linea);
+      if (m) {
+        actual = { clave: normalizarTexto(m[1]), titulo: m[1], lineas: [] };
+        secciones.push(actual);
+      } else if (actual) {
+        actual.lineas.push(linea);
+      }
+    });
+    return secciones.map(function (s) {
+      return { clave: s.clave, titulo: s.titulo, cuerpo: s.lineas.join('\n').replace(/^\n+|\n+$/g, '') };
+    });
+  }
+
+  // Posición de una guía dentro de su tema y guías anterior y siguiente en el orden
+  // del índice (los temas siguen el orden de INDEX.md). null si la ruta no es una guía.
+  function vecinosDeGuia(guias, path) {
+    var plano = [];
+    guias.temas.forEach(function (t) {
+      t.notas.forEach(function (n) {
+        plano.push({ path: n.path, titulo: n.titulo, temaSlug: t.nombre, tema: nombreTema(t.nombre) });
+      });
+    });
+    var i = -1;
+    plano.forEach(function (n, k) { if (n.path === path) i = k; });
+    if (i === -1) return null;
+    var actual = plano[i];
+    var delTema = plano.filter(function (n) { return n.temaSlug === actual.temaSlug; });
+    function vecina(n) {
+      return n ? { path: n.path, titulo: n.titulo, temaSlug: n.temaSlug, tema: n.tema, otroTema: n.temaSlug !== actual.temaSlug } : null;
+    }
+    return {
+      tema: actual.tema,
+      temaSlug: actual.temaSlug,
+      posicion: delTema.indexOf(actual) + 1,
+      totalTema: delTema.length,
+      anterior: vecina(i > 0 ? plano[i - 1] : null),
+      siguiente: vecina(i < plano.length - 1 ? plano[i + 1] : null),
+    };
+  }
+
   var API = {
+    separarSecciones: separarSecciones,
+    vecinosDeGuia: vecinosDeGuia,
     parsearRuta: parsearRuta,
     construirRuta: construirRuta,
     existeNota: existeNota,
