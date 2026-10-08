@@ -5,338 +5,60 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Asesor Stata — DolphinStats</title>
 <meta name="robots" content="noindex, nofollow">
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
-<style>
-  :root{
-    --ocean:#ffffff; --aqua:#0075c6; --white:#003060; --muted:#4a6285;
-    --accent:#ff3131; --surface:#f5f7fb; --border:rgba(0,48,96,.10);
-  }
-  *{box-sizing:border-box}
-  html,body{margin:0;padding:0}
-  body{font-family:'DM Sans',sans-serif;color:var(--white);background:var(--ocean);line-height:1.5}
-  :focus-visible{outline:2px solid var(--aqua);outline-offset:2px}
-  .wrap{max-width:820px;margin:0 auto;padding:2rem 1.25rem 4rem}
-  nav{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;border-bottom:1px solid var(--border)}
-  .logo{font-family:Arial,sans-serif;font-weight:800;font-size:1.2rem;color:var(--aqua);text-decoration:none}
-  .logo span{color:#0899a8}
-  nav a.back{color:var(--muted);text-decoration:none;font-size:.85rem}
-  h1{font-family:'Syne',sans-serif;font-size:1.9rem;margin:0 0 .4rem}
-  p.lead{color:var(--muted);margin:0 0 1.75rem;max-width:640px}
-  p.intro{color:var(--muted);font-size:.9rem;margin:0 0 1rem}
-  .aviso{color:var(--muted);font-size:.8rem;margin:0 0 1rem;padding:.6rem .8rem;background:#fff;border:1px solid var(--border);border-radius:8px}
-  .pie{color:var(--muted);font-size:.75rem;margin-top:2.5rem;padding-top:1rem;border-top:1px solid var(--border)}
-  .tabs{display:flex;gap:.15rem;margin-bottom:1.25rem;border-bottom:1px solid var(--border);flex-wrap:wrap}
-  .tab{cursor:pointer;border:none;background:none;padding:.7rem .75rem;font-family:inherit;font-size:.9rem;font-weight:700;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap}
-  .tab.activo{color:var(--aqua);border-bottom-color:var(--aqua)}
-  @media (max-width:420px){.tab{padding:.7rem .45rem;font-size:.84rem}.panel{padding:1.1rem}}
-  .campo-oculto{display:none !important}
-  .panel{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.5rem}
-  .vacio{color:var(--muted);font-size:.85rem;font-style:italic}
-  .vacio p{margin:0 0 .6rem}
-
-  /* Explorar */
-  .buscador{display:flex;align-items:center;gap:.75rem;margin-bottom:.9rem;flex-wrap:wrap}
-  .buscador input{flex:1 1 240px;min-height:44px;padding:.6rem .9rem;border:1px solid var(--border);border-radius:100px;font-family:inherit;font-size:.9rem;background:#fff;color:var(--white)}
-  .conteo{color:var(--muted);font-size:.8rem}
-  details.tema{margin-bottom:.4rem}
-  details.tema > summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:.5rem;padding:.65rem .2rem;min-height:44px;font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
-  details.tema > summary::-webkit-details-marker{display:none}
-  details.tema > summary::before{content:'▸';display:inline-block;transition:transform .15s}
-  details.tema[open] > summary::before{transform:rotate(90deg)}
-  .tema-conteo{margin-left:auto;font-weight:500;background:#fff;border:1px solid var(--border);border-radius:100px;padding:.05rem .6rem;font-size:.72rem;letter-spacing:0}
-  .ncard{display:block;width:100%;text-align:left;background:#fff;border:1px solid var(--border);border-radius:10px;padding:.9rem 1.1rem;margin-bottom:.6rem;cursor:pointer;font-family:inherit;color:inherit}
-  .ncard:hover{border-color:var(--aqua)}
-  .ncard .ntitulo{font-weight:700;font-size:.95rem;color:var(--white)}
-  .ncard .nresumen{color:var(--muted);font-size:.82rem;margin-top:.25rem;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
-  .ncard .nfecha{color:var(--aqua);font-size:.7rem;font-weight:700;margin-top:.4rem}
-  .insignia{display:inline-block;margin-left:.5rem;vertical-align:1px;font-size:.66rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:#fff;background:var(--aqua);border-radius:100px;padding:.1rem .6rem}
-  .nota-barra{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem}
-  #as-nota-contenido{background:#fff;border:1px solid var(--border);border-radius:14px;padding:1.5rem}
-  .nota-titulo{font-family:'Syne',sans-serif;font-size:1.3rem;margin:0 0 .6rem}
-  .nota-meta{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:1rem}
-  .chip{font-size:.72rem;font-weight:700;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:100px;padding:.15rem .7rem;text-decoration:none}
-  a.chip.enlace{color:var(--aqua)}
-  .nota-cuerpo h2{font-size:1.05rem;margin:1.2rem 0 .5rem}
-  .nota-cuerpo p,.nota-cuerpo ul{font-size:.9rem;color:var(--white)}
-  .nota-cuerpo ul{padding-left:1.2rem}
-  .nota-cuerpo code,.hallazgo code{font-family:Consolas,'Courier New',monospace;font-size:.85em;background:#eef2f8;border-radius:4px;padding:.1rem .35rem}
-
-  pre.bloque-codigo{margin:0 0 1rem;background:var(--surface);border:1px solid var(--border);border-radius:0 0 8px 8px;padding:.9rem 1rem;overflow-x:auto;white-space:pre;tab-size:4}
-  pre.bloque-codigo code{font-family:Consolas,'Courier New',monospace;font-size:.83rem;line-height:1.5;background:none;padding:0}
-  .bloque-barra{display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-top:.8rem;padding:.3rem .5rem .3rem 1rem;background:#e6edf6;border:1px solid var(--border);border-bottom:none;border-radius:8px 8px 0 0;font-size:.72rem;font-weight:700;color:var(--muted)}
-  .bloque-barra button.copiar{margin-top:0;min-height:32px;padding:.2rem .8rem}
-  details.nota-interna{margin-top:1.5rem;padding-top:.9rem;border-top:1px dashed var(--border)}
-  details.nota-interna > summary{cursor:pointer;font-size:.8rem;font-weight:700;color:var(--muted);min-height:36px}
-  .nota-interna-cuerpo{font-size:.85rem;color:var(--muted);margin-top:.5rem}
-
-  /* Formularios */
-  textarea{width:100%;padding:.7rem .8rem;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:.9rem;background:#fff;color:var(--white);min-height:90px;resize:vertical}
-  textarea.codigo-input{min-height:300px;font-family:Consolas,'Courier New',monospace;font-size:.85rem;line-height:1.45;tab-size:4;white-space:pre}
-  button.enviar{cursor:pointer;border:none;border-radius:100px;padding:.7rem 1.5rem;min-height:44px;font-weight:700;font-size:.9rem;font-family:inherit;background:var(--aqua);color:#fff;margin-top:.9rem}
-  button.enviar:disabled{opacity:.55;cursor:wait}
-  .estado{margin-top:.8rem;font-size:.85rem;color:var(--muted)}
-  .estado.error{color:var(--accent)}
-  .estado.esperando::before{content:'';display:inline-block;width:.8rem;height:.8rem;margin-right:.5rem;border:2px solid var(--border);border-top-color:var(--aqua);border-radius:50%;vertical-align:-1px;animation:giro .8s linear infinite}
-  @keyframes giro{to{transform:rotate(360deg)}}
-  @media (prefers-reduced-motion:reduce){.estado.esperando::before{animation:none}}
-  .contador{font-size:.75rem;color:var(--muted);margin-top:.3rem}
-  .contador.sobre{color:var(--accent);font-weight:700}
-  .nivel-label{font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:.5rem}
-  .nivel-opciones{display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap}
-  .nivel-opciones label{cursor:pointer;display:inline-flex;align-items:center;min-height:40px;padding:.4rem 1rem;border:1px solid var(--border);border-radius:100px;font-size:.85rem;color:var(--muted);background:#fff}
-  .nivel-opciones input{position:absolute;opacity:0;pointer-events:none}
-  .nivel-opciones input:checked + span{color:#fff}
-  .nivel-opciones label:has(input:checked){background:var(--aqua);border-color:var(--aqua);color:#fff}
-  .nivel-opciones label:has(input:focus-visible){outline:2px solid var(--aqua);outline-offset:2px}
-  .nivel-ayuda{font-size:.75rem;color:var(--muted);margin:-.5rem 0 1rem}
-  .ejemplos{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;margin:.6rem 0 0}
-  .ejemplos-titulo{font-size:.75rem;color:var(--muted)}
-  .ejemplo{cursor:pointer;border:1px dashed var(--aqua);background:#fff;color:var(--aqua);border-radius:100px;padding:.3rem .8rem;min-height:36px;font-family:inherit;font-size:.78rem;text-align:left}
-  .subtabs{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem}
-  .hallazgos-barra{display:flex;align-items:center;justify-content:space-between;gap:.6rem;flex-wrap:wrap;margin-bottom:.8rem}
-  .hallazgos-barra .hallazgos-resumen{margin-bottom:0}
-  .informe-acciones{display:flex;gap:.5rem;flex-wrap:wrap}
-  .informe-acciones button.copiar{margin-top:0}
-  .h-cabecera{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
-  .h-lineas{font-size:.68rem;font-weight:700;color:var(--aqua);background:var(--surface);border:1px solid var(--border);border-radius:100px;padding:.05rem .6rem}
-  .h-codigo .bloque-barra{margin-top:.6rem}
-  .h-codigo pre.bloque-codigo{margin-bottom:.2rem}
-  #as-codigo-explicacion{margin-top:1.5rem}
-  .explica-resumen{background:#fff;border:1px solid var(--border);border-radius:10px;padding:.9rem 1.1rem;margin-bottom:.9rem;font-size:.92rem;line-height:1.6}
-  .paso{background:#fff;border:1px solid var(--border);border-left:4px solid var(--aqua);border-radius:10px;padding:.8rem 1.1rem;margin-bottom:.6rem}
-  .paso-cabecera{display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem}
-  .paso-numero{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
-  .paso-texto{font-size:.9rem;line-height:1.55}
-  .paso-ojo{margin-top:.5rem;font-size:.83rem;color:var(--accent);background:#fff5f5;border-radius:8px;padding:.45rem .7rem}
-  #as-codigo-interpretacion{margin-top:1.5rem;background:#fff;border:1px solid var(--border);border-radius:14px;padding:1.5rem}
-  .interp-titulo{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:1.1rem 0 .4rem}
-  .interp-titulo:first-child{margin-top:0}
-  .interp-texto{font-size:.92rem;line-height:1.6;margin:0 0 .5rem}
-  .resultado{border:1px solid var(--border);border-radius:10px;padding:.7rem .9rem;margin-bottom:.5rem;background:var(--surface)}
-  .resultado-dato{font-weight:700;font-size:.86rem;font-family:Consolas,'Courier New',monospace;word-break:break-word}
-  .resultado-significado{font-size:.88rem;margin-top:.25rem;line-height:1.55}
-  .interp-precauciones ul{margin:0;padding-left:1.2rem;font-size:.88rem;line-height:1.55}
-  .reporte-texto{margin:0 0 .5rem;padding:.7rem 1rem;border-left:3px solid var(--aqua);background:var(--surface);font-size:.9rem;line-height:1.55}
-  .salida-input{min-height:220px}
-  .campo-contexto{display:block;margin-top:.8rem;font-size:.78rem;font-weight:700;color:var(--muted)}
-  .campo-contexto input,.guia-grid input,.guia-grid select{display:block;width:100%;margin-top:.25rem;min-height:40px;padding:.5rem .7rem;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:.88rem;background:#fff;color:var(--white)}
-  details.guia-form{margin-bottom:.8rem;background:#fff;border:1px solid var(--border);border-radius:10px;padding:.6rem 1rem}
-  details.guia-form > summary{cursor:pointer;font-size:.82rem;font-weight:700;color:var(--aqua);min-height:36px;display:flex;align-items:center}
-  .guia-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.7rem;margin:.7rem 0}
-  .guia-grid label{font-size:.78rem;font-weight:700;color:var(--muted)}
-  .guia-salidas{display:flex;flex-wrap:wrap;gap:.4rem .9rem;align-items:center;margin:.3rem 0 .8rem;font-size:.82rem}
-  .guia-salidas label{display:inline-flex;align-items:center;gap:.3rem;min-height:32px;cursor:pointer}
-  .ajuste{margin-top:1.4rem;padding-top:1rem;border-top:1px dashed var(--border)}
-  .ajuste-titulo{display:block;font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:.4rem}
-  .ajuste-texto{min-height:70px}
-  .subtab{cursor:pointer;border:1px solid var(--border);background:#fff;padding:.5rem 1rem;min-height:40px;border-radius:100px;font-family:inherit;font-size:.85rem;font-weight:700;color:var(--muted)}
-  .subtab.activo{background:var(--aqua);border-color:var(--aqua);color:#fff}
-  .herramientas{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.6rem}
-
-  /* Resultados */
-  #as-buscar-resultado{margin-top:1.5rem;background:#fff;border:1px solid var(--border);border-radius:14px;padding:1.5rem}
-  #as-buscar-resultado .respuesta{font-size:.92rem;color:var(--white);line-height:1.6;white-space:pre-wrap}
-  #as-buscar-resultado .citas{margin-top:1rem;padding-top:1rem;border-top:1px dashed var(--border)}
-  #as-buscar-resultado .citas-titulo{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:.4rem}
-  #as-buscar-resultado .citas a{display:block;font-size:.85rem;color:var(--aqua);text-decoration:none;margin-bottom:.3rem}
-  #as-codigo-hallazgos{margin-top:1.5rem}
-  .hallazgos-resumen{font-size:.85rem;font-weight:700;color:var(--muted);margin-bottom:.8rem}
-  .hallazgo{background:#fff;border:1px solid var(--border);border-left:4px solid var(--muted);border-radius:10px;padding:.9rem 1.1rem;margin-bottom:.7rem}
-  .hallazgo.importante{border-left-color:var(--accent)}
-  .hallazgo.sugerencia{border-left-color:var(--aqua)}
-  .hallazgo .h-severidad{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
-  .hallazgo .h-que{font-weight:700;font-size:.92rem;margin:.3rem 0}
-  .hallazgo .h-detalle{font-size:.85rem;color:var(--muted);margin:.2rem 0}
-  .hallazgo .h-detalle b{color:var(--white)}
-  .hallazgo .h-nota{margin-top:.5rem;font-size:.8rem}
-  .hallazgo .h-nota a{color:var(--aqua);text-decoration:none}
-  #as-codigo-generado{margin-top:1.5rem}
-  #as-codigo-generado pre{background:#fff;border:1px solid var(--border);border-radius:10px;padding:1rem;font-family:Consolas,'Courier New',monospace;font-size:.82rem;overflow-x:auto;white-space:pre-wrap;word-break:break-word}
-  #as-codigo-generado .explicacion{font-size:.9rem;color:var(--white);margin-top:.8rem;line-height:1.6}
-  button.copiar{cursor:pointer;border:1px solid var(--aqua);border-radius:100px;padding:.45rem 1rem;min-height:40px;font-size:.8rem;font-weight:700;font-family:inherit;background:#fff;color:var(--aqua);margin-top:.5rem}
-  button.copiar.descargar{margin-left:.5rem}
-  button.volver{cursor:pointer;border:1px solid var(--border);border-radius:100px;padding:.45rem 1rem;min-height:40px;font-size:.85rem;font-weight:700;font-family:inherit;background:#fff;color:var(--white)}
-  .nota-barra button.copiar{margin-top:0}
-</style>
+<link rel="preload" href="fonts/dm-sans-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/syne-800.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="fonts/fonts.css">
+<link rel="stylesheet" href="asesor-stata.css">
 </head>
 <body>
-<nav>
-  <a class="logo" href="/">Dolphin<span>Stats</span></a>
-  <a class="back" href="/">&larr; Volver al inicio</a>
-</nav>
-<div class="wrap">
-  <h1>Asesor Stata</h1>
-  <p class="lead">Guías con ejemplos sobre Stata, estadística aplicada y metodología, más un radar semanal de artículos y módulos de revistas de estadística. Explora las guías, pregunta algo puntual o pide que revisen tu código.</p>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-libro" viewBox="0 0 24 24"><path d="M2 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2zM22 4h-7a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h8z"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.4A8 8 0 1 1 21 12z"/></symbol>
+  <symbol id="i-codigo" viewBox="0 0 24 24"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4M13 6l-2 12"/></symbol>
+  <symbol id="i-grafico" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></symbol>
+  <symbol id="i-estrella" viewBox="0 0 24 24"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></symbol>
+  <symbol id="i-flecha-der" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-flecha-izq" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></symbol>
+  <symbol id="i-copiar" viewBox="0 0 24 24"><path d="M9 9h11v11H9zM5 15V5h10"/></symbol>
+  <symbol id="i-descargar" viewBox="0 0 24 24"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></symbol>
+  <symbol id="i-subir" viewBox="0 0 24 24"><path d="M12 20V9M7 13l5-5 5 5M5 4h14"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></symbol>
+  <symbol id="i-alerta" viewBox="0 0 24 24"><path d="M12 3l10 18H2zM12 10v5M12 18h.01"/></symbol>
+  <symbol id="i-buscar" viewBox="0 0 24 24"><path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM21 21l-5-5"/></symbol>
+  <symbol id="i-externo" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6"/></symbol>
+  <symbol id="i-lapiz" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></symbol>
+</svg>
 
-  <div class="tabs" id="as-tabs" role="tablist">
-    <button type="button" class="tab activo" id="as-tab-explorar" role="tab" aria-selected="true">Explorar</button>
-    <button type="button" class="tab" id="as-tab-buscar" role="tab" aria-selected="false">Preguntar</button>
-    <button type="button" class="tab" id="as-tab-radar" role="tab" aria-selected="false">Radar</button>
-    <button type="button" class="tab" id="as-tab-codigo" role="tab" aria-selected="false">Código</button>
-  </div>
+<a class="saltar" href="#vista">Saltar al contenido</a>
+<header class="barra">
+  <a class="marca" href="#/">DolphinStats<span>Asesor Stata</span></a>
+  <nav class="nav" aria-label="Secciones de Asesor Stata">
+    <a href="#/aprender" data-seccion="aprender"><svg class="ico" aria-hidden="true"><use href="#i-libro"/></svg>Aprender</a>
+    <a href="#/preguntar" data-seccion="preguntar"><svg class="ico" aria-hidden="true"><use href="#i-chat"/></svg>Preguntar</a>
+    <a href="#/codigo/revisar" data-seccion="codigo"><svg class="ico" aria-hidden="true"><use href="#i-codigo"/></svg>Código</a>
+    <a href="#/resultados" data-seccion="resultados"><svg class="ico" aria-hidden="true"><use href="#i-grafico"/></svg>Resultados</a>
+    <a href="#/radar" data-seccion="radar"><svg class="ico" aria-hidden="true"><use href="#i-estrella"/></svg>Radar</a>
+  </nav>
+  <a class="portal" href="/"><svg class="ico" aria-hidden="true"><use href="#i-flecha-izq"/></svg><span>Portal</span></a>
+</header>
 
-  <div id="as-explorar-panel">
-    <div id="as-explorar-lista">
-      <p class="intro">Guías cortas, agrupadas por tema y ordenadas para aprender: cada una explica la idea en simple y trae un ejemplo de código para copiar. Si recién empiezas, comienza por la que dice «Empieza aquí». Escribe una palabra para filtrarlas (por ejemplo: <em>regresión</em>, <em>chi2</em>, <em>svy</em>).</p>
-      <div class="buscador">
-        <input type="search" id="as-filtro" placeholder="Filtrar guías…" aria-label="Filtrar guías por palabra" autocomplete="off">
-        <span class="conteo" id="as-conteo" aria-live="polite"></span>
-      </div>
-      <div class="panel" id="as-indice">
-        <p class="vacio">Cargando índice…</p>
-      </div>
-    </div>
-    <div id="as-nota-vista" class="campo-oculto">
-      <div class="nota-barra">
-        <button type="button" class="volver" id="as-nota-volver">&larr; Volver</button>
-        <button type="button" class="copiar" id="as-nota-enlace">Copiar enlace</button>
-      </div>
-      <div id="as-nota-contenido"></div>
-    </div>
-  </div>
+<main id="vista" tabindex="-1"></main>
 
-  <div id="as-radar-panel" class="campo-oculto">
-    <p class="intro">Artículos y módulos de Stata que la búsqueda semanal en revistas de estadística consideró relevantes para DolphinStats. Se agregan solos cada lunes, lo más reciente primero. Son notas técnicas (a veces con títulos en inglés): para aprender desde cero, usa las guías de Explorar.</p>
-    <div class="buscador">
-      <input type="search" id="as-filtro-radar" placeholder="Filtrar el Radar…" aria-label="Filtrar el Radar por palabra" autocomplete="off">
-      <span class="conteo" id="as-conteo-radar" aria-live="polite"></span>
-    </div>
-    <div class="panel" id="as-radar">
-      <p class="vacio">Cargando el Radar…</p>
-    </div>
-  </div>
+<footer class="pie-pagina">
+  <p>Las respuestas de Preguntar, Revisar, Explicar, Generar e Interpretar las produce una inteligencia artificial y puede equivocarse: confirma lo importante en la documentación de Stata o con tu asesor.</p>
+</footer>
+<noscript><p style="padding:1rem">Asesor Stata necesita JavaScript para funcionar.</p></noscript>
 
-  <div id="as-buscar-panel" class="campo-oculto">
-    <p class="intro">Haz una pregunta y recibirás una respuesta basada <strong>solo</strong> en las notas de la base, indicando en cuáles se apoya.</p>
-    <div class="panel">
-      <form id="as-buscar-form">
-        <div class="nivel-label">Nivel de la respuesta</div>
-        <div class="nivel-opciones" id="as-nivel-opciones">
-          <label><input type="radio" name="as-nivel" value="basico"><span>Básico</span></label>
-          <label><input type="radio" name="as-nivel" value="intermedio" checked><span>Intermedio</span></label>
-          <label><input type="radio" name="as-nivel" value="avanzado"><span>Avanzado</span></label>
-        </div>
-        <div class="nivel-ayuda">Básico explica los términos; Avanzado va directo a la sintaxis.</div>
-        <textarea id="as-buscar-input" maxlength="500" placeholder="Ej.: ¿cuándo uso Fisher en vez de chi cuadrado?"></textarea>
-        <div class="contador" id="as-buscar-contador"></div>
-        <div class="ejemplos">
-          <span class="ejemplos-titulo">Prueba con:</span>
-          <button type="button" class="ejemplo" data-destino="as-buscar-input" data-ejemplo="¿Cuándo uso Fisher en vez de chi cuadrado?">¿Fisher o chi²?</button>
-          <button type="button" class="ejemplo" data-destino="as-buscar-input" data-ejemplo="¿Cómo declaro el diseño muestral de la ENDES en Stata?">Diseño muestral ENDES</button>
-          <button type="button" class="ejemplo" data-destino="as-buscar-input" data-ejemplo="¿Qué es un do-file y por qué conviene usarlo?">¿Qué es un do-file?</button>
-        </div>
-        <button type="submit" class="enviar" id="as-buscar-enviar">Preguntar</button>
-      </form>
-      <div class="estado" id="as-buscar-status" role="status" aria-live="polite"></div>
-    </div>
-    <div id="as-buscar-resultado" class="campo-oculto"></div>
-  </div>
-
-  <div id="as-codigo-panel" class="campo-oculto">
-    <p class="intro" id="as-codigo-ayuda">Pega tu do-file y te indico errores y mejoras, con la línea donde están y cómo corregirlos.</p>
-    <p class="aviso">Tu texto se envía a un servicio de inteligencia artificial externo para analizarlo. <strong>No pegues datos de pacientes ni información que permita identificar a alguien</strong> (si pegas salidas de Stata, quita los listados de personas). No se ejecuta nada en Stata: verifica el resultado antes de usarlo.</p>
-    <div class="subtabs" id="as-codigo-subtabs">
-      <button type="button" class="subtab activo" id="as-subtab-revisar">Revisar</button>
-      <button type="button" class="subtab" id="as-subtab-explicar">Explicar</button>
-      <button type="button" class="subtab" id="as-subtab-generar">Generar</button>
-      <button type="button" class="subtab" id="as-subtab-interpretar">Interpretar resultados</button>
-    </div>
-    <div class="panel">
-      <form id="as-codigo-form">
-        <div class="nivel-label">Nivel de la respuesta</div>
-        <div class="nivel-opciones" id="as-nivel-codigo-opciones">
-          <label><input type="radio" name="as-nivel-codigo" value="basico"><span>Básico</span></label>
-          <label><input type="radio" name="as-nivel-codigo" value="intermedio" checked><span>Intermedio</span></label>
-          <label><input type="radio" name="as-nivel-codigo" value="avanzado"><span>Avanzado</span></label>
-        </div>
-
-        <div id="as-bloque-revisar">
-          <textarea id="as-codigo-revisar-input" class="codigo-input" spellcheck="false" wrap="off" placeholder="Pega aquí tu do-file, o súbelo con el botón de abajo…"></textarea>
-          <div class="contador" id="as-codigo-revisar-contador"></div>
-          <div class="herramientas">
-            <button type="button" class="ejemplo" id="as-codigo-subir">Subir archivo .do</button>
-            <button type="button" class="ejemplo" id="as-codigo-ejemplo">Probar con un ejemplo</button>
-            <input type="file" id="as-codigo-archivo" class="campo-oculto" accept=".do,.ado,.txt,text/plain">
-          </div>
-        </div>
-
-        <div id="as-bloque-generar" class="campo-oculto">
-          <details class="guia-form" id="as-guia">
-            <summary>Ayuda guiada: responde unas preguntas y armo la descripción por ti</summary>
-            <div class="guia-grid">
-              <label>Tipo de estudio
-                <select id="as-guia-estudio">
-                  <option value="">(sin indicar)</option>
-                  <option>Estudio transversal</option>
-                  <option>Estudio de casos y controles</option>
-                  <option>Estudio de cohorte</option>
-                  <option>Ensayo clínico aleatorizado</option>
-                  <option>Estudio antes y después</option>
-                </select>
-              </label>
-              <label>Variable de resultado
-                <input type="text" id="as-guia-resultado" maxlength="60" placeholder="Ej.: presion_sistolica">
-              </label>
-              <label>Tipo del resultado
-                <select id="as-guia-tipo">
-                  <option>numérica continua</option>
-                  <option>sí/no (0/1)</option>
-                  <option>categórica de varios niveles</option>
-                  <option>tiempo hasta un evento</option>
-                  <option>conteo</option>
-                </select>
-              </label>
-              <label>Variables explicativas
-                <input type="text" id="as-guia-explicativas" maxlength="200" placeholder="Ej.: edad, sexo, imc">
-              </label>
-              <label>Grupos a comparar
-                <input type="text" id="as-guia-grupos" maxlength="60" placeholder="Ej.: tratamiento">
-              </label>
-            </div>
-            <div class="guia-salidas">
-              <span class="ejemplos-titulo">Quiero:</span>
-              <label><input type="checkbox" name="as-guia-salida" value="tabla 1 por grupo"> Tabla 1</label>
-              <label><input type="checkbox" name="as-guia-salida" value="una prueba de hipótesis"> Prueba de hipótesis</label>
-              <label><input type="checkbox" name="as-guia-salida" value="un modelo de regresión"> Modelo de regresión</label>
-              <label><input type="checkbox" name="as-guia-salida" value="un gráfico"> Gráfico</label>
-              <label><input type="checkbox" name="as-guia-salida" value="una tabla lista para el artículo"> Tabla para el artículo</label>
-            </div>
-            <button type="button" class="ejemplo" id="as-guia-armar">Armar la descripción</button>
-          </details>
-          <textarea id="as-codigo-generar-input" maxlength="1000" placeholder="Describe el análisis. Cuanto más concreto (variables, tipo de estudio, qué quieres reportar), mejor."></textarea>
-          <div class="contador" id="as-codigo-generar-contador"></div>
-          <div class="ejemplos">
-            <span class="ejemplos-titulo">Prueba con:</span>
-            <button type="button" class="ejemplo" data-destino="as-codigo-generar-input" data-ejemplo="Tabla 1 por grupo (variable grupo): edad con media y desviación estándar, sexo con n y porcentaje, y chi cuadrado para las variables categóricas.">Tabla 1 por grupo</button>
-            <button type="button" class="ejemplo" data-destino="as-codigo-generar-input" data-ejemplo="Regresión logística de enfermedad (0/1) en edad, sexo e IMC, mostrando odds ratios con intervalos de confianza al 95%.">Regresión logística con OR</button>
-            <button type="button" class="ejemplo" data-destino="as-codigo-generar-input" data-ejemplo="Curva de supervivencia de Kaplan-Meier por grupo, con prueba log-rank y tabla de número en riesgo.">Kaplan-Meier por grupo</button>
-          </div>
-        </div>
-
-        <div id="as-bloque-interpretar" class="campo-oculto">
-          <textarea id="as-codigo-interpretar-input" class="codigo-input salida-input" spellcheck="false" wrap="off" placeholder="Pega aquí la salida de Stata: una tabla de regresión, un chi cuadrado, un t-test, el resultado de un modelo de Cox…"></textarea>
-          <div class="contador" id="as-codigo-interpretar-contador"></div>
-          <label class="campo-contexto">Contexto del estudio (opcional, ayuda a interpretar mejor)
-            <input type="text" id="as-interpretar-contexto" maxlength="500" placeholder="Ej.: factores asociados a bajo peso al nacer en un hospital de Lima">
-          </label>
-          <div class="herramientas">
-            <button type="button" class="ejemplo" id="as-interpretar-ejemplo">Probar con un ejemplo</button>
-          </div>
-        </div>
-
-        <button type="submit" class="enviar" id="as-codigo-enviar">Revisar</button>
-      </form>
-      <div class="estado" id="as-codigo-status" role="status" aria-live="polite"></div>
-    </div>
-    <div id="as-codigo-hallazgos" class="campo-oculto"></div>
-    <div id="as-codigo-explicacion" class="campo-oculto"></div>
-    <div id="as-codigo-interpretacion" class="campo-oculto"></div>
-    <div id="as-codigo-generado" class="campo-oculto"></div>
-  </div>
-
-  <p class="pie">Las respuestas de Preguntar, Revisar, Explicar, Generar e Interpretar las produce una inteligencia artificial y puede equivocarse: confirma lo importante en la documentación de Stata o con tu asesor.</p>
-</div>
 <script src="asesor-stata-nucleo.js"></script>
 <script src="asesor-stata.js"></script>
+<script src="vistas/inicio.js"></script>
+<script src="vistas/aprender.js"></script>
+<script src="vistas/guia.js"></script>
+<script src="vistas/preguntar.js"></script>
+<script src="vistas/radar.js"></script>
+<script src="vistas/visor-codigo.js"></script>
+<script src="vistas/codigo.js"></script>
+<script src="vistas/codigo-generar.js"></script>
+<script src="vistas/resultados.js"></script>
 </body>
 </html>

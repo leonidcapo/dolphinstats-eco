@@ -112,19 +112,7 @@ async function main() {
     assert.equal(cuerpoMarkdownAHtml('```\r\na\r\nb\r\n```\r\n'), '<pre class="bloque-codigo"><code>a\nb</code></pre>');
   });
 
-  const { nombreTema, normalizarTexto, filtrarIndice, etiquetaFuente, separarNotaInterna } = mod.default || mod;
-
-  await test('separarNotaInterna: parte la nota en el encabezado «Relevancia para DolphinStats»', () => {
-    const r = separarNotaInterna('## Resumen\nTexto.\n\n## Ejemplo\nAlgo.\n\n## Relevancia para DolphinStats\nImporta porque sí.\nSegunda línea.');
-    assert.equal(r.principal, '## Resumen\nTexto.\n\n## Ejemplo\nAlgo.');
-    assert.equal(r.interna, 'Importa porque sí.\nSegunda línea.');
-  });
-
-  await test('separarNotaInterna: sin ese encabezado devuelve todo como principal', () => {
-    const r = separarNotaInterna('## Resumen\nTexto.');
-    assert.equal(r.principal, '## Resumen\nTexto.');
-    assert.equal(r.interna, '');
-  });
+  const { nombreTema, normalizarTexto, filtrarIndice, etiquetaFuente } = mod.default || mod;
 
   await test('nombreTema: traduce los temas conocidos y arma un nombre legible para los demás', () => {
     assert.equal(nombreTema('hypothesis-testing'), 'Pruebas de hipótesis');

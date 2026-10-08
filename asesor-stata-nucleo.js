@@ -146,17 +146,6 @@
     return html.join('\n');
   }
 
-  // Separa la sección «Relevancia para DolphinStats» (notas internas del equipo)
-  // del resto de la nota, para mostrarla plegada al final.
-  function separarNotaInterna(cuerpo) {
-    var m = cuerpo.match(/^##\s+Relevancia para DolphinStats\s*$/m);
-    if (!m) return { principal: cuerpo, interna: '' };
-    return {
-      principal: cuerpo.slice(0, m.index).replace(/\s+$/, ''),
-      interna: cuerpo.slice(m.index + m[0].length).replace(/^\s+/, ''),
-    };
-  }
-
   var TEMAS_ES = {
     'stata-basics': 'Primeros pasos en Stata',
     'data-management': 'Manejo de datos',
@@ -488,7 +477,6 @@
     existeNota: existeNota,
     rutaDeNota: rutaDeNota,
     traducirEnlaceViejo: traducirEnlaceViejo,
-    escapeHtml: escapeHtml,
     inlineMarkdown: inlineMarkdown,
     parsearFrontmatter: parsearFrontmatter,
     cuerpoMarkdownAHtml: cuerpoMarkdownAHtml,
@@ -496,7 +484,6 @@
     normalizarTexto: normalizarTexto,
     filtrarIndice: filtrarIndice,
     etiquetaFuente: etiquetaFuente,
-    separarNotaInterna: separarNotaInterna,
     separarPorOrigen: separarPorOrigen,
     listarRadar: listarRadar,
     etiquetaLineas: etiquetaLineas,
