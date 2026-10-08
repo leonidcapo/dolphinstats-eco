@@ -471,13 +471,22 @@
 
   // ------------------------------------------------------------------- tabs
 
-  function mostrarTab(nombre) {
-    tabActual = nombre;
-    ['explorar', 'buscar', 'radar', 'codigo'].forEach(function (t) {
+  var TABS = ['explorar', 'buscar', 'radar', 'codigo'];
+
+  // Solo el resaltado de la pestaña (sin cambiar de panel).
+  function resaltarTab(nombre) {
+    TABS.forEach(function (t) {
       var activa = t === nombre;
       $('as-tab-' + t).classList.toggle('activo', activa);
       $('as-tab-' + t).setAttribute('aria-selected', activa ? 'true' : 'false');
-      $('as-' + t + '-panel').classList.toggle('campo-oculto', !activa);
+    });
+  }
+
+  function mostrarTab(nombre) {
+    tabActual = nombre;
+    resaltarTab(nombre);
+    TABS.forEach(function (t) {
+      $('as-' + t + '-panel').classList.toggle('campo-oculto', t !== nombre);
     });
   }
 
@@ -565,7 +574,10 @@
       scrollIndice = window.scrollY;
     }
     notaAbierta = true;
+    // La vista de nota vive en el panel de Explorar, pero la pestaña resaltada
+    // sigue siendo la de origen (Radar, Preguntar, Código): ahí lleva «Volver».
     mostrarTab('explorar');
+    resaltarTab(tabAnterior);
     $('as-explorar-lista').classList.add('campo-oculto');
     $('as-nota-vista').classList.remove('campo-oculto');
     var cont = $('as-nota-contenido');
@@ -1131,9 +1143,16 @@
   }
 
   document.addEventListener('DOMContentLoaded', function () {
-    ['explorar', 'buscar', 'radar', 'codigo'].forEach(function (t) {
+    TABS.forEach(function (t) {
       $('as-tab-' + t).addEventListener('click', function () {
-        if (t === 'explorar' && notaAbierta) { limpiarHash(); tabAnterior = 'explorar'; scrollIndice = 0; cerrarNota(); return; }
+        // Con una nota abierta, cualquier pestaña la cierra: la de origen equivale
+        // a «Volver» (recupera el scroll); otra lleva a esa pestaña.
+        if (notaAbierta) {
+          limpiarHash();
+          if (t !== tabAnterior) { tabAnterior = t; scrollIndice = 0; }
+          cerrarNota();
+          return;
+        }
         mostrarTab(t);
       });
     });

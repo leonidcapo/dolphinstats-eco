@@ -11,12 +11,17 @@ Middleware, funciona en el plan Hobby gratuito).
   título/palabras clave, dataset Scimago Journal Rank (`data/journals.json`,
   generado desde `endes-generator/scripts/build_journals.py`, ver ese repo).
 
-- **Asesor Stata** (`asesor-stata.html`): explorador y buscador de solo lectura
-  sobre la base de conocimiento del repo privado `leonidcapo/asesor-stata`
-  (ver ese repo para el sistema completo: monitoreo automático semanal +
-  comando `/asesor-stata` de Claude Code). Backend en `api/asesor-stata-base.js`
-  (índice y notas) y `api/asesor-stata-consulta.js` (consulta con síntesis por
-  DeepSeek).
+- **Asesor Stata** (`asesor-stata.html`): guías con ejemplos, radar semanal de
+  novedades, preguntas sobre la base de notas y asistente de código Stata
+  (Revisar, Explicar, Generar e Interpretar resultados), sobre la base de
+  conocimiento del repo privado `leonidcapo/asesor-stata` (ver ese repo para
+  el sistema completo: monitoreo automático semanal + comando `/asesor-stata`
+  de Claude Code). Backend en `api/asesor-stata-base.js` (índice y notas),
+  `api/asesor-stata-consulta.js` (preguntas, solo con las notas) y
+  `api/asesor-stata-codigo.js` (código y resultados), los dos últimos con
+  DeepSeek en streaming (`api/_lib/asesor-stata-llm.js`). Diseño en
+  `docs/superpowers/specs/`; el más reciente es
+  `2026-10-07-asesor-stata-usabilidad-etapas-1-3-design.md`.
 
 ## Deploy en Vercel
 
