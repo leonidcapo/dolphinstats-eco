@@ -110,6 +110,9 @@
       var cuerpo = { modo: 'generar', nivel: nivel.valor(), descripcion: descripcion };
       if (extra.ajuste) { cuerpo.codigo_previo = extra.codigoPrevio; cuerpo.ajuste = extra.ajuste; }
       boton.disabled = true;
+      // Si un ajuste falla, el código ya generado vuelve a la pantalla: no se pierde.
+      var previo = extra.ajuste ? Array.prototype.slice.call(panel.childNodes) : null;
+      function restaurarPrevio() { if (previo) panel.replaceChildren.apply(panel, previo); }
       panel.replaceChildren();
       var detener = u.iniciarEspera(estado, extra.ajuste ? FRASES_AJUSTE : FRASES, false);
       u.pedirJson('/api/asesor-stata-codigo', cuerpo, 90000)
@@ -117,7 +120,7 @@
           detener();
           boton.disabled = false;
           if (!ctx.activo()) return; // el usuario ya cambió de pantalla
-          if (!r.ok || r.data.error) { u.estadoLinea(estado, 'error', r.data.error || 'No se pudo procesar el pedido.'); return; }
+          if (!r.ok || r.data.error) { restaurarPrevio(); u.estadoLinea(estado, 'error', r.data.error || 'No se pudo procesar el pedido.'); return; }
           u.estadoLinea(estado, '', '');
           ultimaDescripcion = descripcion;
           pintarCodigo(r.data);
@@ -126,7 +129,7 @@
         .catch(function (e) {
           detener();
           boton.disabled = false;
-          if (ctx.activo()) u.estadoLinea(estado, 'error', u.mensajeDeFallo(e));
+          if (ctx.activo()) { restaurarPrevio(); u.estadoLinea(estado, 'error', u.mensajeDeFallo(e)); }
         });
     }
     boton.addEventListener('click', function () { enviar(); });

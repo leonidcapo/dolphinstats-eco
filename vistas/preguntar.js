@@ -66,6 +66,10 @@
       area.value = A.estado.preguntaInicial;
       A.estado.preguntaInicial = '';
       area.dispatchEvent(new Event('input'));
+    } else if (A.estado.ultimaConsulta) { // vuelve de una nota citada: la respuesta sigue ahí
+      area.value = A.estado.ultimaConsulta.pregunta;
+      area.dispatchEvent(new Event('input'));
+      pintarRespuesta(panel, A.estado.ultimaConsulta.data, A.estado.partes);
     }
 
     formulario.addEventListener('submit', function (e) {
@@ -82,6 +86,7 @@
           if (!ctx.activo()) return; // el usuario ya cambió de pantalla
           if (!r.ok || r.data.error) { u.estadoLinea(estado, 'error', r.data.error || 'No se pudo responder la consulta.'); return; }
           u.estadoLinea(estado, '', '');
+          A.estado.ultimaConsulta = { pregunta: pregunta, data: r.data };
           pintarRespuesta(panel, r.data, A.estado.partes);
         })
         .catch(function (err) {
