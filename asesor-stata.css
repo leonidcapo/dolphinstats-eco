@@ -161,3 +161,14 @@ textarea.campo { min-height: 110px; resize: vertical; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
+
+/* ---------------------------------------------------------------- Inicio */
+.aviso-vista { margin: 0 0 1rem; padding: .8rem 1rem; border-radius: var(--radio-sm); background: var(--tinte-azul); color: var(--marino); font-weight: 700; box-shadow: var(--sombra); }
+.franja-radar {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+  margin-top: 1rem; padding: .9rem 1.1rem; border-radius: var(--radio); background: var(--superficie); border: 1px solid var(--borde);
+}
+.franja-texto { color: var(--muted); font-size: .92rem; flex: 1 1 320px; }
+.franja-texto strong { color: var(--marino); }
+.franja-enlace { display: inline-flex; align-items: center; gap: .4rem; min-height: 44px; font-weight: 700; text-decoration: none; color: var(--azul); }
+.franja-enlace:hover { text-decoration: underline; }
