@@ -230,3 +230,20 @@ a.vecina:hover { border-color: var(--azul); }
 .vecina.vacia { justify-content: center; color: var(--muted); }
 .vecina-rotulo { display: inline-flex; align-items: center; gap: .35rem; color: var(--azul-oscuro); font-size: .78rem; font-weight: 700; }
 @media (max-width: 640px) { .vecinas { grid-template-columns: 1fr; } }
+
+/* ------------------------------------------------------- Preguntar y Radar */
+.tarjeta-form { padding: 1.25rem 1.3rem; border: 1px solid var(--borde); border-radius: var(--radio); background: #fff; box-shadow: var(--sombra); }
+.ejemplos { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin-top: .8rem; }
+.ejemplos-titulo { color: var(--muted); font-size: .85rem; }
+.ejemplo {
+  display: inline-flex; align-items: center; min-height: 44px; padding: 0 .95rem; border: 1px dashed var(--azul); border-radius: 100px;
+  background: #fff; color: var(--azul); font: 700 .85rem var(--fuente-texto); cursor: pointer;
+}
+.ejemplo:hover { background: var(--tinte-azul); }
+.fila-acciones { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .8rem 1.2rem; margin-top: 1rem; }
+.panel-respuesta:empty { display: none; }
+.respuesta { margin-top: 1.3rem; padding: 1.25rem 1.35rem; border: 1px solid var(--borde); border-radius: var(--radio); background: #fff; box-shadow: var(--sombra); white-space: pre-wrap; line-height: 1.65; }
+.citas h2 { margin: 1.5rem 0 .8rem; font-size: 1.05rem; }
+.nota-card.sin-enlace { border-left-color: var(--muted); }
+.sugerencias { margin-top: 1.2rem; padding: 1rem 1.2rem; border-radius: var(--radio-sm); background: var(--superficie); color: var(--muted); }
+.sugerencias ul { margin: 0; padding-left: 1.2rem; }
