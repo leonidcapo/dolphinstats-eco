@@ -308,7 +308,91 @@
     return FUENTES[source] || source;
   }
 
+  // ------------------------------------------------------------------ rutas
+
+  var SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+  var MODOS_CODIGO = ['revisar', 'explicar', 'generar'];
+  var DESCONOCIDA = function () { return { vista: 'inicio', desconocida: true }; };
+
+  function pathDeSegmentos(tema, slug) {
+    return SLUG.test(tema) && SLUG.test(slug) ? 'knowledge/' + tema + '/' + slug + '.md' : null;
+  }
+
+  function segmentosDePath(path) {
+    var m = /^knowledge\/([a-z0-9-]+)\/([a-z0-9-]+)\.md$/.exec(String(path || ''));
+    return m && SLUG.test(m[1]) && SLUG.test(m[2]) ? { tema: m[1], slug: m[2] } : null;
+  }
+
+  // Convierte la parte posterior al # de la dirección en una ruta. Nunca lanza:
+  // lo que no se reconoce devuelve { vista: 'inicio', desconocida: true }.
+  function parsearRuta(hash) {
+    var h = String(hash === undefined || hash === null ? '' : hash);
+    var viejo = /^#nota=(.*)$/.exec(h);
+    if (viejo) {
+      var path = null;
+      try { path = decodeURIComponent(viejo[1]); } catch (e) { path = null; }
+      return segmentosDePath(path) ? { vista: 'enlace-antiguo', path: path } : DESCONOCIDA();
+    }
+    var partes = h.replace(/^#\/?/, '').split('/').filter(Boolean);
+    if (!partes.length) return { vista: 'inicio' };
+    var guia = function (origen) {
+      if (partes.length !== 3) return DESCONOCIDA();
+      var p = pathDeSegmentos(partes[1], partes[2]);
+      return p ? { vista: 'guia', origen: origen, path: p } : DESCONOCIDA();
+    };
+    switch (partes[0]) {
+      case 'aprender': return partes.length === 1 ? { vista: 'aprender' } : guia('aprender');
+      case 'radar': return partes.length === 1 ? { vista: 'radar' } : guia('radar');
+      case 'preguntar': return partes.length === 1 ? { vista: 'preguntar' } : DESCONOCIDA();
+      case 'resultados': return partes.length === 1 ? { vista: 'resultados' } : DESCONOCIDA();
+      case 'codigo':
+        if (partes.length === 1) return { vista: 'codigo', modo: 'revisar' };
+        if (partes.length === 2 && MODOS_CODIGO.indexOf(partes[1]) !== -1) return { vista: 'codigo', modo: partes[1] };
+        return DESCONOCIDA();
+      default: return DESCONOCIDA();
+    }
+  }
+
+  function construirRuta(ruta) {
+    switch (ruta && ruta.vista) {
+      case 'aprender': return '#/aprender';
+      case 'radar': return '#/radar';
+      case 'preguntar': return '#/preguntar';
+      case 'resultados': return '#/resultados';
+      case 'codigo': return '#/codigo/' + (MODOS_CODIGO.indexOf(ruta.modo) !== -1 ? ruta.modo : 'revisar');
+      case 'guia': {
+        var s = segmentosDePath(ruta.path);
+        return s ? '#/' + (ruta.origen === 'radar' ? 'radar' : 'aprender') + '/' + s.tema + '/' + s.slug : '#/';
+      }
+      default: return '#/';
+    }
+  }
+
+  function contieneNota(lista, path) {
+    return lista.temas.some(function (t) { return t.notas.some(function (n) { return n.path === path; }); });
+  }
+
+  function existeNota(path, partes) {
+    return contieneNota(partes.guias, path) || contieneNota(partes.radar, path);
+  }
+
+  function rutaDeNota(path, partes) {
+    return construirRuta({ vista: 'guia', origen: contieneNota(partes.radar, path) ? 'radar' : 'aprender', path: path });
+  }
+
+  // Enlaces compartidos antes del rediseño (#nota=<ruta codificada>) -> ruta nueva.
+  function traducirEnlaceViejo(hash, partes) {
+    var r = parsearRuta(hash);
+    if (r.vista !== 'enlace-antiguo' || !existeNota(r.path, partes)) return null;
+    return rutaDeNota(r.path, partes);
+  }
+
   var API = {
+    parsearRuta: parsearRuta,
+    construirRuta: construirRuta,
+    existeNota: existeNota,
+    rutaDeNota: rutaDeNota,
+    traducirEnlaceViejo: traducirEnlaceViejo,
     escapeHtml: escapeHtml,
     inlineMarkdown: inlineMarkdown,
     parsearFrontmatter: parsearFrontmatter,
