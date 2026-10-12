@@ -52,6 +52,29 @@
     return (Math.floor(x * f + 0.5) / f).toFixed(decimales || 0);
   }
 
+  // Número con hasta 6 cifras significativas, igual que el formato :g de Python.
+  function g(x) {
+    return String(Number(x.toPrecision(6)));
+  }
+
+  // Avisa si alguna casilla de la tabla 2x2 tendría una frecuencia esperada < 5
+  // (bajo independencia, con la proporción combinada); igual a _aviso_casillas().
+  function avisoCasillas(grupos, positivo, negativo) {
+    var total = 0, suma = 0;
+    grupos.forEach(function (g) { total += g[1]; suma += g[1] * g[2]; });
+    var pComb = suma / total;
+    var bajas = [];
+    grupos.forEach(function (g) {
+      [[positivo, g[1] * pComb], [negativo, g[1] * (1 - pComb)]].forEach(function (c) {
+        if (c[1] < 5) { bajas.push(g[0] + ' ' + c[0] + ': ' + redondear(c[1], 1)); }
+      });
+    });
+    if (!bajas.length) { return []; }
+    return ['Con este tamaño se esperarían menos de 5 sujetos en alguna casilla de la tabla 2x2 (' +
+      bajas.join('; ') + '): la ji-cuadrado de Pearson es poco confiable. Usa la prueba exacta de Fisher ' +
+      'y calcula el tamaño con la corrección de continuidad de Yates, que Epidat aplica también a Fisher.'];
+  }
+
   function ParametroInvalido(mensaje) {
     this.message = mensaje;
     this.name = 'ParametroInvalido';
@@ -106,29 +129,29 @@
     return { n_total: n, n_por_grupo: null, formula: formula, parrafo_metodos: parrafo, avisos: avisos };
   }
 
-  function dosProporciones(p1, p2, confianza, potencia) {
+  function dosProporciones(p1, p2, confianza, potencia, conYates) {
     validarProporcion(p1, 'La proporción del grupo 1');
     validarProporcion(p2, 'La proporción del grupo 2');
     if (p1 === p2) {
       throw new ParametroInvalido('Las dos proporciones no pueden ser iguales (no hay diferencia que detectar)');
     }
     var za = Z_ALFA[confianza], zb = Z_BETA[potencia];
-    var pPool = (p1 + p2) / 2;
-    var terminoA = za * Math.sqrt(2 * pPool * (1 - pPool));
-    var terminoB = zb * Math.sqrt(p1 * (1 - p1) + p2 * (1 - p2));
-    var nGrupo = Math.ceil(Math.pow(terminoA + terminoB, 2) / Math.pow(p1 - p2, 2));
+    var nGrupo = Math.ceil(nGruposDesiguales(p1, p2, 1, za, zb, conYates));
     var total = nGrupo * 2;
     var formula = 'n = [Zα√(2p̄(1-p̄)) + Zβ√(p1(1-p1)+p2(1-p2))]² / (p1-p2)², p̄=(p1+p2)/2';
+    var extra = conYates ? ', con corrección de continuidad de Yates (aplicable también a la prueba exacta de Fisher)' : '';
+    var formulaUi = conYates ? formula + ', con corrección de Yates' : formula;
     var parrafo = 'El tamaño de muestra se calculó para comparar dos proporciones ' +
       'independientes (' + pct(p1) + '% vs. ' + pct(p2) + '%), con un nivel de ' +
       'confianza del ' + confianza + '% y una potencia estadística del ' + potencia + '%, ' +
-      'mediante la prueba ji-cuadrado de Pearson con la fórmula ' + formula +
+      'mediante la prueba ji-cuadrado de Pearson con la fórmula ' + formula + extra +
       ' (' + citas([REF_MACHIN + ', pp. 19-20', epidat('3.1.2.2.1')]) + '). Se requirieron ' + nGrupo + ' participantes por grupo ' +
       '(total: ' + total + ').';
     return {
       n_total: total, n_por_grupo: nGrupo,
-      formula: formula,
-      parrafo_metodos: parrafo
+      formula: formulaUi,
+      parrafo_metodos: parrafo,
+      avisos: avisoCasillas([['grupo 1', nGrupo, p1], ['grupo 2', nGrupo, p2]], 'con el evento', 'sin el evento')
     };
   }
 
@@ -145,8 +168,8 @@
     var formula = 'n = 2(Zα+Zβ)²σ²/Δ² + Zα²/4';
     var parrafo = 'El tamaño de muestra se calculó para comparar dos medias ' +
       'independientes, asumiendo una diferencia mínima clínicamente ' +
-      'relevante de ' + diferencia + ' y una desviación estándar común esperada ' +
-      'de ' + sd + ', con un nivel de confianza del ' + confianza + '% y una potencia ' +
+      'relevante de ' + g(diferencia) + ' y una desviación estándar común esperada ' +
+      'de ' + g(sd) + ', con un nivel de confianza del ' + confianza + '% y una potencia ' +
       'estadística del ' + potencia + '%, mediante la fórmula ' + formula +
       ' (' + citas([REF_SCHOUTEN_TEXTO, epidat('3.1.2.1.1')]) + '). Se requirieron ' + nGrupo + ' ' +
       'participantes por grupo (total: ' + total + ').';
@@ -198,10 +221,11 @@
       'independientes, con ' + controlesPorCaso + ' control(es) por caso, asumiendo ' +
       'una prevalencia de la exposición del ' + pct(p2) + '% en los controles ' +
       '(lo que implica un ' + (p1 * 100).toFixed(1) + '% en los casos) y una odds ratio esperada de ' +
-      orEsperada + ', con un nivel de confianza del ' + confianza + '% y una potencia ' +
+      g(orEsperada) + ', con un nivel de confianza del ' + confianza + '% y una potencia ' +
       'estadística del ' + potencia + '%, mediante ' + formula + ' (' + citas([REF_MACHIN + ', pp. 19-20', epidat('3.1.2.3.1')]) + '). ' +
       'Se requirieron ' + nCasos + ' casos y ' + nControles + ' controles (total: ' + total + ').';
-    return { n_total: total, n_por_grupo: nCasos, formula: formula, parrafo_metodos: parrafo };
+    return { n_total: total, n_por_grupo: nCasos, formula: formula, parrafo_metodos: parrafo,
+      avisos: avisoCasillas([['casos', nCasos, p1], ['controles', nControles, p2]], 'expuestos', 'no expuestos') };
   }
 
   function cohorte(pExpuestos, pNoExpuestos, razonNoExpExp, confianza, potencia, conYates) {
@@ -224,11 +248,13 @@
     var parrafo = 'El tamaño de muestra se calculó para un estudio de cohortes, asumiendo ' +
       'un riesgo del ' + pct(pExpuestos) + '% en expuestos y del ' +
       pct(pNoExpuestos) + '% en no expuestos (riesgo relativo esperado de ' +
-      rr.toFixed(2) + '), con una razón entre no expuestos y expuestos de ' + razonNoExpExp +
+      rr.toFixed(2) + '), con una razón entre no expuestos y expuestos de ' + g(razonNoExpExp) +
       ', un nivel de confianza del ' + confianza + '% y una potencia estadística del ' + potencia +
       '%, mediante ' + formula + ' (' + citas([REF_MACHIN + ', pp. 19-20', epidat('3.1.2.4')]) + '). Se requirieron ' + nExpuestos +
       ' expuestos y ' + nNoExpuestos + ' no expuestos (total: ' + total + ').';
-    return { n_total: total, n_por_grupo: nExpuestos, formula: formula, parrafo_metodos: parrafo };
+    return { n_total: total, n_por_grupo: nExpuestos, formula: formula, parrafo_metodos: parrafo,
+      avisos: avisoCasillas([['expuestos', nExpuestos, pExpuestos], ['no expuestos', nNoExpuestos, pNoExpuestos]],
+        'con el evento', 'sin el evento') };
   }
 
   function coeficienteCorrelacion(rEsperado, confianza, potencia, bilateral) {
@@ -247,7 +273,7 @@
       '(primer paso del procedimiento iterativo de Machin et al.)';
     var parrafo = 'El tamaño de muestra se calculó para contrastar si el coeficiente de ' +
       'correlación de Pearson es distinto de cero, asumiendo un valor esperado de r=' +
-      rEsperado + ', con un contraste ' + tipoContraste + ', un nivel de confianza del ' +
+      g(rEsperado) + ', con un contraste ' + tipoContraste + ', un nivel de confianza del ' +
       confianza + '% y una potencia estadística del ' + potencia + '%, mediante la fórmula ' +
       formula + ' (' + citas([REF_MACHIN + ', pp. 168-169', epidat('3.1.2.9')]) + '). El tamaño de muestra mínimo requerido fue de ' + n + ' sujetos.';
     return { n_total: n, n_por_grupo: null, formula: formula, parrafo_metodos: parrafo };
@@ -269,15 +295,97 @@
     var formula = 'n = (Zα+Zβ)²σd²/Δ² + Zα²/2';
     var parrafo = 'El tamaño de muestra se calculó para comparar una variable numérica ' +
       'medida antes y después en los mismos sujetos (prueba t pareada), asumiendo una ' +
-      'diferencia mínima clínicamente relevante de ' + diferencia + ' y una desviación ' +
-      'estándar de las diferencias de ' + sdDiferencias + ', con un nivel de confianza del ' +
+      'diferencia mínima clínicamente relevante de ' + g(diferencia) + ' y una desviación ' +
+      'estándar de las diferencias de ' + g(sdDiferencias) + ', con un nivel de confianza del ' +
       confianza + '% y una potencia estadística del ' + potencia + '%, mediante la fórmula ' +
       formula + ' (' + citas([REF_MACHIN + ', p. 73', epidat('3.1.2.1.2')]) + '). El tamaño de muestra mínimo requerido fue de ' +
       n + ' sujetos.';
     return { n_total: n, n_por_grupo: null, formula: formula, parrafo_metodos: parrafo };
   }
 
-  function mcnemar(proporcionDiscordante, orEsperada, confianza, potencia) {
+  /* Potencia exacta de la prueba binomial de McNemar (sin dependencias): puerto de
+   * _potencia_mcnemar_exacta / _n_mcnemar_exacta en calculadora_muestra.py (ver
+   * su docstring, sección V10). Las regiones de rechazo usan enteros grandes
+   * (BigInt) para que sean idénticas a las de Python. */
+  var LF = [0];
+  var C_CRITICO = {};
+  var N_MAXIMO_EXACTA = 5000;
+
+  function logFactorial(n) {
+    while (LF.length <= n) { LF.push(LF[LF.length - 1] + Math.log(LF.length)); }
+    return LF;
+  }
+
+  function cCritico(m, alfaPct) {
+    var clave = m + ',' + alfaPct;
+    if (C_CRITICO[clave] !== undefined) { return C_CRITICO[clave]; }
+    var total = 1n << BigInt(m);
+    var acumulado = 0n, coef = 1n, c = -1;
+    var tope = Math.floor(m / 2);
+    for (var k = 0; k <= tope; k++) {
+      acumulado += coef;
+      if (200n * acumulado <= BigInt(alfaPct) * total) { c = k; } else { break; }
+      coef = coef * BigInt(m - k) / BigInt(k + 1);
+    }
+    C_CRITICO[clave] = c;
+    return c;
+  }
+
+  function colaInferior(c, m, q, lf) {
+    var t = Math.exp(lf[m] - lf[c] - lf[m - c] + c * Math.log(q) + (m - c) * Math.log(1 - q));
+    var total = t;
+    var razon = (1 - q) / q;
+    for (var k = c; k > 0; k--) {
+      t *= (k / (m - k + 1)) * razon;
+      total += t;
+      if (t < 1e-18 * total) { break; }
+    }
+    return total;
+  }
+
+  function potenciaMcnemarExacta(n, pd, orEsperada, alfaPct) {
+    var lf = logFactorial(n);
+    var q = orEsperada / (orEsperada + 1);
+    var sd = Math.sqrt(n * pd * (1 - pd));
+    var bajo = Math.max(1, Math.trunc(n * pd - 10 * sd));
+    var alto = Math.min(n, Math.trunc(n * pd + 10 * sd) + 1);
+    var lpd = Math.log(pd), l1pd = Math.log(1 - pd);
+    var potencia = 0;
+    for (var m = bajo; m <= alto; m++) {
+      var c = cCritico(m, alfaPct);
+      if (c < 0) { continue; }
+      var peso = Math.exp(lf[n] - lf[m] - lf[n - m] + m * lpd + (n - m) * l1pd);
+      potencia += peso * (colaInferior(c, m, q, lf) + colaInferior(c, m, 1 - q, lf));
+    }
+    return potencia;
+  }
+
+  function nMcnemarExacta(pd, orEsperada, confianza, potencia, nInicial) {
+    var objetivo = potencia / 100, alfaPct = 100 - confianza;
+    var memo = {};
+    function pw(n) {
+      if (memo[n] === undefined) { memo[n] = potenciaMcnemarExacta(n, pd, orEsperada, alfaPct); }
+      return memo[n];
+    }
+    var bajo = Math.max(2, Math.floor(nInicial / 2));
+    while (bajo > 2 && pw(bajo) >= objetivo) { bajo = Math.floor(bajo / 2); }
+    var alto = Math.max(nInicial, bajo + 1);
+    while (pw(alto) < objetivo) { alto *= 2; }
+    while (alto - bajo > 1) {
+      var medio = Math.floor((alto + bajo) / 2);
+      if (pw(medio) >= objetivo) { alto = medio; } else { bajo = medio; }
+    }
+    var n = Math.max(2, alto - 15);
+    for (;;) {
+      var estable = pw(n) >= objetivo;
+      for (var j = 1; estable && j < 10; j++) { estable = pw(n + j) >= objetivo; }
+      if (estable) { return n; }
+      n += 1;
+    }
+  }
+
+  function mcnemar(proporcionDiscordante, orEsperada, confianza, potencia, prueba) {
+    prueba = prueba || 'ji2';
     validarProporcion(proporcionDiscordante, 'La proporción de pares discordantes');
     if (!(orEsperada > 0)) {
       throw new ParametroInvalido('La odds ratio esperada debe ser mayor a 0');
@@ -285,20 +393,43 @@
     if (orEsperada === 1) {
       throw new ParametroInvalido('Una OR de 1 significa que no hay asociación que detectar');
     }
+    if (prueba !== 'ji2' && prueba !== 'exacta') {
+      throw new ParametroInvalido("La prueba debe ser 'ji2' (ji-cuadrado de McNemar) o 'exacta' (binomial exacta)");
+    }
     var za = Z_ALFA[confianza], zb = Z_BETA[potencia];
     var delta = proporcionDiscordante * (orEsperada - 1) / (orEsperada + 1);
     var var0 = proporcionDiscordante;
     var var1 = proporcionDiscordante - delta * delta;
-    var n = Math.ceil(Math.pow(za * Math.sqrt(var0) + zb * Math.sqrt(var1), 2) / (delta * delta));
+    var nJi2 = Math.ceil(Math.pow(za * Math.sqrt(var0) + zb * Math.sqrt(var1), 2) / (delta * delta));
+    var avisos = [];
+    var n = nJi2;
     var formula = 'n = [Zα√pd + Zβ√(pd-Δ²)]²/Δ², Δ=pd(OR-1)/(OR+1)';
+    if (prueba === 'exacta') {
+      if (nJi2 > N_MAXIMO_EXACTA) {
+        avisos.push('Con n=' + nJi2 + ' el cálculo exacto sería muy lento: se usó la fórmula de Connor ' +
+          '(ji-cuadrado). La prueba exacta pediría unos pocos por ciento más sujetos.');
+        prueba = 'ji2';
+      } else {
+        n = nMcnemarExacta(proporcionDiscordante, orEsperada, confianza, potencia, nJi2);
+        formula = 'Potencia exacta de la prueba binomial bilateral de McNemar, sumada sobre el ' +
+          'número de pares discordantes (menor n con la potencia pedida)';
+      }
+    }
+    var cuerpo;
+    if (prueba === 'exacta') {
+      cuerpo = 'mediante el cálculo exacto de la potencia de la prueba binomial bilateral de McNemar, ' +
+        'sumando sobre la distribución del número de pares discordantes (no existe fórmula cerrada)';
+    } else {
+      cuerpo = 'mediante la fórmula ' + formula + ' (' + citas([REF_CONNOR_TEXTO, epidat('3.1.2.2.2')]) + ')';
+    }
     var parrafo = 'El tamaño de muestra se calculó para comparar una variable categórica ' +
       'medida antes y después en los mismos sujetos (prueba de McNemar), asumiendo una ' +
       'proporción de pares discordantes del ' + pct(proporcionDiscordante) +
-      '% y una odds ratio esperada de ' + orEsperada + ' entre esos pares, con un nivel de ' +
+      '% y una odds ratio esperada de ' + g(orEsperada) + ' entre esos pares, con un nivel de ' +
       'confianza del ' + confianza + '% y una potencia estadística del ' + potencia +
-      '%, mediante la fórmula ' + formula + ' (' + citas([REF_CONNOR_TEXTO, epidat('3.1.2.2.2')]) + '). El tamaño de ' +
+      '%, ' + cuerpo + '. El tamaño de ' +
       'muestra mínimo requerido fue de ' + n + ' sujetos.';
-    return { n_total: n, n_por_grupo: null, formula: formula, parrafo_metodos: parrafo };
+    return { n_total: n, n_por_grupo: null, formula: formula, parrafo_metodos: parrafo, avisos: avisos };
   }
 
   /* V8 (sesión 2026-10-12, paquete 2 de la auditoría): diseño transversal
@@ -354,14 +485,15 @@
     var parrafo = 'El tamaño de muestra se calculó para un estudio transversal analítico en el que se compara la ' +
       'prevalencia del desenlace entre expuestos y no expuestos, asumiendo una prevalencia de ' +
       pct(pNoExpuestos) + '% en no expuestos y una razón de prevalencias esperada de ' +
-      String(Number(rpEsperada.toPrecision(6))) + ' (prevalencia de ' + pct(pExpuestos) + '% en expuestos), con ' +
+      g(rpEsperada) + ' (prevalencia de ' + pct(pExpuestos) + '% en expuestos), con ' +
       pct(pctExpuestos) + '% de expuestos en la muestra, un nivel de confianza del ' + confianza +
       '% y una potencia estadística del ' + potencia + '%, mediante ' +
       formula.charAt(0).toLowerCase() + formula.slice(1) + '.' + fraseAjustes + ' Se requirieron ' + nExp +
       ' expuestos y ' + nNoExp + ' no expuestos (total: ' + total + '). El análisis previsto es la regresión de ' +
       'Poisson con varianza robusta, que estima directamente la razón de prevalencias (' +
       citas(refs) + ').';
-    var avisos = [];
+    var avisos = avisoCasillas([['expuestos', nExpBase, pExpuestos], ['no expuestos', nNoExpBase, pNoExpuestos]],
+      'con el desenlace', 'sin el desenlace');
     if (nVariablesModelo) {
       var prev = pctExpuestos * pExpuestos + (1 - pctExpuestos) * pNoExpuestos;
       var menosFrecuente = Math.min(prev, 1 - prev);
@@ -746,7 +878,7 @@
       } else if (diseno === 'dos_proporciones') {
         var p1 = Number($('cm-p1').value) / 100;
         var p2 = Number($('cm-p2').value) / 100;
-        r = dosProporciones(p1, p2, confianza, potencia);
+        r = dosProporciones(p1, p2, confianza, potencia, $('cm-dp-yates').checked);
       } else if (diseno === 'dos_medias') {
         var diferencia = Number($('cm-diferencia').value);
         var sd = Number($('cm-sd').value);
@@ -780,7 +912,7 @@
       } else {
         var mnPd = Number($('cm-mn-pd').value) / 100;
         var mnOr = Number($('cm-mn-or').value);
-        r = mcnemar(mnPd, mnOr, confianza, potencia);
+        r = mcnemar(mnPd, mnOr, confianza, potencia, $('cm-mn-prueba').value);
       }
 
       $('cm-n').textContent = r.n_total;
