@@ -29,27 +29,30 @@ const MAX_INPUT_CHARS = 600;
 const DISENOS_VALIDOS = new Set([
   'proporcion_unica', 'dos_proporciones', 'dos_medias',
   'casos_controles', 'cohorte', 'correlacion',
-  'media_pareada', 'mcnemar', 'no_disponible',
+  'media_pareada', 'mcnemar', 'transversal_analitico', 'no_disponible',
 ]);
 
-const PROMPT_CLASIFICADOR_DISENO = `Eres un clasificador de diseños de estudio para tesis de ciencias de la salud. Dado un título o pregunta de investigación, elige CUÁL de estos 8 diseños de cálculo de tamaño de muestra corresponde, o admite honestamente que ninguno aplica todavía. Nunca calcules un tamaño de muestra ni sugieras un valor de p -- solo clasifica el diseño.
+const PROMPT_CLASIFICADOR_DISENO = `Eres un clasificador de diseños de estudio para tesis de ciencias de la salud. Dado un título o pregunta de investigación, elige CUÁL de estos 9 diseños de cálculo de tamaño de muestra corresponde, o admite honestamente que ninguno aplica todavía. Nunca calcules un tamaño de muestra ni sugieras un valor de p -- solo clasifica el diseño.
 
 Diseños disponibles (código exacto a usar):
 - proporcion_unica: estimar una sola proporción o prevalencia (ej. "prevalencia de X en Y", "¿cuántos tienen X?")
 - dos_proporciones: comparar una proporción (sí/no) entre dos grupos YA DEFINIDOS de antemano (ej. tratamiento vs. placebo, urbano vs. rural), sin que la selección de los grupos se base en tener o no la enfermedad, ni en estar o no expuestos
 - dos_medias: comparar un promedio (variable numérica: peso, presión, puntaje) entre dos grupos independientes
-- casos_controles: se parte de la enfermedad (casos vs. controles) y se mira hacia atrás la exposición pasada -- diseño retrospectivo; títulos con "factores de riesgo", "factores asociados a [enfermedad]"
+- casos_controles: se parte de la enfermedad (casos vs. controles) y se mira hacia atrás la exposición pasada -- diseño retrospectivo; solo cuando el título o la descripción dicen que se seleccionaron casos y controles (ej. "casos y controles", "estudio caso-control")
 - cohorte: se parte de la exposición y se sigue a los grupos en el tiempo para ver quién desarrolla la enfermedad -- diseño prospectivo
+- transversal_analitico: una sola muestra en la que se miden exposición y desenlace a la vez (encuesta, historias clínicas, registros) y se busca qué factores se asocian al desenlace; típico de títulos "factores asociados a [desenlace]" o "factores de riesgo de [desenlace]" analizados con razón de prevalencias o regresión de Poisson, y de "estudio transversal analítico"
 - correlacion: ver si dos variables numéricas están relacionadas entre sí, en las mismas personas, sin dividir en grupos (ej. "relación entre X y Y")
 - media_pareada: comparar un promedio (variable numérica) medido ANTES y DESPUÉS en los MISMOS sujetos (ej. "efecto de X sobre el peso antes y después de la intervención")
 - mcnemar: comparar una proporción (sí/no) medida ANTES y DESPUÉS en los MISMOS sujetos (ej. "efecto de X sobre la presencia de Y antes y después de la intervención")
 
-Si el título describe un diseño que NO es ninguno de estos 8 (ej. estimar una sola media/promedio con intervalo de confianza, sin comparar antes/después), responde con diseno="no_disponible" y en el motivo indica brevemente cuál sería el diseño correcto aunque todavía no esté disponible en la calculadora.
+Si el título describe un diseño que NO es ninguno de estos 9 (ej. estimar una sola media/promedio con intervalo de confianza, sin comparar antes/después), responde con diseno="no_disponible" y en el motivo indica brevemente cuál sería el diseño correcto aunque todavía no esté disponible en la calculadora.
+
+Regla para "factores asociados" / "factores de riesgo": si el título NO dice que se seleccionaron casos y controles ni que se siguió a un grupo en el tiempo, elige transversal_analitico y di en el motivo que asumes que todo se midió en una sola muestra (y que si en realidad se partió de casos y controles, sería casos_controles). Si menciona regresión de Poisson o razón de prevalencias, es transversal_analitico.
 
 Si el título es ambiguo entre 2 diseños, elige el más probable dado cómo se suele plantear en tesis de salud, y dilo en el motivo (ej. "asumiendo que compararás dos grupos ya definidos; si en realidad partiste de los enfermos, sería casos y controles").
 
 Responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional antes ni después, con esta forma exacta:
-{"diseno": "<uno de: proporcion_unica, dos_proporciones, dos_medias, casos_controles, cohorte, correlacion, media_pareada, mcnemar, no_disponible>", "motivo": "<explicación breve, 1-2 oraciones, en español, dirigida directamente al estudiante>"}`;
+{"diseno": "<uno de: proporcion_unica, dos_proporciones, dos_medias, casos_controles, cohorte, correlacion, media_pareada, mcnemar, transversal_analitico, no_disponible>", "motivo": "<explicación breve, 1-2 oraciones, en español, dirigida directamente al estudiante>"}`;
 
 function jsonResponse(status, body) {
   return new Response(JSON.stringify(body), {
