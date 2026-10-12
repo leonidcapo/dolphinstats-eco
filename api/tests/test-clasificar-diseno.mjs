@@ -118,8 +118,8 @@ async function main() {
     assert.equal(res.status, 502);
   });
 
-  await test('los 8 diseños válidos + no_disponible son aceptados', async () => {
-    const validos = ['proporcion_unica', 'dos_proporciones', 'dos_medias', 'casos_controles', 'cohorte', 'correlacion', 'media_pareada', 'mcnemar', 'no_disponible'];
+  await test('los 9 diseños válidos + no_disponible son aceptados', async () => {
+    const validos = ['proporcion_unica', 'dos_proporciones', 'dos_medias', 'casos_controles', 'cohorte', 'correlacion', 'media_pareada', 'mcnemar', 'transversal_analitico', 'no_disponible'];
     for (const d of validos) {
       const restore = mockFetchOnce(async () => deepseekOkResponse({ diseno: d, motivo: 'motivo de prueba' }));
       const res = await handler(req({ titulo: 'un título cualquiera' }));
@@ -128,6 +128,19 @@ async function main() {
       const data = await res.json();
       assert.equal(data.diseno, d);
     }
+  });
+
+  await test('el prompt enruta "factores asociados" al transversal analítico', async () => {
+    let prompt = '';
+    const restore = mockFetchOnce(async (url, opts) => {
+      prompt = JSON.parse(opts.body).messages[0].content;
+      return deepseekOkResponse({ diseno: 'transversal_analitico', motivo: 'x' });
+    });
+    await handler(req({ titulo: 'Factores asociados a la necesidad de tratamiento dental' }));
+    restore();
+    assert.match(prompt, /transversal_analitico/);
+    assert.match(prompt, /Regla para "factores asociados"/);
+    assert.match(prompt, /9 diseños/);
   });
 
   console.log('\n' + pasados + ' pasados, ' + fallidos + ' fallidos');

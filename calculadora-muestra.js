@@ -12,6 +12,12 @@
     "designs in medical research? Indian J Psychol Med. 2013;35(2):121-6.";
   var REF_JULIOUS_TEXTO = "Julious SA. Sample sizes for clinical trials with Normal data. " +
     "Stat Med. 2004;23(12):1921-86.";
+  var REF_EPIDAT_TEXTO = "Epidat 4.2, módulo de Muestreo, estudios de cohortes (http://dxsp.sergas.es), julio de 2016";
+  var REF_HSIEH_TEXTO = "Hsieh FY, Bloch DA, Larsen MD. A simple method of sample size calculation " +
+    "for linear and logistic regression. Stat Med. 1998;17(14):1623-34.";
+  var REF_BARROS_TEXTO = "Barros AJ, Hirakata VN. Alternatives for logistic regression in cross-sectional " +
+    "studies: an empirical comparison of models that directly estimate the " +
+    "prevalence ratio. BMC Med Res Methodol. 2003;3:21.";
   var REF_CONNOR_TEXTO = "Connor RJ. Sample size for testing differences in proportions for " +
     "the paired-sample design. Biometrics. 1987;43(1):207-11.";
 
@@ -26,6 +32,12 @@
   // a 12 ni a 13); mismo resultado que _pct() en calculadora_muestra.py.
   function pct(x) {
     return String(Number((x * 100).toFixed(4)));
+  }
+
+  // Redondeo hacia arriba en .5, idéntico a _r() en calculadora_muestra.py.
+  function redondear(x, decimales) {
+    var f = Math.pow(10, decimales || 0);
+    return (Math.floor(x * f + 0.5) / f).toFixed(decimales || 0);
   }
 
   function ParametroInvalido(mensaje) {
@@ -76,7 +88,7 @@
     }
     var esperados = n * Math.min(p, 1 - p);
     if (esperados < 10) {
-      avisos.push('Con n=' + n + ' se esperarían solo ' + esperados.toFixed(1) + ' casos del evento menos frecuente: ' +
+      avisos.push('Con n=' + n + ' se esperarían solo ' + redondear(esperados, 1) + ' casos del evento menos frecuente: ' +
         'la aproximación normal es poco confiable. Considera un método exacto (Clopper-Pearson) o una muestra mayor.');
     }
     return { n_total: n, n_por_grupo: null, formula: formula, parrafo_metodos: parrafo, avisos: avisos };
@@ -276,6 +288,82 @@
     return { n_total: n, n_por_grupo: null, formula: formula, parrafo_metodos: parrafo };
   }
 
+  /* V8 (sesión 2026-10-12, paquete 2 de la auditoría): diseño transversal
+   * analítico (razón de prevalencias, regresión de Poisson), puerto directo de
+   * transversal_analitico en calculadora_muestra.py (ver su docstring, sección
+   * V8, para fuentes, validación por simulación y límites). */
+  function transversalAnalitico(pNoExpuestos, rpEsperada, pctExpuestos, confianza, potencia, conYates,
+                                perdidas, r2Covariables, nVariablesModelo) {
+    perdidas = perdidas || 0;
+    r2Covariables = r2Covariables || 0;
+    validarProporcion(pNoExpuestos, 'La prevalencia del desenlace en no expuestos');
+    validarProporcion(pctExpuestos, 'La proporción de expuestos en la muestra');
+    if (!(rpEsperada > 0)) {
+      throw new ParametroInvalido('La razón de prevalencias esperada debe ser mayor a 0');
+    }
+    if (rpEsperada === 1) {
+      throw new ParametroInvalido('Una razón de prevalencias de 1 significa que no hay asociación que detectar');
+    }
+    var pExpuestos = rpEsperada * pNoExpuestos;
+    if (!(pExpuestos > 0 && pExpuestos < 1)) {
+      throw new ParametroInvalido('Con esa prevalencia en no expuestos y esa razón de prevalencias, la prevalencia en ' +
+        'expuestos sería ' + (pExpuestos * 100).toFixed(1) + '% (debe estar entre 0 y 100%); revisa los valores');
+    }
+    if (!(perdidas >= 0 && perdidas < 1)) {
+      throw new ParametroInvalido('Las pérdidas esperadas deben estar entre 0% y menos de 100%');
+    }
+    if (!(r2Covariables >= 0 && r2Covariables < 1)) {
+      throw new ParametroInvalido('El R² con las demás variables del modelo debe estar entre 0% y menos de 100%');
+    }
+    if (nVariablesModelo != null && nVariablesModelo < 0) {
+      throw new ParametroInvalido('El número de variables del modelo no puede ser negativo');
+    }
+    var za = Z_ALFA[confianza], zb = Z_BETA[potencia];
+    var razon = (1 - pctExpuestos) / pctExpuestos;
+    var n0 = nGruposDesiguales(pExpuestos, pNoExpuestos, razon, za, zb, conYates) / (1 - r2Covariables);
+    var nExpBase = Math.ceil(n0);
+    var nNoExpBase = Math.ceil(razon * nExpBase);
+    var nExp = Math.ceil(nExpBase / (1 - perdidas));
+    var nNoExp = Math.ceil(nNoExpBase / (1 - perdidas));
+    var total = nExp + nNoExp;
+    var yatesTxt = conYates ? ' con corrección de continuidad de Yates' : ' sin corrección de continuidad de Yates';
+    var formula = 'Ji-cuadrado de Pearson para grupos desiguales' + yatesTxt;
+    var fraseAjustes = '';
+    var refs = [REF_EPIDAT_TEXTO, REF_BARROS_TEXTO];
+    if (r2Covariables > 0) {
+      fraseAjustes += ' Se ajustó por un modelo multivariable multiplicando por 1/(1-R²) con R²=' +
+        pct(r2Covariables) + '% entre la exposición y las demás variables del modelo.';
+      refs.push(REF_HSIEH_TEXTO);
+    }
+    if (perdidas > 0) {
+      fraseAjustes += ' Se añadió un ' + pct(perdidas) + '% por pérdidas o no respuesta.';
+    }
+    var parrafo = 'El tamaño de muestra se calculó para un estudio transversal analítico en el que se compara la ' +
+      'prevalencia del desenlace entre expuestos y no expuestos, asumiendo una prevalencia de ' +
+      pct(pNoExpuestos) + '% en no expuestos y una razón de prevalencias esperada de ' +
+      String(Number(rpEsperada.toPrecision(6))) + ' (prevalencia de ' + pct(pExpuestos) + '% en expuestos), con ' +
+      pct(pctExpuestos) + '% de expuestos en la muestra, un nivel de confianza del ' + confianza +
+      '% y una potencia estadística del ' + potencia + '%, mediante ' +
+      formula.charAt(0).toLowerCase() + formula.slice(1) + '.' + fraseAjustes + ' Se requirieron ' + nExp +
+      ' expuestos y ' + nNoExp + ' no expuestos (total: ' + total + '). El análisis previsto es la regresión de ' +
+      'Poisson con varianza robusta, que estima directamente la razón de prevalencias (' +
+      refs.map(function (r) { return r.replace(/\.$/, ''); }).join('; ') + ').';
+    var avisos = [];
+    if (nVariablesModelo) {
+      var prev = pctExpuestos * pExpuestos + (1 - pctExpuestos) * pNoExpuestos;
+      var menosFrecuente = Math.min(prev, 1 - prev);
+      var eventos = total * menosFrecuente;
+      if (eventos / nVariablesModelo < 10) {
+        var nEpv = Math.ceil(10 * nVariablesModelo / menosFrecuente / (1 - perdidas));
+        avisos.push('Con n=' + total + ' se esperarían ~' + redondear(eventos, 0) + ' eventos de la categoría menos frecuente para ' +
+          nVariablesModelo + ' variable(s) en el modelo (' + redondear(eventos / nVariablesModelo, 1) + ' por variable). ' +
+          'La guía de 10 eventos por variable (Peduzzi 1996, estudiada en regresión logística y de Cox; ' +
+          'orientativa para Poisson) pediría unos ' + nEpv + ' participantes, o reducir las variables del modelo.');
+      }
+    }
+    return { n_total: total, n_por_grupo: nExp, formula: formula, parrafo_metodos: parrafo, avisos: avisos };
+  }
+
   /* ---------------- Asistente de selección de diseño (sin IA) ----------------
    * Puerto directo de ASISTENTE_ARBOL / ASISTENTE_MOTIVOS en chatbot.py (paso 2
    * del roadmap "enriquecer con Epidat"). Mismo árbol de decisión fijo, mismas
@@ -323,6 +411,7 @@
       opciones: [
         { texto: 'Primero elegí quién tiene la enfermedad (casos) y quién no (controles), y reviso su exposición pasada', resultado: 'casos_controles' },
         { texto: 'Primero elegí quién estuvo expuesto y quién no, y los sigo en el tiempo para ver quién enferma', resultado: 'cohorte' },
+        { texto: 'Medí la exposición y el desenlace a la vez en una sola muestra (encuesta, historias clínicas) y comparo la prevalencia del desenlace entre expuestos y no expuestos', resultado: 'transversal_analitico' },
         { texto: 'Ya tenía mis 2 grupos definidos de otra forma (ej. tratamiento vs. placebo, urbano vs. rural)', resultado: 'dos_proporciones' }
       ]
     }
@@ -336,7 +425,8 @@
     cohorte: 'Porque partiste de la exposición y sigues a los grupos en el tiempo para ver quién enferma — diseño prospectivo.',
     dos_proporciones: 'Porque comparas una proporción (sí/no) entre dos grupos ya definidos, sin que la selección se base en enfermedad o exposición.',
     media_pareada: 'Porque mides un promedio (variable numérica) antes y después en los mismos sujetos, y comparas el promedio de esas diferencias.',
-    mcnemar: 'Porque mides una variable categórica (sí/no) antes y después en los mismos sujetos, y comparas cuántos cambian de respuesta — prueba de McNemar.'
+    mcnemar: 'Porque mides una variable categórica (sí/no) antes y después en los mismos sujetos, y comparas cuántos cambian de respuesta — prueba de McNemar.',
+    transversal_analitico: 'Porque mides exposición y desenlace a la vez en una sola muestra y comparas la prevalencia del desenlace entre expuestos y no expuestos (razón de prevalencias, regresión de Poisson). Es el diseño típico de "factores asociados a..." cuando no seleccionaste casos y controles.'
   };
 
   var DISENOS_LABELS = {
@@ -347,7 +437,8 @@
     cohorte: 'Cohorte (riesgo relativo)',
     correlacion: 'Coeficiente de correlación',
     media_pareada: 'Comparar una media antes/después (mismos sujetos)',
-    mcnemar: 'Comparar una proporción antes/después (mismos sujetos, McNemar)'
+    mcnemar: 'Comparar una proporción antes/después (mismos sujetos, McNemar)',
+    transversal_analitico: 'Transversal analítico: factores asociados (razón de prevalencias, Poisson)'
   };
 
   /* ---------------- Sugerencias de p con datos reales de ENDES Perú ----------------
@@ -370,7 +461,7 @@
   /* ---------------- UI wiring ---------------- */
 
   var DISENOS = ['proporcion_unica', 'dos_proporciones', 'dos_medias',
-    'casos_controles', 'cohorte', 'correlacion', 'media_pareada', 'mcnemar'];
+    'casos_controles', 'cohorte', 'correlacion', 'media_pareada', 'mcnemar', 'transversal_analitico'];
 
   function $(id) { return document.getElementById(id); }
 
@@ -667,6 +758,12 @@
         var mpDif = Number($('cm-mp-dif').value);
         var mpSd = Number($('cm-mp-sd').value);
         r = mediaPareada(mpDif, mpSd, confianza, potencia);
+      } else if (diseno === 'transversal_analitico') {
+        var taKRaw = Number($('cm-ta-k').value);
+        r = transversalAnalitico(
+          Number($('cm-ta-p0').value) / 100, Number($('cm-ta-rp').value), Number($('cm-ta-pe').value) / 100,
+          confianza, potencia, $('cm-ta-yates').checked,
+          Number($('cm-ta-perdidas').value) / 100, Number($('cm-ta-r2').value) / 100, taKRaw > 0 ? taKRaw : null);
       } else {
         var mnPd = Number($('cm-mn-pd').value) / 100;
         var mnOr = Number($('cm-mn-or').value);
@@ -682,6 +779,9 @@
       } else if (diseno === 'cohorte') {
         $('cm-n-label').textContent = 'Tamaño de muestra total';
         $('cm-n-por-grupo').textContent = r.n_por_grupo + ' expuestos, ' + (r.n_total - r.n_por_grupo) + ' no expuestos';
+      } else if (diseno === 'transversal_analitico') {
+        $('cm-n-label').textContent = 'Tamaño de muestra total';
+        $('cm-n-por-grupo').textContent = r.n_por_grupo + ' expuestos y ' + (r.n_total - r.n_por_grupo) + ' no expuestos, esperados en la muestra';
       } else {
         $('cm-n-label').textContent = r.n_por_grupo != null ? 'Tamaño de muestra total' : 'Tamaño de muestra';
         $('cm-n-por-grupo').textContent = r.n_por_grupo != null ? (r.n_por_grupo + ' por grupo') : '';
@@ -765,6 +865,6 @@
   window.CalculadoraMuestra = {
     proporcionUnica: proporcionUnica, dosProporciones: dosProporciones, dosMedias: dosMedias,
     casosControles: casosControles, cohorte: cohorte, coeficienteCorrelacion: coeficienteCorrelacion,
-    mediaPareada: mediaPareada, mcnemar: mcnemar
+    mediaPareada: mediaPareada, mcnemar: mcnemar, transversalAnalitico: transversalAnalitico
   };
 })();
