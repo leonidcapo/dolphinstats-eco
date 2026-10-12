@@ -132,6 +132,10 @@
         <label for="cm-p2">Proporción grupo 2 (%)</label>
         <input type="number" id="cm-p2" step="any" min="0.01" max="99.99" value="20">
       </div>
+      <div class="check-field">
+        <label for="cm-dp-yates">&nbsp;</label>
+        <label class="check-inline"><input type="checkbox" id="cm-dp-yates"> Corrección de Yates (también para Fisher)</label>
+      </div>
     </div>
 
     <div class="row campo-oculto" id="cm-campos-dos_medias">
@@ -213,6 +217,13 @@
       <div>
         <label for="cm-mn-or">Odds ratio esperada entre pares discordantes</label>
         <input type="number" id="cm-mn-or" step="0.1" min="0.01" value="2.0">
+      </div>
+      <div>
+        <label for="cm-mn-prueba">Prueba con la que analizarás</label>
+        <select id="cm-mn-prueba">
+          <option value="ji2" selected>Ji-cuadrado de McNemar (como Epidat)</option>
+          <option value="exacta">Binomial exacta (más conservadora: pide más sujetos)</option>
+        </select>
       </div>
     </div>
 

@@ -11,6 +11,18 @@ Middleware, funciona en el plan Hobby gratuito).
   título/palabras clave, dataset Scimago Journal Rank (`data/journals.json`,
   generado desde `endes-generator/scripts/build_journals.py`, ver ese repo).
 
+- **Calculadora de Muestra** (`calculadora-muestra.html` + `calculadora-muestra.js`):
+  9 diseños de tamaño de muestra (proporción única, dos proporciones, dos medias,
+  casos y controles, cohorte, correlación, antes/después con t pareada y McNemar,
+  transversal analítico con regresión de Poisson) con el párrafo de Métodos listo y
+  las fuentes de cada fórmula. Es el mismo cálculo que el chatbot
+  (`leonidcapo/DolphinStatsBot`, `calculadora_muestra.py`).
+  Pruebas: `node tests/test-calculadora-muestra.mjs`. Los casos están en
+  `tests/casos-compartidos.json`, copia idéntica de
+  `DolphinStatsBot/tests/casos_compartidos.json`: si cambia una de las dos
+  implementaciones, regenerar allá (`python tests/generar_casos_compartidos.py`) y
+  copiar el archivo aquí; así una prueba falla en vez de depender de copiar a mano.
+
 - **Asesor Stata** (`asesor-stata.html`): guías con ejemplos, radar semanal de
   novedades, preguntas sobre la base de notas y asistente de código Stata
   (Revisar, Explicar, Generar e Interpretar resultados), sobre la base de

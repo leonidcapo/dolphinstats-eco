@@ -1,0 +1,1189 @@
+{
+ "version": 1,
+ "funciones_js": {
+  "proporcion_unica": "proporcionUnica",
+  "dos_proporciones": "dosProporciones",
+  "dos_medias": "dosMedias",
+  "casos_controles": "casosControles",
+  "cohorte": "cohorte",
+  "coeficiente_correlacion": "coeficienteCorrelacion",
+  "media_pareada": "mediaPareada",
+  "mcnemar": "mcnemar",
+  "transversal_analitico": "transversalAnalitico"
+ },
+ "casos": [
+  {
+   "id": "epidat-prop-3",
+   "funcion": "proporcion_unica",
+   "args": [
+    0.2,
+    0.03,
+    95,
+    450
+   ],
+   "fuente_externa": "Epidat 3.1.1.2",
+   "esperado": {
+    "n_total": 272,
+    "n_por_grupo": null,
+    "avisos": [],
+    "parrafo": "El tamaño de muestra se calculó para estimar una proporción con una precisión absoluta de ±3 puntos porcentuales y un nivel de confianza del 95%, asumiendo una proporción esperada del 20%, en una población finita de 450 personas, mediante la fórmula n = n0/(1+n0/N), con n0 = Z²·p(1-p)/d² (Machin D, Campbell MJ, Fayers PM, Pinol APY. Sample size tables for clinical studies. 2nd ed. Blackwell Science; 1997, pp. 132-133; Epidat 4: Ayuda de Muestreo, apartado 3.1.1.2. Julio 2016. Consellería de Sanidade, Xunta de Galicia). El tamaño de muestra mínimo requerido fue de 272 participantes."
+   }
+  },
+  {
+   "id": "epidat-prop-4",
+   "funcion": "proporcion_unica",
+   "args": [
+    0.2,
+    0.04,
+    95,
+    450
+   ],
+   "fuente_externa": "Epidat 3.1.1.2",
+   "esperado": {
+    "n_total": 208,
+    "n_por_grupo": null,
+    "avisos": [],
+    "parrafo": "El tamaño de muestra se calculó para estimar una proporción con una precisión absoluta de ±4 puntos porcentuales y un nivel de confianza del 95%, asumiendo una proporción esperada del 20%, en una población finita de 450 personas, mediante la fórmula n = n0/(1+n0/N), con n0 = Z²·p(1-p)/d² (Machin D, Campbell MJ, Fayers PM, Pinol APY. Sample size tables for clinical studies. 2nd ed. Blackwell Science; 1997, pp. 132-133; Epidat 4: Ayuda de Muestreo, apartado 3.1.1.2. Julio 2016. Consellería de Sanidade, Xunta de Galicia). El tamaño de muestra mínimo requerido fue de 208 participantes."
+   }
+  },
+  {
+   "id": "epidat-prop-5",
+   "funcion": "proporcion_unica",
+   "args": [
+    0.2,
+    0.05,
+    95,
+    450
+   ],
+   "fuente_externa": "Epidat 3.1.1.2",
+   "esperado": {
+    "n_total": 159,
+    "n_por_grupo": null,
+    "avisos": [],
+    "parrafo": "El tamaño de muestra se calculó para estimar una proporción con una precisión absoluta de ±5 puntos porcentuales y un nivel de confianza del 95%, asumiendo una proporción esperada del 20%, en una población finita de 450 personas, mediante la fórmula n = n0/(1+n0/N), con n0 = Z²·p(1-p)/d² (Machin D, Campbell MJ, Fayers PM, Pinol APY. Sample size tables for clinical studies. 2nd ed. Blackwell Science; 1997, pp. 132-133; Epidat 4: Ayuda de Muestreo, apartado 3.1.1.2. Julio 2016. Consellería de Sanidade, Xunta de Galicia). El tamaño de muestra mínimo requerido fue de 159 participantes."
+   }
+  },
+  {
+   "id": "epidat-dos-prop",
+   "funcion": "dos_proporciones",
+   "args": [
+    0.4,
+    0.35,
+    90,
+    80,
+    false
+   ],
+   "fuente_externa": "Epidat 3.1.2.2.1",
+   "esperado": {
+    "n_total": 2318,
+    "n_por_grupo": 1159,
+    "avisos": [],
+    "parrafo": "El tamaño de muestra se calculó para comparar dos proporciones independientes (40% vs. 35%), con un nivel de confianza del 90% y una potencia estadística del 80%, mediante la prueba ji-cuadrado de Pearson con la fórmula n = [Zα√(2p̄(1-p̄)) + Zβ√(p1(1-p1)+p2(1-p2))]² / (p1-p2)², p̄=(p1+p2)/2 (Machin D, Campbell MJ, Fayers PM, Pinol APY. Sample size tables for clinical studies. 2nd ed. Blackwell Science; 1997, pp. 19-20; Epidat 4: Ayuda de Muestreo, apartado 3.1.2.2.1. Julio 2016. Consellería de Sanidade, Xunta de Galicia). Se requirieron 1159 participantes por grupo (total: 2318)."
+   }
+  },
+  {
+   "id": "epidat-dos-medias",
+   "funcion": "dos_medias",
+   "args": [
+    1,
+    1.75,
+    95,
+    80
+   ],
+   "fuente_externa": "Epidat 3.1.2.1.1",
+   "esperado": {
+    "n_total": 100,
+    "n_por_grupo": 50,
+    "avisos": [],
+    "parrafo": "El tamaño de muestra se calculó para comparar dos medias independientes, asumiendo una diferencia mínima clínicamente relevante de 1 y una desviación estándar común esperada de 1.75, con un nivel de confianza del 95% y una potencia estadística del 80%, mediante la fórmula n = 2(Zα+Zβ)²σ²/Δ² + Zα²/4 (Schouten HJA. Sample size formula with a continuous outcome for unequal group sizes and unequal variances. Stat Med. 1999;18:87-91; Epidat 4: Ayuda de Muestreo, apartado 3.1.2.1.1. Julio 2016. Consellería de Sanidade, Xunta de Galicia). Se requirieron 50 participantes por grupo (total: 100)."
+   }
+  },
+  {
+   "id": "epidat-casos-controles",
+   "funcion": "casos_controles",
+   "args": [
+    0.6,
+    2.5,
+    3,
+    95,
+    80,
+    true
+   ],
+   "fuente_externa": "Epidat 3.1.2.3.1",
+   "esperado": {
+    "n_total": 280,
+    "n_por_grupo": 70,
+    "avisos": [],
+    "parrafo": "El tamaño de muestra se calculó para un estudio de casos y controles independientes, con 3 control(es) por caso, asumiendo una prevalencia de la exposición del 60% en los controles (lo que implica un 78.9% en los casos) y una odds ratio esperada de 2.5, con un nivel de confianza del 95% y una potencia estadística del 80%, mediante Ji-cuadrado de Pearson para grupos desiguales con corrección de continuidad de Yates (Machin D, Campbell MJ, Fayers PM, Pinol APY. Sample size tables for clinical studies. 2nd ed. Blackwell Science; 1997, pp. 19-20; Epidat 4: Ayuda de Muestreo, apartado 3.1.2.3.1. Julio 2016. Consellería de Sanidade, Xunta de Galicia). Se requirieron 70 casos y 210 controles (total: 280)."
+   }
+  },
+  {
+   "id": "epidat-cohorte",
+   "funcion": "cohorte",
+   "args": [
+    0.38,
+    0.32,
+    1.5,
+    95,
+    80,
+    false
+   ],
+   "fuente_externa": "Epidat 3.1.2.4",
+   "esperado": {
+    "n_total": 2058,
+    "n_por_grupo": 823,
+    "avisos": [],
+    "parrafo": "El tamaño de muestra se calculó para un estudio de cohortes, asumiendo un riesgo del 38% en expuestos y del 32% en no expuestos (riesgo relativo esperado de 1.19), con una razón entre no expuestos y expuestos de 1.5, un nivel de confianza del 95% y una potencia estadística del 80%, mediante Ji-cuadrado de Pearson para grupos desiguales sin corrección de continuidad de Yates (Machin D, Campbell MJ, Fayers PM, Pinol APY. Sample size tables for clinical studies. 2nd ed. Blackwell Science; 1997, pp. 19-20; Epidat 4: Ayuda de Muestreo, apartado 3.1.2.4. Julio 2016. Consellería de Sanidade, Xunta de Galicia). Se requirieron 823 expuestos y 1235 no expuestos (total: 2058)."
+   }
+  },
+  {
+   "id": "epidat-correlacion-bilateral",
+   "funcion": "coeficiente_correlacion",
+   "args": [
+    0.6,
+    95,
+    90,
+    true
+   ],
+   "fuente_externa": "Epidat 3.1.2.9",
+   "esperado": {
+    "n_total": 25,
+    "n_por_grupo": null,
+    "avisos": [],
+    "parrafo": "El tamaño de muestra se calculó para contrastar si el coeficiente de correlación de Pearson es distinto de cero, asumiendo un valor esperado de r=0.6, con un contraste bilateral (H1: r≠0), un nivel de confianza del 95% y una potencia estadística del 90%, mediante la fórmula n = [(Zα+Zβ)/C]² + 3, con C = transformación z de Fisher de r (primer paso del procedimiento iterativo de Machin et al.) (Machin D, Campbell MJ, Fayers PM, Pinol APY. Sample size tables for clinical studies. 2nd ed. Blackwell Science; 1997, pp. 168-169; Epidat 4: Ayuda de Muestreo, apartado 3.1.2.9. Julio 2016. Consellería de Sanidade, Xunta de Galicia). El tamaño de muestra mínimo requerido fue de 25 sujetos."
+   }
+  },
+  {
+   "id": "epidat-correlacion-unilateral",
+   "funcion": "coeficiente_correlacion",
+   "args": [
+    0.6,
+    95,
+    90,
+    false
+   ],
+   "fuente_externa": "Epidat 3.1.2.9",
+   "esperado": {
+    "n_total": 21,
+    "n_por_grupo": null,
+    "avisos": [],
+    "parrafo": "El tamaño de muestra se calculó para contrastar si el coeficiente de correlación de Pearson es distinto de cero, asumiendo un valor esperado de r=0.6, con un contraste unilateral (H1: r>0 o r<0, según el signo esperado), un nivel de confianza del 95% y una potencia estadística del 90%, mediante la fórmula n = [(Zα+Zβ)/C]² + 3, con C = transformación z de Fisher de r (primer paso del procedimiento iterativo de Machin et al.) (Machin D, Campbell MJ, Fayers PM, Pinol APY. Sample size tables for clinical studies. 2nd ed. Blackwell Science; 1997, pp. 168-169; Epidat 4: Ayuda de Muestreo, apartado 3.1.2.9. Julio 2016. Consellería de Sanidade, Xunta de Galicia). El tamaño de muestra mínimo requerido fue de 21 sujetos."
+   }
+  },
+  {
+   "id": "epidat-medias-emparejadas",
+   "funcion": "media_pareada",
+   "args": [
+    2.6,
+    8.520563361656318,
+    95,
+    80
+   ],
+   "fuente_externa": "Epidat 3.1.2.1.2",
+   "esperado": {
+    "n_total": 87,
+    "n_por_grupo": null,
+    "avisos": [],
+    "parrafo": "El tamaño de muestra se calculó para comparar una variable numérica medida antes y después en los mismos sujetos (prueba t pareada), asumiendo una diferencia mínima clínicamente relevante de 2.6 y una desviación estándar de las diferencias de 8.52056, con un nivel de confianza del 95% y una potencia estadística del 80%, mediante la fórmula n = (Zα+Zβ)²σd²/Δ² + Zα²/2 (Machin D, Campbell MJ, Fayers PM, Pinol APY. Sample size tables for clinical studies. 2nd ed. Blackwell Science; 1997, p. 73; Epidat 4: Ayuda de Muestreo, apartado 3.1.2.1.2. Julio 2016. Consellería de Sanidade, Xunta de Galicia). El tamaño de muestra mínimo requerido fue de 87 sujetos."
+   }
+  },
+  {
+   "id": "epidat-mcnemar",
+   "funcion": "mcnemar",
+   "args": [
+    0.51,
+    1.8333333333333333,
+    95,
+    85,
+    "ji2"
+   ],
+   "fuente_externa": "Epidat 3.1.2.2.2",
+   "esperado": {
+    "n_total": 201,
+    "n_por_grupo": null,
+    "avisos": [],
+    "parrafo": "El tamaño de muestra se calculó para comparar una variable categórica medida antes y después en los mismos sujetos (prueba de McNemar), asumiendo una proporción de pares discordantes del 51% y una odds ratio esperada de 1.83333 entre esos pares, con un nivel de confianza del 95% y una potencia estadística del 85%, mediante la fórmula n = [Zα√pd + Zβ√(pd-Δ²)]²/Δ², Δ=pd(OR-1)/(OR+1) (Connor RJ. Sample size for testing differences in proportions for the paired-sample design. Biometrics. 1987;43(1):207-11; Epidat 4: Ayuda de Muestreo, apartado 3.1.2.2.2. Julio 2016. Consellería de Sanidade, Xunta de Galicia). El tamaño de muestra mínimo requerido fue de 201 sujetos."
+   }
+  },
+  {
+   "id": "epidat-transversal-equivale-a-cohorte",
+   "funcion": "transversal_analitico",
+   "args": [
+    0.32,
+    1.1875,
+    0.4,
+    95,
+    80,
+    false,
+    0.0,
+    0.0,
+    null
+   ],
+   "fuente_externa": "Epidat 3.1.2.4 (misma fórmula)",
+   "esperado": {
+    "n_total": 2058,
+    "n_por_grupo": 823,
+    "avisos": [],
+    "parrafo": "El tamaño de muestra se calculó para un estudio transversal analítico en el que se compara la prevalencia del desenlace entre expuestos y no expuestos, asumiendo una prevalencia de 32% en no expuestos y una razón de prevalencias esperada de 1.1875 (prevalencia de 38% en expuestos), con 40% de expuestos en la muestra, un nivel de confianza del 95% y una potencia estadística del 80%, mediante ji-cuadrado de Pearson para grupos desiguales sin corrección de continuidad de Yates. Se requirieron 823 expuestos y 1235 no expuestos (total: 2058). El análisis previsto es la regresión de Poisson con varianza robusta, que estima directamente la razón de prevalencias (Machin D, Campbell MJ, Fayers PM, Pinol APY. Sample size tables for clinical studies. 2nd ed. Blackwell Science; 1997, pp. 19-20; Epidat 4: Ayuda de Muestreo, apartado 3.1.2.4. Julio 2016. Consellería de Sanidade, Xunta de Galicia; Barros AJ, Hirakata VN. Alternatives for logistic regression in cross-sectional studies: an empirical comparison of models that directly estimate the prevalence ratio. BMC Med Res Methodol. 2003;3:21)."
+   }
+  },
+  {
+   "id": "libro-prop-385",
+   "funcion": "proporcion_unica",
+   "args": [
+    0.5,
+    0.05,
+    95,
+    null
+   ],
+   "fuente_externa": "caso clásico de libro",
+   "esperado": {
+    "n_total": 385,
+    "n_por_grupo": null,
+    "avisos": [],
+    "parrafo": "El tamaño de muestra se calculó para estimar una proporción con una precisión absoluta de ±5 puntos porcentuales y un nivel de confianza del 95%, asumiendo una proporción esperada del 50%, mediante la fórmula n = Z²·p(1-p)/d² (Machin D, Campbell MJ, Fayers PM, Pinol APY. Sample size tables for clinical studies. 2nd ed. Blackwell Science; 1997, pp. 132-133; Epidat 4: Ayuda de Muestreo, apartado 3.1.1.2. Julio 2016. Consellería de Sanidade, Xunta de Galicia). El tamaño de muestra mínimo requerido fue de 385 participantes."
+   }
+  },
+  {
+   "id": "medcalc-t-pareada",
+   "funcion": "media_pareada",
+   "args": [
+    8,
+    12,
+    95,
+    80
+   ],
+   "fuente_externa": "MedCalc",
+   "esperado": {
+    "n_total": 20,
+    "n_por_grupo": null,
+    "avisos": [],
+    "parrafo": "El tamaño de muestra se calculó para comparar una variable numérica medida antes y después en los mismos sujetos (prueba t pareada), asumiendo una diferencia mínima clínicamente relevante de 8 y una desviación estándar de las diferencias de 12, con un nivel de confianza del 95% y una potencia estadística del 80%, mediante la fórmula n = (Zα+Zβ)²σd²/Δ² + Zα²/2 (Machin D, Campbell MJ, Fayers PM, Pinol APY. Sample size tables for clinical studies. 2nd ed. Blackwell Science; 1997, p. 73; Epidat 4: Ayuda de Muestreo, apartado 3.1.2.1.2. Julio 2016. Consellería de Sanidade, Xunta de Galicia). El tamaño de muestra mínimo requerido fue de 20 sujetos."
+   }
+  },
+  {
+   "id": "yates-dos-prop",
+   "funcion": "dos_proporciones",
+   "args": [
+    0.5,
+    0.3,
+    95,
+    80,
+    true
+   ],
+   "esperado": {
+    "n_total": 206,
+    "n_por_grupo": 103,
+    "avisos": [],
+    "parrafo": "El tamaño de muestra se calculó para comparar dos proporciones independientes (50% vs. 30%), con un nivel de confianza del 95% y una potencia estadística del 80%, mediante la prueba ji-cuadrado de Pearson con la fórmula n = [Zα√(2p̄(1-p̄)) + Zβ√(p1(1-p1)+p2(1-p2))]² / (p1-p2)², p̄=(p1+p2)/2, con corrección de continuidad de Yates (aplicable también a la prueba exacta de Fisher) (Machin D, Campbell MJ, Fayers PM, Pinol APY. Sample size tables for clinical studies. 2nd ed. Blackwell Science; 1997, pp. 19-20; Epidat 4: Ayuda de Muestreo, apartado 3.1.2.2.1. Julio 2016. Consellería de Sanidade, Xunta de Galicia). Se requirieron 103 participantes por grupo (total: 206)."
+   }
+  },
+  {
+   "id": "yates-dos-prop-2",
+   "funcion": "dos_proporciones",
+   "args": [
+    0.2,
+    0.1,
+    95,
+    80,
+    true
+   ],
+   "esperado": {
+    "n_total": 438,
+    "n_por_grupo": 219,
+    "avisos": [],
+    "parrafo": "El tamaño de muestra se calculó para comparar dos proporciones independientes (20% vs. 10%), con un nivel de confianza del 95% y una potencia estadística del 80%, mediante la prueba ji-cuadrado de Pearson con la fórmula n = [Zα√(2p̄(1-p̄)) + Zβ√(p1(1-p1)+p2(1-p2))]² / (p1-p2)², p̄=(p1+p2)/2, con corrección de continuidad de Yates (aplicable también a la prueba exacta de Fisher) (Machin D, Campbell MJ, Fayers PM, Pinol APY. Sample size tables for clinical studies. 2nd ed. Blackwell Science; 1997, pp. 19-20; Epidat 4: Ayuda de Muestreo, apartado 3.1.2.2.1. Julio 2016. Consellería de Sanidade, Xunta de Galicia). Se requirieron 219 participantes por grupo (total: 438)."
+   }
+  },
+  {
+   "id": "sin-yates-dos-prop",
+   "funcion": "dos_proporciones",
+   "args": [
+    0.5,
+    0.3,
+    95,
+    80,
+    false
+   ],
+   "esperado": {
+    "n_total": 186,
+    "n_por_grupo": 93,
+    "avisos": [],
+    "parrafo": "El tamaño de muestra se calculó para comparar dos proporciones independientes (50% vs. 30%), con un nivel de confianza del 95% y una potencia estadística del 80%, mediante la prueba ji-cuadrado de Pearson con la fórmula n = [Zα√(2p̄(1-p̄)) + Zβ√(p1(1-p1)+p2(1-p2))]² / (p1-p2)², p̄=(p1+p2)/2 (Machin D, Campbell MJ, Fayers PM, Pinol APY. Sample size tables for clinical studies. 2nd ed. Blackwell Science; 1997, pp. 19-20; Epidat 4: Ayuda de Muestreo, apartado 3.1.2.2.1. Julio 2016. Consellería de Sanidade, Xunta de Galicia). Se requirieron 93 participantes por grupo (total: 186)."
+   }
+  },
+  {
+   "id": "mcnemar-ji2-92",
+   "funcion": "mcnemar",
+   "args": [
+    0.75,
+    2.0,
+    95,
+    80,
+    "ji2"
+   ],
+   "esperado": {
+    "n_total": 92,
+    "n_por_grupo": null,
+    "avisos": [],
+    "parrafo": "El tamaño de muestra se calculó para comparar una variable categórica medida antes y después en los mismos sujetos (prueba de McNemar), asumiendo una proporción de pares discordantes del 75% y una odds ratio esperada de 2 entre esos pares, con un nivel de confianza del 95% y una potencia estadística del 80%, mediante la fórmula n = [Zα√pd + Zβ√(pd-Δ²)]²/Δ², Δ=pd(OR-1)/(OR+1) (Connor RJ. Sample size for testing differences in proportions for the paired-sample design. Biometrics. 1987;43(1):207-11; Epidat 4: Ayuda de Muestreo, apartado 3.1.2.2.2. Julio 2016. Consellería de Sanidade, Xunta de Galicia). El tamaño de muestra mínimo requerido fue de 92 sujetos."
+   }
+  },
+  {
+   "id": "mcnemar-exacta-99",
+   "funcion": "mcnemar",
+   "args": [
+    0.75,
+    2.0,
+    95,
+    80,
+    "exacta"
+   ],
+   "esperado": {
+    "n_total": 99,
+    "n_por_grupo": null,
+    "avisos": [],
+    "parrafo": "El tamaño de muestra se calculó para comparar una variable categórica medida antes y después en los mismos sujetos (prueba de McNemar), asumiendo una proporción de pares discordantes del 75% y una odds ratio esperada de 2 entre esos pares, con un nivel de confianza del 95% y una potencia estadística del 80%, mediante el cálculo exacto de la potencia de la prueba binomial bilateral de McNemar, sumando sobre la distribución del número de pares discordantes (no existe fórmula cerrada). El tamaño de muestra mínimo requerido fue de 99 sujetos."
+   }
+  },
+  {
+   "id": "mcnemar-exacta-149",
+   "funcion": "mcnemar",
+   "args": [
+    0.5,
+    2.0,
+    95,
+    80,
+    "exacta"
+   ],
+   "esperado": {
+    "n_total": 149,
+    "n_por_grupo": null,
+    "avisos": [],
+    "parrafo": "El tamaño de muestra se calculó para comparar una variable categórica medida antes y después en los mismos sujetos (prueba de McNemar), asumiendo una proporción de pares discordantes del 50% y una odds ratio esperada de 2 entre esos pares, con un nivel de confianza del 95% y una potencia estadística del 80%, mediante el cálculo exacto de la potencia de la prueba binomial bilateral de McNemar, sumando sobre la distribución del número de pares discordantes (no existe fórmula cerrada). El tamaño de muestra mínimo requerido fue de 149 sujetos."
+   }
+  },
+  {
+   "id": "mcnemar-exacta-135",
+   "funcion": "mcnemar",
+   "args": [
+    0.25,
+    3.0,
+    95,
+    80,
+    "exacta"
+   ],
+   "esperado": {
+    "n_total": 135,
+    "n_por_grupo": null,
+    "avisos": [],
+    "parrafo": "El tamaño de muestra se calculó para comparar una variable categórica medida antes y después en los mismos sujetos (prueba de McNemar), asumiendo una proporción de pares discordantes del 25% y una odds ratio esperada de 3 entre esos pares, con un nivel de confianza del 95% y una potencia estadística del 80%, mediante el cálculo exacto de la potencia de la prueba binomial bilateral de McNemar, sumando sobre la distribución del número de pares discordantes (no existe fórmula cerrada). El tamaño de muestra mínimo requerido fue de 135 sujetos."
+   }
+  },
+  {
+   "id": "mcnemar-exacta-or-bajo",
+   "funcion": "mcnemar",
+   "args": [
+    0.4,
+    0.5,
+    95,
+    80,
+    "exacta"
+   ],
+   "esperado": {
+    "n_total": 186,
+    "n_por_grupo": null,
+    "avisos": [],
+    "parrafo": "El tamaño de muestra se calculó para comparar una variable categórica medida antes y después en los mismos sujetos (prueba de McNemar), asumiendo una proporción de pares discordantes del 40% y una odds ratio esperada de 0.5 entre esos pares, con un nivel de confianza del 95% y una potencia estadística del 80%, mediante el cálculo exacto de la potencia de la prueba binomial bilateral de McNemar, sumando sobre la distribución del número de pares discordantes (no existe fórmula cerrada). El tamaño de muestra mínimo requerido fue de 186 sujetos."
+   }
+  },
+  {
+   "id": "mcnemar-exacta-90-90",
+   "funcion": "mcnemar",
+   "args": [
+    0.3,
+    2.5,
+    90,
+    90,
+    "exacta"
+   ],
+   "esperado": {
+    "n_total": 162,
+    "n_por_grupo": null,
+    "avisos": [],
+    "parrafo": "El tamaño de muestra se calculó para comparar una variable categórica medida antes y después en los mismos sujetos (prueba de McNemar), asumiendo una proporción de pares discordantes del 30% y una odds ratio esperada de 2.5 entre esos pares, con un nivel de confianza del 90% y una potencia estadística del 90%, mediante el cálculo exacto de la potencia de la prueba binomial bilateral de McNemar, sumando sobre la distribución del número de pares discordantes (no existe fórmula cerrada). El tamaño de muestra mínimo requerido fue de 162 sujetos."
+   }
+  },
+  {
+   "id": "mcnemar-exacta-respaldo-n-grande",
+   "funcion": "mcnemar",
+   "args": [
+    0.5,
+    1.1,
+    95,
+    80,
+    "exacta"
+   ],
+   "esperado": {
+    "n_total": 6921,
+    "n_por_grupo": null,
+    "avisos": [
+     "Con n=6921 el cálculo exacto sería muy lento: se usó la fórmula de Connor (ji-cuadrado). La prueba exacta pediría unos pocos por ciento más sujetos."
+    ],
+    "parrafo": "El tamaño de muestra se calculó para comparar una variable categórica medida antes y después en los mismos sujetos (prueba de McNemar), asumiendo una proporción de pares discordantes del 50% y una odds ratio esperada de 1.1 entre esos pares, con un nivel de confianza del 95% y una potencia estadística del 80%, mediante la fórmula n = [Zα√pd + Zβ√(pd-Δ²)]²/Δ², Δ=pd(OR-1)/(OR+1) (Connor RJ. Sample size for testing differences in proportions for the paired-sample design. Biometrics. 1987;43(1):207-11; Epidat 4: Ayuda de Muestreo, apartado 3.1.2.2.2. Julio 2016. Consellería de Sanidade, Xunta de Galicia). El tamaño de muestra mínimo requerido fue de 6921 sujetos."
+   }
+  },
+  {
+   "id": "transversal-84",
+   "funcion": "transversal_analitico",
+   "args": [
+    0.3,
+    2.0,
+    0.5,
+    95,
+    80,
+    false,
+    0.0,
+    0.0,
+    null
+   ],
+   "esperado": {
+    "n_total": 84,
+    "n_por_grupo": 42,
+    "avisos": [],
+    "parrafo": "El tamaño de muestra se calculó para un estudio transversal analítico en el que se compara la prevalencia del desenlace entre expuestos y no expuestos, asumiendo una prevalencia de 30% en no expuestos y una razón de prevalencias esperada de 2 (prevalencia de 60% en expuestos), con 50% de expuestos en la muestra, un nivel de confianza del 95% y una potencia estadística del 80%, mediante ji-cuadrado de Pearson para grupos desiguales sin corrección de continuidad de Yates. Se requirieron 42 expuestos y 42 no expuestos (total: 84). El análisis previsto es la regresión de Poisson con varianza robusta, que estima directamente la razón de prevalencias (Machin D, Campbell MJ, Fayers PM, Pinol APY. Sample size tables for clinical studies. 2nd ed. Blackwell Science; 1997, pp. 19-20; Epidat 4: Ayuda de Muestreo, apartado 3.1.2.4. Julio 2016. Consellería de Sanidade, Xunta de Galicia; Barros AJ, Hirakata VN. Alternatives for logistic regression in cross-sectional studies: an empirical comparison of models that directly estimate the prevalence ratio. BMC Med Res Methodol. 2003;3:21)."
+   }
+  },
+  {
+   "id": "transversal-rp-menor-a-1",
+   "funcion": "transversal_analitico",
+   "args": [
+    0.2,
+    0.6,
+    0.3,
+    95,
+    80,
+    false,
+    0.0,
+    0.0,
+    null
+   ],
+   "esperado": {
+    "n_total": 807,
+    "n_por_grupo": 242,
+    "avisos": [],
+    "parrafo": "El tamaño de muestra se calculó para un estudio transversal analítico en el que se compara la prevalencia del desenlace entre expuestos y no expuestos, asumiendo una prevalencia de 20% en no expuestos y una razón de prevalencias esperada de 0.6 (prevalencia de 12% en expuestos), con 30% de expuestos en la muestra, un nivel de confianza del 95% y una potencia estadística del 80%, mediante ji-cuadrado de Pearson para grupos desiguales sin corrección de continuidad de Yates. Se requirieron 242 expuestos y 565 no expuestos (total: 807). El análisis previsto es la regresión de Poisson con varianza robusta, que estima directamente la razón de prevalencias (Machin D, Campbell MJ, Fayers PM, Pinol APY. Sample size tables for clinical studies. 2nd ed. Blackwell Science; 1997, pp. 19-20; Epidat 4: Ayuda de Muestreo, apartado 3.1.2.4. Julio 2016. Consellería de Sanidade, Xunta de Galicia; Barros AJ, Hirakata VN. Alternatives for logistic regression in cross-sectional studies: an empirical comparison of models that directly estimate the prevalence ratio. BMC Med Res Methodol. 2003;3:21)."
+   }
+  },
+  {
+   "id": "transversal-con-ajustes",
+   "funcion": "transversal_analitico",
+   "args": [
+    0.3,
+    2.0,
+    0.5,
+    95,
+    80,
+    false,
+    0.1,
+    0.2,
+    6
+   ],
+   "esperado": {
+    "n_total": 118,
+    "n_por_grupo": 59,
+    "avisos": [
+     "Con n=118 se esperarían ~53 eventos de la categoría menos frecuente para 6 variable(s) en el modelo (8.9 por variable). La guía de 10 eventos por variable (Peduzzi 1996, estudiada en regresión logística y de Cox; orientativa para Poisson) pediría unos 149 participantes, o reducir las variables del modelo."
+    ],
+    "parrafo": "El tamaño de muestra se calculó para un estudio transversal analítico en el que se compara la prevalencia del desenlace entre expuestos y no expuestos, asumiendo una prevalencia de 30% en no expuestos y una razón de prevalencias esperada de 2 (prevalencia de 60% en expuestos), con 50% de expuestos en la muestra, un nivel de confianza del 95% y una potencia estadística del 80%, mediante ji-cuadrado de Pearson para grupos desiguales sin corrección de continuidad de Yates. Se ajustó por un modelo multivariable multiplicando por 1/(1-R²) con R²=20% entre la exposición y las demás variables del modelo. Se añadió un 10% por pérdidas o no respuesta. Se requirieron 59 expuestos y 59 no expuestos (total: 118). El análisis previsto es la regresión de Poisson con varianza robusta, que estima directamente la razón de prevalencias (Machin D, Campbell MJ, Fayers PM, Pinol APY. Sample size tables for clinical studies. 2nd ed. Blackwell Science; 1997, pp. 19-20; Epidat 4: Ayuda de Muestreo, apartado 3.1.2.4. Julio 2016. Consellería de Sanidade, Xunta de Galicia; Barros AJ, Hirakata VN. Alternatives for logistic regression in cross-sectional studies: an empirical comparison of models that directly estimate the prevalence ratio. BMC Med Res Methodol. 2003;3:21; Hsieh FY, Bloch DA, Larsen MD. A simple method of sample size calculation for linear and logistic regression. Stat Med. 1998;17(14):1623-34)."
+   }
+  },
+  {
+   "id": "transversal-exposicion-rara",
+   "funcion": "transversal_analitico",
+   "args": [
+    0.02,
+    3.0,
+    0.02,
+    95,
+    80,
+    false,
+    0.0,
+    0.0,
+    null
+   ],
+   "esperado": {
+    "n_total": 7300,
+    "n_por_grupo": 146,
+    "avisos": [
+     "Con este tamaño se esperarían menos de 5 sujetos en alguna casilla de la tabla 2x2 (expuestos con el desenlace: 3.0): la ji-cuadrado de Pearson es poco confiable. Usa la prueba exacta de Fisher y calcula el tamaño con la corrección de continuidad de Yates, que Epidat aplica también a Fisher."
+    ],
+    "parrafo": "El tamaño de muestra se calculó para un estudio transversal analítico en el que se compara la prevalencia del desenlace entre expuestos y no expuestos, asumiendo una prevalencia de 2% en no expuestos y una razón de prevalencias esperada de 3 (prevalencia de 6% en expuestos), con 2% de expuestos en la muestra, un nivel de confianza del 95% y una potencia estadística del 80%, mediante ji-cuadrado de Pearson para grupos desiguales sin corrección de continuidad de Yates. Se requirieron 146 expuestos y 7154 no expuestos (total: 7300). El análisis previsto es la regresión de Poisson con varianza robusta, que estima directamente la razón de prevalencias (Machin D, Campbell MJ, Fayers PM, Pinol APY. Sample size tables for clinical studies. 2nd ed. Blackwell Science; 1997, pp. 19-20; Epidat 4: Ayuda de Muestreo, apartado 3.1.2.4. Julio 2016. Consellería de Sanidade, Xunta de Galicia; Barros AJ, Hirakata VN. Alternatives for logistic regression in cross-sectional studies: an empirical comparison of models that directly estimate the prevalence ratio. BMC Med Res Methodol. 2003;3:21)."
+   }
+  },
+  {
+   "id": "aviso-precision-mayor-que-proporcion",
+   "funcion": "proporcion_unica",
+   "args": [
+    0.01,
+    0.05,
+    95,
+    null
+   ],
+   "esperado": {
+    "n_total": 16,
+    "n_por_grupo": null,
+    "avisos": [
+     "La precisión (±5 puntos) es igual o mayor que la proporción esperada (1%): el intervalo de confianza llegaría a 0%. Para una proporción tan baja conviene una precisión menor a 1 puntos.",
+     "Con n=16 se esperarían solo 0.2 casos del evento menos frecuente: la aproximación normal es poco confiable. Considera un método exacto (Clopper-Pearson) o una muestra mayor."
+    ],
+    "parrafo": "El tamaño de muestra se calculó para estimar una proporción con una precisión absoluta de ±5 puntos porcentuales y un nivel de confianza del 95%, asumiendo una proporción esperada del 1%, mediante la fórmula n = Z²·p(1-p)/d² (Machin D, Campbell MJ, Fayers PM, Pinol APY. Sample size tables for clinical studies. 2nd ed. Blackwell Science; 1997, pp. 132-133; Epidat 4: Ayuda de Muestreo, apartado 3.1.1.2. Julio 2016. Consellería de Sanidade, Xunta de Galicia). El tamaño de muestra mínimo requerido fue de 16 participantes."
+   }
+  },
+  {
+   "id": "aviso-intervalo-pasa-de-100",
+   "funcion": "proporcion_unica",
+   "args": [
+    0.97,
+    0.05,
+    95,
+    null
+   ],
+   "esperado": {
+    "n_total": 45,
+    "n_por_grupo": null,
+    "avisos": [
+     "La precisión (±5 puntos) hace que el intervalo supere el 100% (proporción esperada 97%). Revisa la precisión elegida.",
+     "Con n=45 se esperarían solo 1.4 casos del evento menos frecuente: la aproximación normal es poco confiable. Considera un método exacto (Clopper-Pearson) o una muestra mayor."
+    ],
+    "parrafo": "El tamaño de muestra se calculó para estimar una proporción con una precisión absoluta de ±5 puntos porcentuales y un nivel de confianza del 95%, asumiendo una proporción esperada del 97%, mediante la fórmula n = Z²·p(1-p)/d² (Machin D, Campbell MJ, Fayers PM, Pinol APY. Sample size tables for clinical studies. 2nd ed. Blackwell Science; 1997, pp. 132-133; Epidat 4: Ayuda de Muestreo, apartado 3.1.1.2. Julio 2016. Consellería de Sanidade, Xunta de Galicia). El tamaño de muestra mínimo requerido fue de 45 participantes."
+   }
+  },
+  {
+   "id": "aviso-pocos-eventos-endes-0.08",
+   "funcion": "proporcion_unica",
+   "args": [
+    0.0008,
+    0.05,
+    95,
+    null
+   ],
+   "esperado": {
+    "n_total": 2,
+    "n_por_grupo": null,
+    "avisos": [
+     "La precisión (±5 puntos) es igual o mayor que la proporción esperada (0.08%): el intervalo de confianza llegaría a 0%. Para una proporción tan baja conviene una precisión menor a 0.08 puntos.",
+     "Con n=2 se esperarían solo 0.0 casos del evento menos frecuente: la aproximación normal es poco confiable. Considera un método exacto (Clopper-Pearson) o una muestra mayor."
+    ],
+    "parrafo": "El tamaño de muestra se calculó para estimar una proporción con una precisión absoluta de ±5 puntos porcentuales y un nivel de confianza del 95%, asumiendo una proporción esperada del 0.08%, mediante la fórmula n = Z²·p(1-p)/d² (Machin D, Campbell MJ, Fayers PM, Pinol APY. Sample size tables for clinical studies. 2nd ed. Blackwell Science; 1997, pp. 132-133; Epidat 4: Ayuda de Muestreo, apartado 3.1.1.2. Julio 2016. Consellería de Sanidade, Xunta de Galicia). El tamaño de muestra mínimo requerido fue de 2 participantes."
+   }
+  },
+  {
+   "id": "aviso-pocos-eventos-endes-4.4",
+   "funcion": "proporcion_unica",
+   "args": [
+    0.044,
+    0.05,
+    95,
+    null
+   ],
+   "esperado": {
+    "n_total": 65,
+    "n_por_grupo": null,
+    "avisos": [
+     "La precisión (±5 puntos) es igual o mayor que la proporción esperada (4.4%): el intervalo de confianza llegaría a 0%. Para una proporción tan baja conviene una precisión menor a 4.4 puntos.",
+     "Con n=65 se esperarían solo 2.9 casos del evento menos frecuente: la aproximación normal es poco confiable. Considera un método exacto (Clopper-Pearson) o una muestra mayor."
+    ],
+    "parrafo": "El tamaño de muestra se calculó para estimar una proporción con una precisión absoluta de ±5 puntos porcentuales y un nivel de confianza del 95%, asumiendo una proporción esperada del 4.4%, mediante la fórmula n = Z²·p(1-p)/d² (Machin D, Campbell MJ, Fayers PM, Pinol APY. Sample size tables for clinical studies. 2nd ed. Blackwell Science; 1997, pp. 132-133; Epidat 4: Ayuda de Muestreo, apartado 3.1.1.2. Julio 2016. Consellería de Sanidade, Xunta de Galicia). El tamaño de muestra mínimo requerido fue de 65 participantes."
+   }
+  },
+  {
+   "id": "sin-aviso-12.5",
+   "funcion": "proporcion_unica",
+   "args": [
+    0.125,
+    0.025,
+    95,
+    null
+   ],
+   "esperado": {
+    "n_total": 673,
+    "n_por_grupo": null,
+    "avisos": [],
+    "parrafo": "El tamaño de muestra se calculó para estimar una proporción con una precisión absoluta de ±2.5 puntos porcentuales y un nivel de confianza del 95%, asumiendo una proporción esperada del 12.5%, mediante la fórmula n = Z²·p(1-p)/d² (Machin D, Campbell MJ, Fayers PM, Pinol APY. Sample size tables for clinical studies. 2nd ed. Blackwell Science; 1997, pp. 132-133; Epidat 4: Ayuda de Muestreo, apartado 3.1.1.2. Julio 2016. Consellería de Sanidade, Xunta de Galicia). El tamaño de muestra mínimo requerido fue de 673 participantes."
+   }
+  },
+  {
+   "id": "formato-decimales-dos-prop",
+   "funcion": "dos_proporciones",
+   "args": [
+    0.405,
+    0.3525,
+    90,
+    80,
+    false
+   ],
+   "esperado": {
+    "n_total": 2110,
+    "n_por_grupo": 1055,
+    "avisos": [],
+    "parrafo": "El tamaño de muestra se calculó para comparar dos proporciones independientes (40.5% vs. 35.25%), con un nivel de confianza del 90% y una potencia estadística del 80%, mediante la prueba ji-cuadrado de Pearson con la fórmula n = [Zα√(2p̄(1-p̄)) + Zβ√(p1(1-p1)+p2(1-p2))]² / (p1-p2)², p̄=(p1+p2)/2 (Machin D, Campbell MJ, Fayers PM, Pinol APY. Sample size tables for clinical studies. 2nd ed. Blackwell Science; 1997, pp. 19-20; Epidat 4: Ayuda de Muestreo, apartado 3.1.2.2.1. Julio 2016. Consellería de Sanidade, Xunta de Galicia). Se requirieron 1055 participantes por grupo (total: 2110)."
+   }
+  },
+  {
+   "id": "formato-or-largo",
+   "funcion": "casos_controles",
+   "args": [
+    0.3,
+    1.23456789,
+    2,
+    95,
+    80,
+    true
+   ],
+   "esperado": {
+    "n_total": 3723,
+    "n_por_grupo": 1241,
+    "avisos": [],
+    "parrafo": "El tamaño de muestra se calculó para un estudio de casos y controles independientes, con 2 control(es) por caso, asumiendo una prevalencia de la exposición del 30% en los controles (lo que implica un 34.6% en los casos) y una odds ratio esperada de 1.23457, con un nivel de confianza del 95% y una potencia estadística del 80%, mediante Ji-cuadrado de Pearson para grupos desiguales con corrección de continuidad de Yates (Machin D, Campbell MJ, Fayers PM, Pinol APY. Sample size tables for clinical studies. 2nd ed. Blackwell Science; 1997, pp. 19-20; Epidat 4: Ayuda de Muestreo, apartado 3.1.2.3.1. Julio 2016. Consellería de Sanidade, Xunta de Galicia). Se requirieron 1241 casos y 2482 controles (total: 3723)."
+   }
+  },
+  {
+   "id": "formato-razon-larga",
+   "funcion": "cohorte",
+   "args": [
+    0.3,
+    0.15,
+    0.3333333333333333,
+    95,
+    80,
+    false
+   ],
+   "esperado": {
+    "n_total": 335,
+    "n_por_grupo": 251,
+    "avisos": [],
+    "parrafo": "El tamaño de muestra se calculó para un estudio de cohortes, asumiendo un riesgo del 30% en expuestos y del 15% en no expuestos (riesgo relativo esperado de 2.00), con una razón entre no expuestos y expuestos de 0.333333, un nivel de confianza del 95% y una potencia estadística del 80%, mediante Ji-cuadrado de Pearson para grupos desiguales sin corrección de continuidad de Yates (Machin D, Campbell MJ, Fayers PM, Pinol APY. Sample size tables for clinical studies. 2nd ed. Blackwell Science; 1997, pp. 19-20; Epidat 4: Ayuda de Muestreo, apartado 3.1.2.4. Julio 2016. Consellería de Sanidade, Xunta de Galicia). Se requirieron 251 expuestos y 84 no expuestos (total: 335)."
+   }
+  },
+  {
+   "id": "formato-r-largo",
+   "funcion": "coeficiente_correlacion",
+   "args": [
+    0.123456789,
+    95,
+    80,
+    true
+   ],
+   "esperado": {
+    "n_total": 513,
+    "n_por_grupo": null,
+    "avisos": [],
+    "parrafo": "El tamaño de muestra se calculó para contrastar si el coeficiente de correlación de Pearson es distinto de cero, asumiendo un valor esperado de r=0.123457, con un contraste bilateral (H1: r≠0), un nivel de confianza del 95% y una potencia estadística del 80%, mediante la fórmula n = [(Zα+Zβ)/C]² + 3, con C = transformación z de Fisher de r (primer paso del procedimiento iterativo de Machin et al.) (Machin D, Campbell MJ, Fayers PM, Pinol APY. Sample size tables for clinical studies. 2nd ed. Blackwell Science; 1997, pp. 168-169; Epidat 4: Ayuda de Muestreo, apartado 3.1.2.9. Julio 2016. Consellería de Sanidade, Xunta de Galicia). El tamaño de muestra mínimo requerido fue de 513 sujetos."
+   }
+  },
+  {
+   "id": "formato-dif-sd-largos",
+   "funcion": "dos_medias",
+   "args": [
+    2.345678901,
+    7.6543219,
+    95,
+    80
+   ],
+   "esperado": {
+    "n_total": 338,
+    "n_por_grupo": 169,
+    "avisos": [],
+    "parrafo": "El tamaño de muestra se calculó para comparar dos medias independientes, asumiendo una diferencia mínima clínicamente relevante de 2.34568 y una desviación estándar común esperada de 7.65432, con un nivel de confianza del 95% y una potencia estadística del 80%, mediante la fórmula n = 2(Zα+Zβ)²σ²/Δ² + Zα²/4 (Schouten HJA. Sample size formula with a continuous outcome for unequal group sizes and unequal variances. Stat Med. 1999;18:87-91; Epidat 4: Ayuda de Muestreo, apartado 3.1.2.1.1. Julio 2016. Consellería de Sanidade, Xunta de Galicia). Se requirieron 169 participantes por grupo (total: 338)."
+   }
+  },
+  {
+   "id": "formato-pareada-larga",
+   "funcion": "media_pareada",
+   "args": [
+    2.345678901,
+    7.6543219,
+    95,
+    80
+   ],
+   "esperado": {
+    "n_total": 86,
+    "n_por_grupo": null,
+    "avisos": [],
+    "parrafo": "El tamaño de muestra se calculó para comparar una variable numérica medida antes y después en los mismos sujetos (prueba t pareada), asumiendo una diferencia mínima clínicamente relevante de 2.34568 y una desviación estándar de las diferencias de 7.65432, con un nivel de confianza del 95% y una potencia estadística del 80%, mediante la fórmula n = (Zα+Zβ)²σd²/Δ² + Zα²/2 (Machin D, Campbell MJ, Fayers PM, Pinol APY. Sample size tables for clinical studies. 2nd ed. Blackwell Science; 1997, p. 73; Epidat 4: Ayuda de Muestreo, apartado 3.1.2.1.2. Julio 2016. Consellería de Sanidade, Xunta de Galicia). El tamaño de muestra mínimo requerido fue de 86 sujetos."
+   }
+  },
+  {
+   "id": "formato-mcnemar-or-largo",
+   "funcion": "mcnemar",
+   "args": [
+    0.1234,
+    1.23456789,
+    95,
+    80,
+    "ji2"
+   ],
+   "esperado": {
+    "n_total": 5770,
+    "n_por_grupo": null,
+    "avisos": [],
+    "parrafo": "El tamaño de muestra se calculó para comparar una variable categórica medida antes y después en los mismos sujetos (prueba de McNemar), asumiendo una proporción de pares discordantes del 12.34% y una odds ratio esperada de 1.23457 entre esos pares, con un nivel de confianza del 95% y una potencia estadística del 80%, mediante la fórmula n = [Zα√pd + Zβ√(pd-Δ²)]²/Δ², Δ=pd(OR-1)/(OR+1) (Connor RJ. Sample size for testing differences in proportions for the paired-sample design. Biometrics. 1987;43(1):207-11; Epidat 4: Ayuda de Muestreo, apartado 3.1.2.2.2. Julio 2016. Consellería de Sanidade, Xunta de Galicia). El tamaño de muestra mínimo requerido fue de 5770 sujetos."
+   }
+  },
+  {
+   "id": "dos-medias-99-90",
+   "funcion": "dos_medias",
+   "args": [
+    5,
+    10,
+    99,
+    90
+   ],
+   "esperado": {
+    "n_total": 242,
+    "n_por_grupo": 121,
+    "avisos": [],
+    "parrafo": "El tamaño de muestra se calculó para comparar dos medias independientes, asumiendo una diferencia mínima clínicamente relevante de 5 y una desviación estándar común esperada de 10, con un nivel de confianza del 99% y una potencia estadística del 90%, mediante la fórmula n = 2(Zα+Zβ)²σ²/Δ² + Zα²/4 (Schouten HJA. Sample size formula with a continuous outcome for unequal group sizes and unequal variances. Stat Med. 1999;18:87-91; Epidat 4: Ayuda de Muestreo, apartado 3.1.2.1.1. Julio 2016. Consellería de Sanidade, Xunta de Galicia). Se requirieron 121 participantes por grupo (total: 242)."
+   }
+  },
+  {
+   "id": "casos-controles-sin-yates",
+   "funcion": "casos_controles",
+   "args": [
+    0.3,
+    2.5,
+    1,
+    90,
+    85,
+    false
+   ],
+   "esperado": {
+    "n_total": 146,
+    "n_por_grupo": 73,
+    "avisos": [],
+    "parrafo": "El tamaño de muestra se calculó para un estudio de casos y controles independientes, con 1 control(es) por caso, asumiendo una prevalencia de la exposición del 30% en los controles (lo que implica un 51.7% en los casos) y una odds ratio esperada de 2.5, con un nivel de confianza del 90% y una potencia estadística del 85%, mediante Ji-cuadrado de Pearson para grupos desiguales sin corrección de continuidad de Yates (Machin D, Campbell MJ, Fayers PM, Pinol APY. Sample size tables for clinical studies. 2nd ed. Blackwell Science; 1997, pp. 19-20; Epidat 4: Ayuda de Muestreo, apartado 3.1.2.3.1. Julio 2016. Consellería de Sanidade, Xunta de Galicia). Se requirieron 73 casos y 73 controles (total: 146)."
+   }
+  },
+  {
+   "id": "cohorte-con-yates",
+   "funcion": "cohorte",
+   "args": [
+    0.3,
+    0.15,
+    1,
+    95,
+    80,
+    true
+   ],
+   "esperado": {
+    "n_total": 268,
+    "n_por_grupo": 134,
+    "avisos": [],
+    "parrafo": "El tamaño de muestra se calculó para un estudio de cohortes, asumiendo un riesgo del 30% en expuestos y del 15% en no expuestos (riesgo relativo esperado de 2.00), con una razón entre no expuestos y expuestos de 1, un nivel de confianza del 95% y una potencia estadística del 80%, mediante Ji-cuadrado de Pearson para grupos desiguales con corrección de continuidad de Yates (Machin D, Campbell MJ, Fayers PM, Pinol APY. Sample size tables for clinical studies. 2nd ed. Blackwell Science; 1997, pp. 19-20; Epidat 4: Ayuda de Muestreo, apartado 3.1.2.4. Julio 2016. Consellería de Sanidade, Xunta de Galicia). Se requirieron 134 expuestos y 134 no expuestos (total: 268)."
+   }
+  },
+  {
+   "id": "correlacion-negativa",
+   "funcion": "coeficiente_correlacion",
+   "args": [
+    -0.45,
+    95,
+    80,
+    true
+   ],
+   "esperado": {
+    "n_total": 37,
+    "n_por_grupo": null,
+    "avisos": [],
+    "parrafo": "El tamaño de muestra se calculó para contrastar si el coeficiente de correlación de Pearson es distinto de cero, asumiendo un valor esperado de r=-0.45, con un contraste bilateral (H1: r≠0), un nivel de confianza del 95% y una potencia estadística del 80%, mediante la fórmula n = [(Zα+Zβ)/C]² + 3, con C = transformación z de Fisher de r (primer paso del procedimiento iterativo de Machin et al.) (Machin D, Campbell MJ, Fayers PM, Pinol APY. Sample size tables for clinical studies. 2nd ed. Blackwell Science; 1997, pp. 168-169; Epidat 4: Ayuda de Muestreo, apartado 3.1.2.9. Julio 2016. Consellería de Sanidade, Xunta de Galicia). El tamaño de muestra mínimo requerido fue de 37 sujetos."
+   }
+  },
+  {
+   "id": "prop-unica-poblacion-pequena",
+   "funcion": "proporcion_unica",
+   "args": [
+    0.5,
+    0.05,
+    99,
+    30
+   ],
+   "esperado": {
+    "n_total": 29,
+    "n_por_grupo": null,
+    "avisos": [],
+    "parrafo": "El tamaño de muestra se calculó para estimar una proporción con una precisión absoluta de ±5 puntos porcentuales y un nivel de confianza del 99%, asumiendo una proporción esperada del 50%, en una población finita de 30 personas, mediante la fórmula n = n0/(1+n0/N), con n0 = Z²·p(1-p)/d² (Machin D, Campbell MJ, Fayers PM, Pinol APY. Sample size tables for clinical studies. 2nd ed. Blackwell Science; 1997, pp. 132-133; Epidat 4: Ayuda de Muestreo, apartado 3.1.1.2. Julio 2016. Consellería de Sanidade, Xunta de Galicia). El tamaño de muestra mínimo requerido fue de 29 participantes."
+   }
+  },
+  {
+   "id": "err-prop-fuera-de-rango",
+   "funcion": "proporcion_unica",
+   "args": [
+    1.5,
+    0.05,
+    95,
+    null
+   ],
+   "esperado": {
+    "error": "La proporción esperada debe estar entre 0 y 1 (ej. 0.30 para 30%)"
+   }
+  },
+  {
+   "id": "err-precision",
+   "funcion": "proporcion_unica",
+   "args": [
+    0.5,
+    1.5,
+    95,
+    null
+   ],
+   "esperado": {
+    "error": "La precisión deseada debe estar entre 0 y 1 (ej. 0.05 para ±5 puntos)"
+   }
+  },
+  {
+   "id": "err-poblacion",
+   "funcion": "proporcion_unica",
+   "args": [
+    0.5,
+    0.05,
+    95,
+    0
+   ],
+   "esperado": {
+    "error": "El tamaño de la población debe ser mayor a 0 (o dejarse en blanco si se desconoce)"
+   }
+  },
+  {
+   "id": "err-dos-prop-iguales",
+   "funcion": "dos_proporciones",
+   "args": [
+    0.4,
+    0.4,
+    95,
+    80,
+    false
+   ],
+   "esperado": {
+    "error": "Las dos proporciones no pueden ser iguales (no hay diferencia que detectar)"
+   }
+  },
+  {
+   "id": "err-dos-medias-dif",
+   "funcion": "dos_medias",
+   "args": [
+    0,
+    10,
+    95,
+    80
+   ],
+   "esperado": {
+    "error": "La diferencia mínima a detectar debe ser mayor a 0"
+   }
+  },
+  {
+   "id": "err-dos-medias-sd",
+   "funcion": "dos_medias",
+   "args": [
+    5,
+    0,
+    95,
+    80
+   ],
+   "esperado": {
+    "error": "La desviación estándar debe ser mayor a 0"
+   }
+  },
+  {
+   "id": "err-cc-or-1",
+   "funcion": "casos_controles",
+   "args": [
+    0.5,
+    1,
+    1,
+    95,
+    80,
+    true
+   ],
+   "esperado": {
+    "error": "Una OR de 1 significa que no hay asociación que detectar"
+   }
+  },
+  {
+   "id": "err-cc-controles",
+   "funcion": "casos_controles",
+   "args": [
+    0.5,
+    2,
+    11,
+    95,
+    80,
+    true
+   ],
+   "esperado": {
+    "error": "El número de controles por caso debe estar entre 1 y 10"
+   }
+  },
+  {
+   "id": "err-cc-p1-fuera",
+   "funcion": "casos_controles",
+   "args": [
+    0.9,
+    1e+30,
+    1,
+    95,
+    80,
+    true
+   ],
+   "esperado": {
+    "error": "Esa combinación de P2 y OR produce una proporción de expuestos en los casos fuera de 0-1; revisa los valores"
+   }
+  },
+  {
+   "id": "err-cohorte-iguales",
+   "funcion": "cohorte",
+   "args": [
+    0.3,
+    0.3,
+    1,
+    95,
+    80,
+    false
+   ],
+   "esperado": {
+    "error": "Los dos riesgos no pueden ser iguales (no hay riesgo relativo que detectar)"
+   }
+  },
+  {
+   "id": "err-cohorte-razon",
+   "funcion": "cohorte",
+   "args": [
+    0.3,
+    0.2,
+    0,
+    95,
+    80,
+    false
+   ],
+   "esperado": {
+    "error": "La razón entre no expuestos y expuestos debe ser mayor a 0"
+   }
+  },
+  {
+   "id": "err-corr-rango",
+   "funcion": "coeficiente_correlacion",
+   "args": [
+    1.5,
+    95,
+    80,
+    true
+   ],
+   "esperado": {
+    "error": "El coeficiente de correlación esperado debe estar entre -1 y 1"
+   }
+  },
+  {
+   "id": "err-corr-cero",
+   "funcion": "coeficiente_correlacion",
+   "args": [
+    0,
+    95,
+    80,
+    true
+   ],
+   "esperado": {
+    "error": "Un coeficiente esperado de 0 significa que no hay correlación que detectar"
+   }
+  },
+  {
+   "id": "err-pareada-dif",
+   "funcion": "media_pareada",
+   "args": [
+    0,
+    10,
+    95,
+    80
+   ],
+   "esperado": {
+    "error": "La diferencia mínima a detectar debe ser mayor a 0"
+   }
+  },
+  {
+   "id": "err-pareada-sd",
+   "funcion": "media_pareada",
+   "args": [
+    5,
+    0,
+    95,
+    80
+   ],
+   "esperado": {
+    "error": "La desviación estándar de las diferencias debe ser mayor a 0"
+   }
+  },
+  {
+   "id": "err-mcnemar-or-1",
+   "funcion": "mcnemar",
+   "args": [
+    0.5,
+    1,
+    95,
+    80,
+    "ji2"
+   ],
+   "esperado": {
+    "error": "Una OR de 1 significa que no hay asociación que detectar"
+   }
+  },
+  {
+   "id": "err-mcnemar-or-0",
+   "funcion": "mcnemar",
+   "args": [
+    0.5,
+    0,
+    95,
+    80,
+    "ji2"
+   ],
+   "esperado": {
+    "error": "La odds ratio esperada debe ser mayor a 0"
+   }
+  },
+  {
+   "id": "err-mcnemar-pd",
+   "funcion": "mcnemar",
+   "args": [
+    1.5,
+    2,
+    95,
+    80,
+    "ji2"
+   ],
+   "esperado": {
+    "error": "La proporción de pares discordantes debe estar entre 0 y 1 (ej. 0.30 para 30%)"
+   }
+  },
+  {
+   "id": "err-mcnemar-prueba",
+   "funcion": "mcnemar",
+   "args": [
+    0.5,
+    2,
+    95,
+    80,
+    "otra"
+   ],
+   "esperado": {
+    "error": "La prueba debe ser 'ji2' (ji-cuadrado de McNemar) o 'exacta' (binomial exacta)"
+   }
+  },
+  {
+   "id": "err-transversal-rp-1",
+   "funcion": "transversal_analitico",
+   "args": [
+    0.3,
+    1,
+    0.5,
+    95,
+    80,
+    false,
+    0.0,
+    0.0,
+    null
+   ],
+   "esperado": {
+    "error": "Una razón de prevalencias de 1 significa que no hay asociación que detectar"
+   }
+  },
+  {
+   "id": "err-transversal-120",
+   "funcion": "transversal_analitico",
+   "args": [
+    0.6,
+    2.0,
+    0.5,
+    95,
+    80,
+    false,
+    0.0,
+    0.0,
+    null
+   ],
+   "esperado": {
+    "error": "Con esa prevalencia en no expuestos y esa razón de prevalencias, la prevalencia en expuestos sería 120.0% (debe estar entre 0 y 100%); revisa los valores"
+   }
+  },
+  {
+   "id": "err-transversal-expuestos",
+   "funcion": "transversal_analitico",
+   "args": [
+    0.3,
+    2.0,
+    1.0,
+    95,
+    80,
+    false,
+    0.0,
+    0.0,
+    null
+   ],
+   "esperado": {
+    "error": "La proporción de expuestos en la muestra debe estar entre 0 y 1 (ej. 0.30 para 30%)"
+   }
+  },
+  {
+   "id": "err-transversal-perdidas",
+   "funcion": "transversal_analitico",
+   "args": [
+    0.3,
+    2.0,
+    0.5,
+    95,
+    80,
+    false,
+    1.0,
+    0.0,
+    null
+   ],
+   "esperado": {
+    "error": "Las pérdidas esperadas deben estar entre 0% y menos de 100%"
+   }
+  },
+  {
+   "id": "err-transversal-r2",
+   "funcion": "transversal_analitico",
+   "args": [
+    0.3,
+    2.0,
+    0.5,
+    95,
+    80,
+    false,
+    0.0,
+    1.0,
+    null
+   ],
+   "esperado": {
+    "error": "El R² con las demás variables del modelo debe estar entre 0% y menos de 100%"
+   }
+  },
+  {
+   "id": "err-transversal-variables",
+   "funcion": "transversal_analitico",
+   "args": [
+    0.3,
+    2.0,
+    0.5,
+    95,
+    80,
+    false,
+    0.0,
+    0.0,
+    -1
+   ],
+   "esperado": {
+    "error": "El número de variables del modelo no puede ser negativo"
+   }
+  }
+ ]
+}
