@@ -22,6 +22,12 @@
   // Z de una cola, para el contraste unilateral del coeficiente de correlación.
   var Z_ALFA_UNILATERAL = { 90: 1.2816, 95: 1.6449, 99: 2.3263 };
 
+  // Fracción -> porcentaje con los decimales que tenga (12,5 % no se redondea
+  // a 12 ni a 13); mismo resultado que _pct() en calculadora_muestra.py.
+  function pct(x) {
+    return String(Number((x * 100).toFixed(4)));
+  }
+
   function ParametroInvalido(mensaje) {
     this.message = mensaje;
     this.name = 'ParametroInvalido';
@@ -55,11 +61,25 @@
       frasePoblacion = '';
     }
     var parrafo = 'El tamaño de muestra se calculó para estimar una proporción con una ' +
-      'precisión absoluta de ±' + (d * 100).toFixed(0) + ' puntos porcentuales y un nivel de ' +
+      'precisión absoluta de ±' + pct(d) + ' puntos porcentuales y un nivel de ' +
       'confianza del ' + confianza + '%, asumiendo una proporción esperada del ' +
-      (p * 100).toFixed(0) + '%' + frasePoblacion + ', mediante la fórmula ' + formula +
+      pct(p) + '%' + frasePoblacion + ', mediante la fórmula ' + formula +
       ' (' + REF_TEXTO + '). El tamaño de muestra mínimo requerido fue de ' + n + ' participantes.';
-    return { n_total: n, n_por_grupo: null, formula: formula, parrafo_metodos: parrafo };
+    var avisos = [];
+    if (d >= p) {
+      avisos.push('La precisión (±' + pct(d) + ' puntos) es igual o mayor que la proporción esperada (' +
+        pct(p) + '%): el intervalo de confianza llegaría a 0%. Para una proporción tan baja conviene una precisión menor a ' +
+        pct(p) + ' puntos.');
+    } else if (p + d > 1) {
+      avisos.push('La precisión (±' + pct(d) + ' puntos) hace que el intervalo supere el 100% (proporción esperada ' +
+        pct(p) + '%). Revisa la precisión elegida.');
+    }
+    var esperados = n * Math.min(p, 1 - p);
+    if (esperados < 10) {
+      avisos.push('Con n=' + n + ' se esperarían solo ' + esperados.toFixed(1) + ' casos del evento menos frecuente: ' +
+        'la aproximación normal es poco confiable. Considera un método exacto (Clopper-Pearson) o una muestra mayor.');
+    }
+    return { n_total: n, n_por_grupo: null, formula: formula, parrafo_metodos: parrafo, avisos: avisos };
   }
 
   function dosProporciones(p1, p2, confianza, potencia) {
@@ -76,7 +96,7 @@
     var total = nGrupo * 2;
     var formula = 'n = [Zα√(2p̄(1-p̄)) + Zβ√(p1(1-p1)+p2(1-p2))]² / (p1-p2)², p̄=(p1+p2)/2';
     var parrafo = 'El tamaño de muestra se calculó para comparar dos proporciones ' +
-      'independientes (' + (p1 * 100).toFixed(0) + '% vs. ' + (p2 * 100).toFixed(0) + '%), con un nivel de ' +
+      'independientes (' + pct(p1) + '% vs. ' + pct(p2) + '%), con un nivel de ' +
       'confianza del ' + confianza + '% y una potencia estadística del ' + potencia + '%, ' +
       'mediante la prueba ji-cuadrado de Pearson con la fórmula ' + formula +
       ' (' + REF_TEXTO + '). Se requirieron ' + nGrupo + ' participantes por grupo ' +
@@ -152,7 +172,7 @@
     var formula = 'Ji-cuadrado de Pearson para grupos desiguales' + yatesTxt;
     var parrafo = 'El tamaño de muestra se calculó para un estudio de casos y controles ' +
       'independientes, con ' + controlesPorCaso + ' control(es) por caso, asumiendo ' +
-      'una prevalencia de la exposición del ' + (p2 * 100).toFixed(0) + '% en los controles ' +
+      'una prevalencia de la exposición del ' + pct(p2) + '% en los controles ' +
       '(lo que implica un ' + (p1 * 100).toFixed(1) + '% en los casos) y una odds ratio esperada de ' +
       orEsperada + ', con un nivel de confianza del ' + confianza + '% y una potencia ' +
       'estadística del ' + potencia + '%, mediante ' + formula + ' (' + REF_TEXTO + '). ' +
@@ -178,8 +198,8 @@
     var yatesTxt = conYates ? ' con corrección de continuidad de Yates' : ' sin corrección de continuidad de Yates';
     var formula = 'Ji-cuadrado de Pearson para grupos desiguales' + yatesTxt;
     var parrafo = 'El tamaño de muestra se calculó para un estudio de cohortes, asumiendo ' +
-      'un riesgo del ' + (pExpuestos * 100).toFixed(0) + '% en expuestos y del ' +
-      (pNoExpuestos * 100).toFixed(0) + '% en no expuestos (riesgo relativo esperado de ' +
+      'un riesgo del ' + pct(pExpuestos) + '% en expuestos y del ' +
+      pct(pNoExpuestos) + '% en no expuestos (riesgo relativo esperado de ' +
       rr.toFixed(2) + '), con una razón entre no expuestos y expuestos de ' + razonNoExpExp +
       ', un nivel de confianza del ' + confianza + '% y una potencia estadística del ' + potencia +
       '%, mediante ' + formula + ' (' + REF_TEXTO + '). Se requirieron ' + nExpuestos +
@@ -248,7 +268,7 @@
     var formula = 'n = [Zα√pd + Zβ√(pd-Δ²)]²/Δ², Δ=pd(OR-1)/(OR+1)';
     var parrafo = 'El tamaño de muestra se calculó para comparar una variable categórica ' +
       'medida antes y después en los mismos sujetos (prueba de McNemar), asumiendo una ' +
-      'proporción de pares discordantes del ' + (proporcionDiscordante * 100).toFixed(0) +
+      'proporción de pares discordantes del ' + pct(proporcionDiscordante) +
       '% y una odds ratio esperada de ' + orEsperada + ' entre esos pares, con un nivel de ' +
       'confianza del ' + confianza + '% y una potencia estadística del ' + potencia +
       '%, mediante la fórmula ' + formula + ' (' + REF_CONNOR_TEXTO + '). El tamaño de ' +
@@ -455,6 +475,7 @@
     usar.addEventListener('click', function () {
       $('cm-diseno').value = disenoReco;
       actualizarCamposVisibles();
+      limpiarResultado();
       $('cm-asistente-panel').classList.add('campo-oculto');
       reiniciarAsistente();
     });
@@ -613,28 +634,28 @@
     try {
       var r;
       if (diseno === 'proporcion_unica') {
-        var p = Number($('cm-p').value);
-        var d = Number($('cm-d').value);
+        var p = Number($('cm-p').value) / 100;
+        var d = Number($('cm-d').value) / 100;
         var nPoblacionRaw = $('cm-n-poblacion').value;
         var nPoblacion = nPoblacionRaw === '' ? null : Number(nPoblacionRaw);
         r = proporcionUnica(p, d, confianza, nPoblacion);
       } else if (diseno === 'dos_proporciones') {
-        var p1 = Number($('cm-p1').value);
-        var p2 = Number($('cm-p2').value);
+        var p1 = Number($('cm-p1').value) / 100;
+        var p2 = Number($('cm-p2').value) / 100;
         r = dosProporciones(p1, p2, confianza, potencia);
       } else if (diseno === 'dos_medias') {
         var diferencia = Number($('cm-diferencia').value);
         var sd = Number($('cm-sd').value);
         r = dosMedias(diferencia, sd, confianza, potencia);
       } else if (diseno === 'casos_controles') {
-        var ccP2 = Number($('cm-cc-p2').value);
+        var ccP2 = Number($('cm-cc-p2').value) / 100;
         var ccOr = Number($('cm-cc-or').value);
         var ccControles = Number($('cm-cc-controles').value);
         var ccYates = $('cm-cc-yates').checked;
         r = casosControles(ccP2, ccOr, ccControles, confianza, potencia, ccYates);
       } else if (diseno === 'cohorte') {
-        var coPExp = Number($('cm-co-p-exp').value);
-        var coPNoExp = Number($('cm-co-p-noexp').value);
+        var coPExp = Number($('cm-co-p-exp').value) / 100;
+        var coPNoExp = Number($('cm-co-p-noexp').value) / 100;
         var coRazon = Number($('cm-co-razon').value);
         var coYates = $('cm-co-yates').checked;
         r = cohorte(coPExp, coPNoExp, coRazon, confianza, potencia, coYates);
@@ -647,7 +668,7 @@
         var mpSd = Number($('cm-mp-sd').value);
         r = mediaPareada(mpDif, mpSd, confianza, potencia);
       } else {
-        var mnPd = Number($('cm-mn-pd').value);
+        var mnPd = Number($('cm-mn-pd').value) / 100;
         var mnOr = Number($('cm-mn-or').value);
         r = mcnemar(mnPd, mnOr, confianza, potencia);
       }
@@ -665,6 +686,13 @@
         $('cm-n-label').textContent = r.n_por_grupo != null ? 'Tamaño de muestra total' : 'Tamaño de muestra';
         $('cm-n-por-grupo').textContent = r.n_por_grupo != null ? (r.n_por_grupo + ' por grupo') : '';
       }
+      var avisosEl = $('cm-avisos');
+      avisosEl.innerHTML = '';
+      (r.avisos || []).forEach(function (texto) {
+        var div = document.createElement('div');
+        div.textContent = texto;
+        avisosEl.appendChild(div);
+      });
       $('cm-formula').textContent = r.formula;
       $('cm-parrafo').textContent = r.parrafo_metodos;
       resultadoEl.classList.add('show');
@@ -675,6 +703,12 @@
       $('cm-copiar').disabled = true;
       statusEl.textContent = e.message || String(e);
     }
+  }
+
+  function limpiarResultado() {
+    $('cm-resultado').classList.remove('show');
+    $('cm-copiar').disabled = true;
+    $('cm-status').textContent = '';
   }
 
   function copiarParrafo() {
@@ -691,6 +725,9 @@
 
   document.addEventListener('DOMContentLoaded', function () {
     $('cm-diseno').addEventListener('change', actualizarCamposVisibles);
+    $('cm-diseno').addEventListener('change', limpiarResultado);
+    document.querySelector('.panel').addEventListener('input', limpiarResultado);
+    document.querySelector('.panel').addEventListener('change', limpiarResultado);
     $('cm-calcular').addEventListener('click', calcular);
     $('cm-copiar').addEventListener('click', copiarParrafo);
     actualizarCamposVisibles();
@@ -719,7 +756,8 @@
     });
     $('cm-endes-usar').addEventListener('click', function () {
       var info = ENDES_PREVALENCIAS[$('cm-endes-select').value];
-      $('cm-p').value = Math.max(1, Math.round(info.prevalenciaPct)) / 100;
+      $('cm-p').value = info.prevalenciaPct;
+      limpiarResultado();
       $('cm-endes-panel').classList.add('campo-oculto');
     });
   });

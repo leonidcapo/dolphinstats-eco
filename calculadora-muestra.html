@@ -41,6 +41,7 @@
      otros componentes (ver bug real: .btn-block, declarada después en esta
      hoja, sobrescribía display:none de .campo-oculto por orden de cascada). */
   .campo-oculto{display:none !important}
+  .avisos div{background:#fff7e0;border:1px solid #e6b800;border-radius:8px;padding:.7rem .9rem;margin-bottom:.75rem;font-size:.85rem;line-height:1.5;color:var(--white)}
   .check-field{display:flex;flex-direction:column;justify-content:flex-end}
   .check-inline{display:flex;align-items:center;gap:.45rem;font-size:.88rem;font-weight:500;text-transform:none;letter-spacing:normal;color:var(--white);padding:.6rem 0}
   .check-inline input[type=checkbox]{width:auto;accent-color:var(--aqua)}
@@ -108,12 +109,12 @@
 
     <div class="row" id="cm-campos-proporcion_unica">
       <div>
-        <label for="cm-p">Proporción esperada (0–1)</label>
-        <input type="number" id="cm-p" step="0.01" min="0.01" max="0.99" value="0.30">
+        <label for="cm-p">Proporción esperada (%)</label>
+        <input type="number" id="cm-p" step="any" min="0.01" max="99.99" value="30">
       </div>
       <div>
-        <label for="cm-d">Precisión absoluta deseada (0–1)</label>
-        <input type="number" id="cm-d" step="0.01" min="0.01" max="0.99" value="0.05">
+        <label for="cm-d">Precisión deseada (± puntos porcentuales)</label>
+        <input type="number" id="cm-d" step="any" min="0.01" max="99.99" value="5">
       </div>
       <div>
         <label for="cm-n-poblacion">Tamaño de la población N (opcional)</label>
@@ -123,12 +124,12 @@
 
     <div class="row campo-oculto" id="cm-campos-dos_proporciones">
       <div>
-        <label for="cm-p1">Proporción grupo 1 (0–1)</label>
-        <input type="number" id="cm-p1" step="0.01" min="0.01" max="0.99" value="0.40">
+        <label for="cm-p1">Proporción grupo 1 (%)</label>
+        <input type="number" id="cm-p1" step="any" min="0.01" max="99.99" value="40">
       </div>
       <div>
-        <label for="cm-p2">Proporción grupo 2 (0–1)</label>
-        <input type="number" id="cm-p2" step="0.01" min="0.01" max="0.99" value="0.20">
+        <label for="cm-p2">Proporción grupo 2 (%)</label>
+        <input type="number" id="cm-p2" step="any" min="0.01" max="99.99" value="20">
       </div>
     </div>
 
@@ -145,8 +146,8 @@
 
     <div class="row campo-oculto" id="cm-campos-casos_controles">
       <div>
-        <label for="cm-cc-p2">Expuestos en controles (0–1)</label>
-        <input type="number" id="cm-cc-p2" step="0.01" min="0.01" max="0.99" value="0.30">
+        <label for="cm-cc-p2">Expuestos en controles (%)</label>
+        <input type="number" id="cm-cc-p2" step="any" min="0.01" max="99.99" value="30">
       </div>
       <div>
         <label for="cm-cc-or">Odds ratio esperada</label>
@@ -164,12 +165,12 @@
 
     <div class="row campo-oculto" id="cm-campos-cohorte">
       <div>
-        <label for="cm-co-p-exp">Riesgo en expuestos (0–1)</label>
-        <input type="number" id="cm-co-p-exp" step="0.01" min="0.01" max="0.99" value="0.30">
+        <label for="cm-co-p-exp">Riesgo en expuestos (%)</label>
+        <input type="number" id="cm-co-p-exp" step="any" min="0.01" max="99.99" value="30">
       </div>
       <div>
-        <label for="cm-co-p-noexp">Riesgo en no expuestos (0–1)</label>
-        <input type="number" id="cm-co-p-noexp" step="0.01" min="0.01" max="0.99" value="0.15">
+        <label for="cm-co-p-noexp">Riesgo en no expuestos (%)</label>
+        <input type="number" id="cm-co-p-noexp" step="any" min="0.01" max="99.99" value="15">
       </div>
       <div>
         <label for="cm-co-razon">Razón no expuestos/expuestos</label>
@@ -205,8 +206,8 @@
 
     <div class="row campo-oculto" id="cm-campos-mcnemar">
       <div>
-        <label for="cm-mn-pd">Proporción de pares discordantes esperada (0–1)</label>
-        <input type="number" id="cm-mn-pd" step="0.01" min="0.01" max="0.99" value="0.50">
+        <label for="cm-mn-pd">Proporción de pares discordantes esperada (%)</label>
+        <input type="number" id="cm-mn-pd" step="any" min="0.01" max="99.99" value="50">
       </div>
       <div>
         <label for="cm-mn-or">Odds ratio esperada entre pares discordantes</label>
@@ -242,6 +243,7 @@
   </div>
 
   <div class="resultado" id="cm-resultado">
+    <div class="avisos" id="cm-avisos"></div>
     <div class="n-label" id="cm-n-label">Tamaño de muestra</div>
     <div class="n" id="cm-n"></div>
     <div id="cm-n-por-grupo" style="color:var(--muted);font-size:.85rem;margin-top:.25rem"></div>
