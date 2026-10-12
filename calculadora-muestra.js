@@ -8,11 +8,23 @@
 (function () {
   'use strict';
 
-  var REF_TEXTO = "Charan J, Biswas T. How to calculate sample size for different study " +
-    "designs in medical research? Indian J Psychol Med. 2013;35(2):121-6.";
-  var REF_JULIOUS_TEXTO = "Julious SA. Sample sizes for clinical trials with Normal data. " +
-    "Stat Med. 2004;23(12):1921-86.";
-  var REF_EPIDAT_TEXTO = "Epidat 4.2, módulo de Muestreo, estudios de cohortes (http://dxsp.sergas.es), julio de 2016";
+  // Fuentes de cada fórmula (paquete 3, 2026-10-12): mismas que en
+  // calculadora_muestra.py; verificadas en el anexo de fórmulas y la
+  // bibliografía de "Epidat 4: Ayuda de Muestreo. Julio 2016" y, los artículos,
+  // en PubMed. Charan & Biswas 2013 ya no se cita.
+  var REF_MACHIN = "Machin D, Campbell MJ, Fayers PM, Pinol APY. Sample size tables for clinical " +
+    "studies. 2nd ed. Blackwell Science; 1997";
+  var REF_SCHOUTEN_TEXTO = "Schouten HJA. Sample size formula with a continuous outcome for unequal group " +
+    "sizes and unequal variances. Stat Med. 1999;18:87-91.";
+
+  function epidat(apartado) {
+    return 'Epidat 4: Ayuda de Muestreo, apartado ' + apartado + '. Julio 2016. Consellería de Sanidade, Xunta de Galicia';
+  }
+
+  function citas(refs) {
+    return refs.map(function (r) { return r.replace(/\.$/, ''); }).join('; ');
+  }
+
   var REF_HSIEH_TEXTO = "Hsieh FY, Bloch DA, Larsen MD. A simple method of sample size calculation " +
     "for linear and logistic regression. Stat Med. 1998;17(14):1623-34.";
   var REF_BARROS_TEXTO = "Barros AJ, Hirakata VN. Alternatives for logistic regression in cross-sectional " +
@@ -76,7 +88,7 @@
       'precisión absoluta de ±' + pct(d) + ' puntos porcentuales y un nivel de ' +
       'confianza del ' + confianza + '%, asumiendo una proporción esperada del ' +
       pct(p) + '%' + frasePoblacion + ', mediante la fórmula ' + formula +
-      ' (' + REF_TEXTO + '). El tamaño de muestra mínimo requerido fue de ' + n + ' participantes.';
+      ' (' + citas([REF_MACHIN + ', pp. 132-133', epidat('3.1.1.2')]) + '). El tamaño de muestra mínimo requerido fue de ' + n + ' participantes.';
     var avisos = [];
     if (d >= p) {
       avisos.push('La precisión (±' + pct(d) + ' puntos) es igual o mayor que la proporción esperada (' +
@@ -111,7 +123,7 @@
       'independientes (' + pct(p1) + '% vs. ' + pct(p2) + '%), con un nivel de ' +
       'confianza del ' + confianza + '% y una potencia estadística del ' + potencia + '%, ' +
       'mediante la prueba ji-cuadrado de Pearson con la fórmula ' + formula +
-      ' (' + REF_TEXTO + '). Se requirieron ' + nGrupo + ' participantes por grupo ' +
+      ' (' + citas([REF_MACHIN + ', pp. 19-20', epidat('3.1.2.2.1')]) + '). Se requirieron ' + nGrupo + ' participantes por grupo ' +
       '(total: ' + total + ').';
     return {
       n_total: total, n_por_grupo: nGrupo,
@@ -136,7 +148,7 @@
       'relevante de ' + diferencia + ' y una desviación estándar común esperada ' +
       'de ' + sd + ', con un nivel de confianza del ' + confianza + '% y una potencia ' +
       'estadística del ' + potencia + '%, mediante la fórmula ' + formula +
-      ' (' + REF_TEXTO + '). Se requirieron ' + nGrupo + ' ' +
+      ' (' + citas([REF_SCHOUTEN_TEXTO, epidat('3.1.2.1.1')]) + '). Se requirieron ' + nGrupo + ' ' +
       'participantes por grupo (total: ' + total + ').';
     return {
       n_total: total, n_por_grupo: nGrupo,
@@ -187,7 +199,7 @@
       'una prevalencia de la exposición del ' + pct(p2) + '% en los controles ' +
       '(lo que implica un ' + (p1 * 100).toFixed(1) + '% en los casos) y una odds ratio esperada de ' +
       orEsperada + ', con un nivel de confianza del ' + confianza + '% y una potencia ' +
-      'estadística del ' + potencia + '%, mediante ' + formula + ' (' + REF_TEXTO + '). ' +
+      'estadística del ' + potencia + '%, mediante ' + formula + ' (' + citas([REF_MACHIN + ', pp. 19-20', epidat('3.1.2.3.1')]) + '). ' +
       'Se requirieron ' + nCasos + ' casos y ' + nControles + ' controles (total: ' + total + ').';
     return { n_total: total, n_por_grupo: nCasos, formula: formula, parrafo_metodos: parrafo };
   }
@@ -214,7 +226,7 @@
       pct(pNoExpuestos) + '% en no expuestos (riesgo relativo esperado de ' +
       rr.toFixed(2) + '), con una razón entre no expuestos y expuestos de ' + razonNoExpExp +
       ', un nivel de confianza del ' + confianza + '% y una potencia estadística del ' + potencia +
-      '%, mediante ' + formula + ' (' + REF_TEXTO + '). Se requirieron ' + nExpuestos +
+      '%, mediante ' + formula + ' (' + citas([REF_MACHIN + ', pp. 19-20', epidat('3.1.2.4')]) + '). Se requirieron ' + nExpuestos +
       ' expuestos y ' + nNoExpuestos + ' no expuestos (total: ' + total + ').';
     return { n_total: total, n_por_grupo: nExpuestos, formula: formula, parrafo_metodos: parrafo };
   }
@@ -231,12 +243,13 @@
     var zb = Z_BETA[potencia];
     var n = Math.ceil(Math.pow((za + zb) / c, 2) + 3);
     var tipoContraste = bilateral ? 'bilateral (H1: r≠0)' : 'unilateral (H1: r>0 o r<0, según el signo esperado)';
-    var formula = 'n = [(Zα+Zβ)/C]² + 3, con C = transformación z de Fisher de r';
+    var formula = 'n = [(Zα+Zβ)/C]² + 3, con C = transformación z de Fisher de r ' +
+      '(primer paso del procedimiento iterativo de Machin et al.)';
     var parrafo = 'El tamaño de muestra se calculó para contrastar si el coeficiente de ' +
       'correlación de Pearson es distinto de cero, asumiendo un valor esperado de r=' +
       rEsperado + ', con un contraste ' + tipoContraste + ', un nivel de confianza del ' +
       confianza + '% y una potencia estadística del ' + potencia + '%, mediante la fórmula ' +
-      formula + ' (' + REF_TEXTO + '). El tamaño de muestra mínimo requerido fue de ' + n + ' sujetos.';
+      formula + ' (' + citas([REF_MACHIN + ', pp. 168-169', epidat('3.1.2.9')]) + '). El tamaño de muestra mínimo requerido fue de ' + n + ' sujetos.';
     return { n_total: n, n_por_grupo: null, formula: formula, parrafo_metodos: parrafo };
   }
 
@@ -259,7 +272,7 @@
       'diferencia mínima clínicamente relevante de ' + diferencia + ' y una desviación ' +
       'estándar de las diferencias de ' + sdDiferencias + ', con un nivel de confianza del ' +
       confianza + '% y una potencia estadística del ' + potencia + '%, mediante la fórmula ' +
-      formula + ' (' + REF_JULIOUS_TEXTO + '). El tamaño de muestra mínimo requerido fue de ' +
+      formula + ' (' + citas([REF_MACHIN + ', p. 73', epidat('3.1.2.1.2')]) + '). El tamaño de muestra mínimo requerido fue de ' +
       n + ' sujetos.';
     return { n_total: n, n_por_grupo: null, formula: formula, parrafo_metodos: parrafo };
   }
@@ -283,7 +296,7 @@
       'proporción de pares discordantes del ' + pct(proporcionDiscordante) +
       '% y una odds ratio esperada de ' + orEsperada + ' entre esos pares, con un nivel de ' +
       'confianza del ' + confianza + '% y una potencia estadística del ' + potencia +
-      '%, mediante la fórmula ' + formula + ' (' + REF_CONNOR_TEXTO + '). El tamaño de ' +
+      '%, mediante la fórmula ' + formula + ' (' + citas([REF_CONNOR_TEXTO, epidat('3.1.2.2.2')]) + '). El tamaño de ' +
       'muestra mínimo requerido fue de ' + n + ' sujetos.';
     return { n_total: n, n_por_grupo: null, formula: formula, parrafo_metodos: parrafo };
   }
@@ -329,7 +342,7 @@
     var yatesTxt = conYates ? ' con corrección de continuidad de Yates' : ' sin corrección de continuidad de Yates';
     var formula = 'Ji-cuadrado de Pearson para grupos desiguales' + yatesTxt;
     var fraseAjustes = '';
-    var refs = [REF_EPIDAT_TEXTO, REF_BARROS_TEXTO];
+    var refs = [REF_MACHIN + ', pp. 19-20', epidat('3.1.2.4'), REF_BARROS_TEXTO];
     if (r2Covariables > 0) {
       fraseAjustes += ' Se ajustó por un modelo multivariable multiplicando por 1/(1-R²) con R²=' +
         pct(r2Covariables) + '% entre la exposición y las demás variables del modelo.';
@@ -347,7 +360,7 @@
       formula.charAt(0).toLowerCase() + formula.slice(1) + '.' + fraseAjustes + ' Se requirieron ' + nExp +
       ' expuestos y ' + nNoExp + ' no expuestos (total: ' + total + '). El análisis previsto es la regresión de ' +
       'Poisson con varianza robusta, que estima directamente la razón de prevalencias (' +
-      refs.map(function (r) { return r.replace(/\.$/, ''); }).join('; ') + ').';
+      citas(refs) + ').';
     var avisos = [];
     if (nVariablesModelo) {
       var prev = pctExpuestos * pExpuestos + (1 - pctExpuestos) * pNoExpuestos;
