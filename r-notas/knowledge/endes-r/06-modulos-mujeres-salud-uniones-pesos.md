@@ -24,8 +24,14 @@ con cuidado.
   la hipertensión diagnosticada en personas de 15 años o más cambia así según el peso:
   2016: 9.98 % (`HV005`) frente a 8.57 % (`PESO15_AMAS`); 2020: 10.83 % frente a 10.08 %;
   2024: 12.38 % frente a 10.89 %; 2025: 12.74 % frente a 10.73 %. La diferencia es de 0.7 a 2 puntos
-  porcentuales, con errores estándar parecidos. Confirma el peso que corresponde a tu módulo en la
-  ficha técnica o el diccionario del INEI.
+  porcentuales, con errores estándar parecidos.
+- **Lo confirma el INEI.** La ficha técnica del informe *Perú: Enfermedades No Transmisibles y Transmisibles,
+  2020* (INEI, pp. 191–193) indica: «Para personas de 15 años a más (`PESO15_AMAS`)» y «Para niñas y niños
+  menores de 12 (`Pesomen12`)», que se ubican en `CSALUD01` y `CSALUD08`, y para muestras complejas pide
+  `qhcluster` (conglomerado), `HV022` (estrato) y `peso = PESO15_AMAS / 1000000` (o `Pesomen12 / 1000000`).
+  En los datos, `QHCLUSTER` coincide al 100 % con `HV021` en los 10 años, así que usar `HV021` es equivalente.
+  La ficha técnica de la ENDES 2022 indica que el Cuestionario de Salud se aplica a una «persona de 15 años
+  a más de edad seleccionada en el hogar».
 - **Filas sin peso.** Algunas personas de `CSALUD01` no tienen `PESO15_AMAS` (1 027 en 2017; 2 714 en 2024;
   3 343 en 2025): no se pueden ponderar y quedan fuera.
 - **Nombres que cambian por año.** `CSALUD08` de **2016 no trae `HHID`**: se reconstruye como
