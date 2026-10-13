@@ -1,7 +1,7 @@
 ---
 title: ENDES en R — prevalencias con IC 95 % (svymean, svyciprop, svyby)
 source: guia
-source_url: local — r/ejemplos_endes.R (ejecutado con datos simulados, R 4.6.1, survey)
+source_url: local — r/ejemplos_endes.R (datos simulados) y r/validar_endes_anios.R (ENDES 2024 real, contrastado con Stata)
 date: 2026-10-13
 tags: [r, endes, survey, prevalencia, intervalo-de-confianza, svyby]
 ---
@@ -14,6 +14,11 @@ Para una variable binaria (0/1) la prevalencia ponderada es su media.
 - `svyby(~var, ~grupo, dis, svymean, vartype = c("ci","se"))`: prevalencia por categorías.
 - `svytable(~a + b, dis)` con `prop.table(..., 1)`: porcentajes por fila ponderados.
 - La variable debe estar codificada 0/1 (no 1/2) para que la media sea la prevalencia.
+- **IC que coincida con Stata.** `svy: mean` de Stata usa la distribución t con los grados de
+  libertad del diseño: en R, `confint(svymean(~y, dis), df = degf(dis))`. `svyciprop(method =
+  "logit")` da un IC ligeramente distinto (parecido al IC logit de `svy: proportion`). Ejemplo real, anemia
+  infantil ENDES 2024: Stata/`svymean` con t → 33.80 % (IC 32.93–34.67); `svyciprop` logit →
+  33.80 % (IC 32.94–34.68). Por área: urbano 30.2 % (29.2–31.2) y rural 42.4 % (40.7–44.0).
 
 ## En simple
 Para saber «qué porcentaje de mujeres tiene anemia» no basta contar filas: cada persona pesa

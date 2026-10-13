@@ -1,7 +1,7 @@
 ---
 title: ENDES en R — regresión logística con diseño complejo (svyglm) y tabla de OR
 source: guia
-source_url: local — r/ejemplos_endes.R (ejecutado con datos simulados, R 4.6.1, survey, gtsummary)
+source_url: local — r/ejemplos_endes.R (datos simulados) y r/validar_endes_anios.R (ENDES 2024 real)
 date: 2026-10-13
 tags: [r, endes, survey, svyglm, regresion-logistica, odds-ratio, gtsummary]
 ---
@@ -13,6 +13,10 @@ Equivalente a `svy: logit` de Stata: `svyglm(y ~ x, design = dis, family = quasi
 - Odds ratios con IC: `exp(cbind(OR = coef(m), confint(m)))`.
 - Tabla lista para tesis: `gtsummary::tbl_regression(m, exponentiate = TRUE)` (requiere también
   los paquetes `broom` y `broom.helpers`).
+- **Con variables etiquetadas de la ENDES** (clase `haven_labelled`, como `HV025`),
+  `factor(x, labels = c("Urbano", "Rural"))` funciona sin convertir antes. Ejemplo real (anemia en
+  niñas y niños, edad en meses `HC1`): OR rural vs urbano = 1.71 (IC 95 % 1.57–1.87) y OR por mes
+  de edad = 0.96 (0.95–0.96).
 - Las variables categóricas deben ser `factor` con la categoría de referencia deseada
   (`relevel()` o el orden de los niveles). Los p-valores de `svyglm` usan la distribución t con
   los grados de libertad del diseño.
