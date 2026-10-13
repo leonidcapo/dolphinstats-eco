@@ -40,12 +40,41 @@ async function leerStreamDeepSeek(body) {
   return { contenido: contenido, finishReason: finishReason };
 }
 
+const ESPERA_REINTENTO_MS = 1000;
+
 // Devuelve el JSON que respondió el modelo. Lanza Error con message:
 // 'timeout' | 'upstream_error' | 'respuesta_truncada' | 'parse_error'.
 // opciones.maxTokens: tokens de la respuesta visible (se suma el margen de
 // razonamiento, DEEPSEEK_REASONING_MARGIN); opciones.temperature.
+//
+// Reintenta (opciones.reintentos veces, por defecto 1) solo los fallos que suelen ser
+// transitorios: 429/5xx de DeepSeek, caída de red y JSON malformado. No reintenta un
+// timeout (ya gastó el tiempo), una respuesta cortada por longitud ni un error 4xx:
+// repetir no los arregla. opciones.esperaReintentoMs: pausa antes de reintentar.
 export async function llamarDeepSeek(promptSistema, promptUsuario, deepseekKey, opciones) {
   opciones = opciones || {};
+  const reintentos = opciones.reintentos != null ? opciones.reintentos : 1;
+  const espera = opciones.esperaReintentoMs != null ? opciones.esperaReintentoMs : ESPERA_REINTENTO_MS;
+  for (let intento = 0; ; intento++) {
+    try {
+      return await llamarDeepSeekUnaVez(promptSistema, promptUsuario, deepseekKey, opciones);
+    } catch (e) {
+      if (intento >= reintentos || !esTransitorio(e)) throw e;
+      await new Promise(function (resolver) { setTimeout(resolver, espera); });
+    }
+  }
+}
+
+function esTransitorio(e) {
+  if (!e) return false;
+  if (e.message === 'parse_error') return true;
+  if (e.message === 'upstream_error') return e.transitorio === true;
+  // Cualquier otro error (p. ej. TypeError de fetch por caída de red); el timeout y la
+  // respuesta cortada tienen su propio mensaje y no se reintentan.
+  return e.message !== 'timeout' && e.message !== 'respuesta_truncada';
+}
+
+async function llamarDeepSeekUnaVez(promptSistema, promptUsuario, deepseekKey, opciones) {
   const maxTokens = opciones.maxTokens || 6000;
   const temperature = opciones.temperature != null ? opciones.temperature : 0.2;
   const controlador = new AbortController();
@@ -72,7 +101,9 @@ export async function llamarDeepSeek(promptSistema, promptUsuario, deepseekKey, 
       signal: controlador.signal,
     });
     if (!upstream.ok || !upstream.body) {
-      throw new Error('upstream_error');
+      const err = new Error('upstream_error');
+      err.transitorio = upstream.status === 429 || upstream.status >= 500;
+      throw err;
     }
     resultado = await leerStreamDeepSeek(upstream.body);
   } catch (e) {
