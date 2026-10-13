@@ -15,12 +15,34 @@
         if (!res.ok) throw new Error('No se pudo cargar las guías de R.');
         return res.text();
       })
-      .then(function (texto) { return N.parsearIndiceMarkdown(texto); })
+      .then(function (texto) { A.estado.indiceR = N.parsearIndiceMarkdown(texto); return A.estado.indiceR; })
       .catch(function (e) {
         A.estado.cargaIndiceR = null;
         throw new Error(e && e.message === 'No se pudo cargar las guías de R.' ? e.message : 'No se pudieron cargar las guías de R. Revisa tu conexión e intenta de nuevo.');
       });
     return A.estado.cargaIndiceR;
+  };
+
+  // Ruta de una nota de R que cita el modelo, o null si no existe (el modelo puede inventar rutas).
+  // Sin índice cargado se acepta cualquier ruta con la forma de una nota.
+  A.rutaDeNotaR = function (path) {
+    var indice = A.estado.indiceR;
+    var existe = indice
+      ? indice.temas.some(function (t) { return t.notas.some(function (n) { return n.path === path; }); })
+      : /^knowledge\/[a-z0-9-]+\/[a-z0-9-]+\.md$/.test(String(path));
+    return existe ? N.construirRuta({ vista: 'guia', origen: 'r', path: path }) : null;
+  };
+
+  // Barra de la pestaña R: Aprender · Preguntar · Código. `actual` = 'aprender' | 'preguntar' | 'codigo'.
+  u.subnavR = function (actual) {
+    var enlaces = [
+      ['aprender', 'Aprender', '#/r'],
+      ['preguntar', 'Preguntar', N.construirRuta({ vista: 'preguntar', lenguaje: 'r' })],
+      ['codigo', 'Código', N.construirRuta({ vista: 'codigo', modo: 'revisar', lenguaje: 'r' })],
+    ];
+    return h('nav', { class: 'segmentado', 'aria-label': 'Secciones de la pestaña R' }, enlaces.map(function (e) {
+      return h('a', { href: e[2], 'aria-current': e[0] === actual ? 'page' : null }, e[1]);
+    }));
   };
 
   function total(lista) { return lista.temas.reduce(function (n, t) { return n + t.notas.length; }, 0); }
@@ -70,7 +92,7 @@
       u.hero({
         kicker: 'R', titulo: 'Aprender R con la ENDES',
         texto: 'Guías cortas para analizar encuestas con R. Cada una explica la idea en simple y trae código para copiar. Los ejemplos se probaron con datos simulados: confirma los nombres de variables con el diccionario del año que uses.',
-        extra: h('div', { class: 'busca' }, u.icono('buscar'), entrada, conteo),
+        extra: h('div', null, u.subnavR('aprender'), h('div', { class: 'busca' }, u.icono('buscar'), entrada, conteo)),
       }), cuerpo), { titulo: 'R', seccion: 'r' });
     ctx.cuando(A.cargarIndiceR(),
       function (indice) { pintar(indice, cuerpo, entrada, conteo); },

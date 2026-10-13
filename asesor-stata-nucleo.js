@@ -242,12 +242,13 @@
 
   // Informe en Markdown de una revisión (para descargar o copiar). Los
   // hallazgos importantes van primero, igual que en pantalla.
-  function armarInformeRevision(hallazgos, fechaIso) {
+  function armarInformeRevision(hallazgos, fechaIso, lenguaje) {
+    var esR = lenguaje === 'r';
     var ordenados = hallazgos.slice().sort(function (a, b) {
       return (a.severidad === 'importante' ? 0 : 1) - (b.severidad === 'importante' ? 0 : 1);
     });
     var importantes = ordenados.filter(function (h) { return h.severidad === 'importante'; }).length;
-    var partes = ['# Informe de revisión de código — Asesor Stata', 'Fecha: ' + fechaIso, ''];
+    var partes = ['# Informe de revisión de código — ' + (esR ? 'Asesor R' : 'Asesor Stata'), 'Fecha: ' + fechaIso, ''];
 
     if (!ordenados.length) {
       partes.push('Sin hallazgos: no se encontró nada para observar en este código.');
@@ -259,7 +260,7 @@
         partes.push('', '## ' + (i + 1) + '. ' + (h.severidad === 'importante' ? 'Importante' : 'Sugerencia') + ' — ' + h.que);
         if (h.lineas) partes.push(etiquetaLineas(h.lineas));
         partes.push('- **Por qué:** ' + h.por_que, '- **Cómo arreglarlo:** ' + h.como_arreglar);
-        if (h.codigo_corregido) partes.push('', 'Código sugerido:', '', '```stata', h.codigo_corregido, '```');
+        if (h.codigo_corregido) partes.push('', 'Código sugerido:', '', '```' + (esR ? 'r' : 'stata'), h.codigo_corregido, '```');
         if (h.nota_citada) partes.push('', 'Nota relacionada: ' + h.nota_citada.titulo + ' (' + h.nota_citada.path + ')');
       });
     }
@@ -334,7 +335,16 @@
     switch (partes[0]) {
       case 'aprender': return partes.length === 1 ? { vista: 'aprender' } : guia('aprender');
       case 'radar': return partes.length === 1 ? { vista: 'radar' } : guia('radar');
-      case 'r': return partes.length === 1 ? { vista: 'r' } : guia('r');
+      case 'r':
+        if (partes.length === 1) return { vista: 'r' };
+        // Preguntar y Código de la pestaña R: mismas pantallas que las de Stata, con lenguaje 'r'.
+        if (partes[1] === 'preguntar') return partes.length === 2 ? { vista: 'preguntar', lenguaje: 'r' } : DESCONOCIDA();
+        if (partes[1] === 'codigo') {
+          if (partes.length === 2) return { vista: 'codigo', modo: 'revisar', lenguaje: 'r' };
+          if (partes.length === 3 && MODOS_CODIGO.indexOf(partes[2]) !== -1) return { vista: 'codigo', modo: partes[2], lenguaje: 'r' };
+          return DESCONOCIDA();
+        }
+        return guia('r');
       case 'preguntar': return partes.length === 1 ? { vista: 'preguntar' } : DESCONOCIDA();
       case 'resultados': return partes.length === 1 ? { vista: 'resultados' } : DESCONOCIDA();
       case 'codigo':
@@ -350,9 +360,9 @@
       case 'aprender': return '#/aprender';
       case 'radar': return '#/radar';
       case 'r': return '#/r';
-      case 'preguntar': return '#/preguntar';
+      case 'preguntar': return ruta.lenguaje === 'r' ? '#/r/preguntar' : '#/preguntar';
       case 'resultados': return '#/resultados';
-      case 'codigo': return '#/codigo/' + (MODOS_CODIGO.indexOf(ruta.modo) !== -1 ? ruta.modo : 'revisar');
+      case 'codigo': return (ruta.lenguaje === 'r' ? '#/r/codigo/' : '#/codigo/') + (MODOS_CODIGO.indexOf(ruta.modo) !== -1 ? ruta.modo : 'revisar');
       case 'guia': {
         var s = segmentosDePath(ruta.path);
         return s ? '#/' + (ruta.origen === 'radar' ? 'radar' : ruta.origen === 'r' ? 'r' : 'aprender') + '/' + s.tema + '/' + s.slug : '#/';

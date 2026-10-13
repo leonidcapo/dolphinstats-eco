@@ -80,10 +80,11 @@
   };
 
   // Aviso de privacidad de las pantallas que mandan texto del usuario a un servicio de IA externo.
-  u.avisoPrivacidad = function () {
+  u.avisoPrivacidad = function (lenguaje) {
+    var programa = lenguaje === 'r' ? 'R' : 'Stata';
     return h('p', { class: 'aviso' }, 'Tu texto se envía a un servicio de inteligencia artificial externo para analizarlo. ',
       h('strong', null, 'No pegues datos de pacientes ni información que permita identificar a alguien'),
-      ' (si pegas salidas de Stata, quita los listados de personas). No se ejecuta nada en Stata: verifica el resultado antes de usarlo.');
+      ' (si pegas salidas de ' + programa + ', quita los listados de personas). No se ejecuta nada en ' + programa + ': verifica el resultado antes de usarlo.');
   };
 
   // ------------------------------------------------------- almacenamiento

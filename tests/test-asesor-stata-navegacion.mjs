@@ -247,5 +247,29 @@ test('índice real de r-notas: 5 guías con ruta válida y archivo existente', a
   }
 });
 
+test('rutas de Preguntar y Código en R: ida y vuelta, y las de Stata no cambian', () => {
+  assert.deepEqual(N.parsearRuta('#/r/preguntar'), { vista: 'preguntar', lenguaje: 'r' });
+  assert.deepEqual(N.parsearRuta('#/r/codigo'), { vista: 'codigo', modo: 'revisar', lenguaje: 'r' });
+  assert.deepEqual(N.parsearRuta('#/r/codigo/generar'), { vista: 'codigo', modo: 'generar', lenguaje: 'r' });
+  assert.deepEqual(N.parsearRuta('#/r/codigo/borrar'), DESCONOCIDA);
+  assert.deepEqual(N.parsearRuta('#/r/preguntar/otro'), DESCONOCIDA);
+  assert.equal(N.construirRuta({ vista: 'preguntar', lenguaje: 'r' }), '#/r/preguntar');
+  assert.equal(N.construirRuta({ vista: 'codigo', modo: 'explicar', lenguaje: 'r' }), '#/r/codigo/explicar');
+  assert.equal(N.construirRuta({ vista: 'codigo', modo: 'explicar' }), '#/codigo/explicar');
+  assert.equal(N.construirRuta({ vista: 'preguntar' }), '#/preguntar');
+  assert.deepEqual(N.parsearRuta('#/codigo/revisar'), { vista: 'codigo', modo: 'revisar' });
+  assert.deepEqual(N.parsearRuta('#/r/endes-r/01-diseno-muestral'), { vista: 'guia', origen: 'r', path: 'knowledge/endes-r/01-diseno-muestral.md' });
+});
+
+test('informe de revisión en R: título y bloque de código en r; sin lenguaje sigue siendo Stata', () => {
+  const hz = [{ severidad: 'importante', lineas: '2', que: 'q', por_que: 'p', como_arreglar: 'c', codigo_corregido: 'svyglm(y ~ x, dis)', nota_citada: null }];
+  const r = N.armarInformeRevision(hz, '2026-10-13', 'r');
+  assert.ok(r.indexOf('# Informe de revisión de código — Asesor R' + String.fromCharCode(10)) === 0);
+  assert.ok(r.indexOf('```r' + String.fromCharCode(10) + 'svyglm(y ~ x, dis)') !== -1);
+  const st = N.armarInformeRevision(hz, '2026-10-13');
+  assert.match(st, /Asesor Stata/);
+  assert.match(st, /```stata/);
+});
+
 console.log('\n' + pasados + ' pasados, ' + fallidos + ' fallidos');
 process.exit(fallidos > 0 ? 1 : 0);

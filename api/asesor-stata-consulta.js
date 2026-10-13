@@ -9,6 +9,8 @@
 import { fetchFileRaw } from './_lib/asesor-stata-github.js';
 import { elegirNotasRelevantes } from './_lib/asesor-stata-relevancia.js';
 import { llamarDeepSeek, respuestaEnStreaming, mensajeError } from './_lib/asesor-stata-llm.js';
+import { cargarNotasR } from './_lib/asesor-r-notas.js';
+import { INSTRUCCION_NIVEL_R, PROMPT_CONSULTA_R } from './_lib/asesor-r-prompts.js';
 
 export const config = { runtime: 'edge' };
 
@@ -78,15 +80,6 @@ export default async function handler(request) {
     return jsonResponse(405, { error: 'Método no permitido.' });
   }
 
-  const githubToken = process.env.ASESOR_STATA_GITHUB_TOKEN;
-  if (!githubToken) {
-    return jsonResponse(503, { error: 'La base de conocimiento no está disponible en este momento.' });
-  }
-  const deepseekKey = process.env.DEEPSEEK_API_KEY;
-  if (!deepseekKey) {
-    return jsonResponse(503, { error: 'La consulta no está disponible en este momento.' });
-  }
-
   let body;
   try {
     body = await request.json();
@@ -94,20 +87,33 @@ export default async function handler(request) {
     return jsonResponse(400, { error: 'Solicitud inválida.' });
   }
 
+  // Pestaña R: las notas son archivos estáticos del sitio, no el repo privado de Stata.
+  const esR = !!body && body.lenguaje === 'r';
+
+  const githubToken = process.env.ASESOR_STATA_GITHUB_TOKEN;
+  if (!esR && !githubToken) {
+    return jsonResponse(503, { error: 'La base de conocimiento no está disponible en este momento.' });
+  }
+  const deepseekKey = process.env.DEEPSEEK_API_KEY;
+  if (!deepseekKey) {
+    return jsonResponse(503, { error: 'La consulta no está disponible en este momento.' });
+  }
+
   const pregunta = body && typeof body.pregunta === 'string' ? body.pregunta.trim().slice(0, MAX_PREGUNTA_CHARS) : '';
   if (!pregunta) {
     return jsonResponse(400, { error: 'Escribe tu pregunta.' });
   }
 
+  const niveles = esR ? INSTRUCCION_NIVEL_R : INSTRUCCION_NIVEL;
   const nivelPedido = body && typeof body.nivel === 'string' ? body.nivel.trim().toLowerCase() : '';
-  const nivel = INSTRUCCION_NIVEL[nivelPedido] ? nivelPedido : NIVEL_DEFAULT;
+  const nivel = niveles[nivelPedido] ? nivelPedido : NIVEL_DEFAULT;
 
   // Los pedidos válidos se responden en streaming (ver _lib/asesor-stata-llm.js):
   // los fallos de aquí en adelante llegan como {error} dentro del cuerpo.
   return respuestaEnStreaming(async function () {
     let contexto;
     try {
-      contexto = await construirContexto(githubToken, deepseekKey, pregunta);
+      contexto = esR ? (await cargarNotasR(request)).contexto : await construirContexto(githubToken, deepseekKey, pregunta);
     } catch (e) {
       return { error: 'No se pudo conectar con la base de conocimiento. Intenta de nuevo.' };
     }
@@ -119,7 +125,7 @@ export default async function handler(request) {
     let parsed;
     try {
       parsed = await llamarDeepSeek(
-        PROMPT_SISTEMA + '\n\n' + INSTRUCCION_NIVEL[nivel],
+        (esR ? PROMPT_CONSULTA_R : PROMPT_SISTEMA) + '\n\n' + niveles[nivel],
         contexto + '\n\nPregunta: ' + pregunta,
         deepseekKey,
         { maxTokens: 800 }

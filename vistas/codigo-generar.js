@@ -13,6 +13,11 @@
     ['Regresión logística con OR', 'Regresión logística de enfermedad (0/1) en edad, sexo e IMC, mostrando odds ratios con intervalos de confianza al 95%.'],
     ['Kaplan-Meier por grupo', 'Curva de supervivencia de Kaplan-Meier por grupo, con prueba log-rank y tabla de número en riesgo.'],
   ];
+  var EJEMPLOS_R = [
+    ['Prevalencia con IC 95 %', 'Prevalencia de anemia (0/1) en mujeres de la ENDES con intervalo de confianza al 95 %, total y por área urbano/rural, declarando el diseño muestral (v021, v022, v005).'],
+    ['Regresión logística con OR', 'Regresión logística con diseño complejo de anemia (0/1) en área (urbano/rural), quintil de riqueza y edad, mostrando odds ratios con intervalos de confianza al 95 % y una tabla lista para la tesis.'],
+    ['Tabla 1 por grupo', 'Tabla 1 por grupo (variable grupo): edad con media y desviación estándar, sexo con n y porcentaje, y prueba para las variables categóricas.'],
+  ];
   var FRASES = ['Entendiendo tu pedido…', 'Buscando notas relacionadas…', 'Escribiendo el do-file…'];
   var FRASES_AJUSTE = ['Leyendo tu código…', 'Aplicando el ajuste…', 'Reescribiendo el do-file…'];
   var SALIDAS = [
@@ -58,6 +63,10 @@
     var nivel = comun.nivel;
     var estado = comun.estado;
     var panel = comun.panel;
+    var esR = comun.lenguaje === 'r';
+    var archivo = esR ? 'script de R' : 'do-file';
+    var frases = FRASES.map(function (f) { return f.replace('do-file', archivo); });
+    var frasesAjuste = FRASES_AJUSTE.map(function (f) { return f.replace('do-file', archivo); });
     var ultimaDescripcion = ''; // con la que se generó el código que se ve (los ajustes parten de ella)
 
     var area = h('textarea', { class: 'campo', maxlength: String(MAX_DESCRIPCION), 'aria-label': 'Descripción del análisis',
@@ -75,14 +84,14 @@
       area.focus();
     });
     var ejemplos = h('div', { class: 'ejemplos' }, h('span', { class: 'ejemplos-titulo' }, 'Prueba con:'),
-      EJEMPLOS.map(function (e) {
+      (esR ? EJEMPLOS_R : EJEMPLOS).map(function (e) {
         return h('button', { type: 'button', class: 'ejemplo', onclick: function () { area.value = e[1]; area.dispatchEvent(new Event('input')); area.focus(); } }, e[0]);
       }));
     var boton = h('button', { type: 'button', class: 'btn' }, 'Generar');
 
     function pintarCodigo(data) {
       var ajuste = h('textarea', { class: 'campo', maxlength: String(MAX_AJUSTE), 'aria-label': '¿Quieres cambiar algo?',
-        placeholder: 'Ej.: agrega una tabla por sexo; usa errores estándar robustos; guarda los gráficos como PNG' });
+        placeholder: esR ? 'Ej.: agrega una tabla por sexo; muestra los OR en un gráfico; guarda la tabla en Word' : 'Ej.: agrega una tabla por sexo; usa errores estándar robustos; guarda los gráficos como PNG' });
       var aplicar = h('button', { type: 'button', class: 'btn' }, 'Aplicar ajuste');
       aplicar.addEventListener('click', function () {
         var pedido = ajuste.value.trim();
@@ -90,14 +99,14 @@
         enviar({ ajuste: pedido, codigoPrevio: data.codigo });
       });
       var notas = data.notas_citadas.map(function (n) {
-        var ruta = A.rutaDeNota(n.path);
+        var ruta = esR ? A.rutaDeNotaR(n.path) : A.rutaDeNota(n.path);
         return ruta ? h('a', { class: 'hz-nota', href: ruta }, 'Ver la nota: ' + n.titulo) : h('span', { class: 'hz-nota' }, 'Nota relacionada: ' + n.titulo);
       });
       panel.replaceChildren(h('div', { class: 'gen-res' },
-        u.bloqueCodigo(data.codigo, 'Código Stata (do-file)'),
+        u.bloqueCodigo(data.codigo, esR ? 'Código R (script)' : 'Código Stata (do-file)'),
         h('div', { class: 'res-acciones' }, h('button', { type: 'button', class: 'btn btn-sec', onclick: function () {
-          u.descargarArchivo(data.codigo, 'analisis.do', 'text/plain');
-        } }, u.icono('descargar'), 'Descargar .do')),
+          u.descargarArchivo(data.codigo, esR ? 'analisis.R' : 'analisis.do', 'text/plain');
+        } }, u.icono('descargar'), esR ? 'Descargar .R' : 'Descargar .do')),
         h('p', { class: 'gen-explicacion' }, data.explicacion),
         notas.length ? h('div', { class: 'gen-notas' }, notas) : null,
         h('div', { class: 'ajuste' }, h('div', { class: 'ajuste-titulo' }, '¿Quieres cambiar algo?'), ajuste, aplicar)));
@@ -108,13 +117,14 @@
       var descripcion = extra.ajuste ? ultimaDescripcion : area.value.trim();
       if (!descripcion) { u.estadoLinea(estado, 'error', 'Describe primero el análisis que quieres generar.'); return; }
       var cuerpo = { modo: 'generar', nivel: nivel.valor(), descripcion: descripcion };
+      if (esR) cuerpo.lenguaje = 'r';
       if (extra.ajuste) { cuerpo.codigo_previo = extra.codigoPrevio; cuerpo.ajuste = extra.ajuste; }
       boton.disabled = true;
       // Si un ajuste falla, el código ya generado vuelve a la pantalla: no se pierde.
       var previo = extra.ajuste ? Array.prototype.slice.call(panel.childNodes) : null;
       function restaurarPrevio() { if (previo) panel.replaceChildren.apply(panel, previo); }
       panel.replaceChildren();
-      var detener = u.iniciarEspera(estado, extra.ajuste ? FRASES_AJUSTE : FRASES, false);
+      var detener = u.iniciarEspera(estado, extra.ajuste ? frasesAjuste : frases, false);
       u.pedirJson('/api/asesor-stata-codigo', cuerpo, 90000)
         .then(function (r) {
           detener();

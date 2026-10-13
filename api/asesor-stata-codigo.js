@@ -15,6 +15,10 @@
 import { fetchFileRaw } from './_lib/asesor-stata-github.js';
 import { elegirNotasRelevantes } from './_lib/asesor-stata-relevancia.js';
 import { llamarDeepSeek, respuestaEnStreaming, mensajeError } from './_lib/asesor-stata-llm.js';
+import { cargarNotasR } from './_lib/asesor-r-notas.js';
+import {
+  INSTRUCCION_NIVEL_R, PROMPT_REVISAR_R, PROMPT_EXPLICAR_R, PROMPT_GENERAR_R,
+} from './_lib/asesor-r-prompts.js';
 
 export const config = { runtime: 'edge' };
 
@@ -295,9 +299,18 @@ export default async function handler(request) {
     return jsonResponse(400, { error: 'El modo debe ser "revisar", "explicar", "interpretar" o "generar".' });
   }
 
+  // Pestaña R: mismos modos de código (salvo interpretar), con prompts de R y notas de r-notas/.
+  const esR = !!body && body.lenguaje === 'r';
+  if (esR && modo === 'interpretar') {
+    return jsonResponse(400, { error: 'Interpretar resultados todavía no está disponible para R.' });
+  }
+  const niveles = esR ? INSTRUCCION_NIVEL_R : INSTRUCCION_NIVEL;
   const nivelPedido = body && typeof body.nivel === 'string' ? body.nivel.trim().toLowerCase() : '';
-  const nivel = INSTRUCCION_NIVEL[nivelPedido] ? nivelPedido : NIVEL_DEFAULT;
-  const sistema = function (prompt) { return prompt + '\n\n' + INSTRUCCION_NIVEL[nivel]; };
+  const nivel = niveles[nivelPedido] ? nivelPedido : NIVEL_DEFAULT;
+  const sistema = function (prompt) { return prompt + '\n\n' + niveles[nivel]; };
+  const contextoDe = async function (texto) {
+    return esR ? (await cargarNotasR(request)).contexto : await construirContextoOpcional(texto);
+  };
 
   if (modo === 'revisar') {
     const codigo = textoDe(body, 'codigo', MAX_CODIGO_CHARS);
@@ -307,11 +320,11 @@ export default async function handler(request) {
     const numerado = numerarLineas(codigo);
 
     return respuestaEnStreaming(async function () {
-      const contexto = await construirContextoOpcional(codigo);
+      const contexto = await contextoDe(codigo);
       let parsed;
       try {
         parsed = await llamarDeepSeek(
-          sistema(PROMPT_REVISAR),
+          sistema(esR ? PROMPT_REVISAR_R : PROMPT_REVISAR),
           'Código a revisar:\n```\n' + numerado.texto + '\n```' + bloqueDeContexto(contexto),
           deepseekKey
         );
@@ -335,8 +348,8 @@ export default async function handler(request) {
       let parsed;
       try {
         parsed = await llamarDeepSeek(
-          sistema(PROMPT_EXPLICAR),
-          'Do-file a explicar:\n```\n' + numerado.texto + '\n```',
+          sistema(esR ? PROMPT_EXPLICAR_R : PROMPT_EXPLICAR),
+          (esR ? 'Script de R a explicar:' : 'Do-file a explicar:') + '\n```\n' + numerado.texto + '\n```',
           deepseekKey,
           { maxTokens: 5000 }
         );
@@ -387,7 +400,7 @@ export default async function handler(request) {
   }
 
   return respuestaEnStreaming(async function () {
-    const contexto = await construirContextoOpcional(descripcion);
+    const contexto = await contextoDe(descripcion);
     const bloqueAjuste = codigoPrevio
       ? '\n\nCódigo actual:\n```\n' + codigoPrevio + '\n```\n\nAjuste pedido: ' + ajuste
       : '';
@@ -395,7 +408,7 @@ export default async function handler(request) {
     let parsed;
     try {
       parsed = await llamarDeepSeek(
-        sistema(PROMPT_GENERAR),
+        sistema(esR ? PROMPT_GENERAR_R : PROMPT_GENERAR),
         'Descripción del análisis:\n' + descripcion + bloqueAjuste + bloqueDeContexto(contexto),
         deepseekKey
       );

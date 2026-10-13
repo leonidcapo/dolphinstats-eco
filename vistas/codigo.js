@@ -20,6 +20,40 @@
     'logistic epe edad_cat sexo',
   ].join('\n');
 
+  var EJEMPLO_R = [
+    'library(survey)',
+    'setwd("C:/Users/Lindsay/Desktop/tesis")',
+    'endes <- haven::read_sav("base_endes.sav")',
+    '',
+    'endes <- subset(endes, v012 < 25)',
+    'dis <- svydesign(ids = ~v021, strata = ~v022, weights = ~v005, data = endes)',
+    'm <- glm(anemia ~ v025 + v190, data = endes, family = binomial)',
+    'summary(m)',
+  ].join(String.fromCharCode(10));
+
+  // Textos de la pestaña R (mismos modos, otro lenguaje).
+  var MODOS_R = {
+    revisar: {
+      etiqueta: 'Revisar',
+      ayuda: 'Pega tu script de R y te indico errores y mejoras, con la línea donde están y cómo corregirlos.',
+      placeholder: 'Pega aquí tu script de R, o súbelo con el botón de abajo…',
+      vacio: 'Aquí aparecerán los hallazgos, con la línea de cada uno y cómo corregirlo.',
+      frases: ['Leyendo tu código…', 'Buscando notas relacionadas en la base…', 'Redactando los hallazgos…', 'Ordenando los hallazgos…'],
+    },
+    explicar: {
+      etiqueta: 'Explicar',
+      ayuda: 'Pega un script de R (tuyo o heredado) y te explico qué hace, paso a paso.',
+      placeholder: 'Pega aquí el script de R que quieres entender, o súbelo con el botón de abajo…',
+      vacio: 'Aquí aparecerá la explicación, paso a paso.',
+      frases: ['Leyendo el script…', 'Agrupando las líneas en pasos…', 'Redactando la explicación…'],
+    },
+    generar: {
+      etiqueta: 'Generar',
+      ayuda: 'Describe el análisis y escribo el script de R. Después puedes pedir ajustes sobre el resultado.',
+      vacio: 'Aquí aparecerá el script de R generado.',
+    },
+  };
+
   var MODOS = {
     revisar: {
       etiqueta: 'Revisar',
@@ -44,10 +78,10 @@
 
   function contar(n, singular, plural) { return n + ' ' + (n === 1 ? singular : plural); }
 
-  function selectorModo(modo) {
+  function selectorModo(modo, esR) {
     return h('nav', { class: 'segmentado', 'aria-label': 'Qué quieres hacer con tu código' },
       ['revisar', 'explicar', 'generar'].map(function (m) {
-        return h('a', { href: N.construirRuta({ vista: 'codigo', modo: m }), 'aria-current': m === modo ? 'page' : null }, MODOS[m].etiqueta);
+        return h('a', { href: N.construirRuta({ vista: 'codigo', modo: m, lenguaje: esR ? 'r' : null }), 'aria-current': m === modo ? 'page' : null }, MODOS[m].etiqueta);
       }));
   }
 
@@ -84,7 +118,7 @@
     });
   }
 
-  function pintarHallazgos(panel, hallazgos, total, visor) {
+  function pintarHallazgos(panel, hallazgos, total, visor, esR) {
     visor.cubrir([]);
     visor.seleccionar([]);
     if (!hallazgos.length) {
@@ -95,7 +129,7 @@
       return (a.severidad === 'importante' ? 0 : 1) - (b.severidad === 'importante' ? 0 : 1);
     });
     var importantes = ordenados.filter(function (x) { return x.severidad === 'importante'; }).length;
-    function informe() { return N.armarInformeRevision(hallazgos, u.hoyIso()); }
+    function informe() { return N.armarInformeRevision(hallazgos, u.hoyIso(), esR ? 'r' : 'stata'); }
     var copiar = h('button', { type: 'button', class: 'btn btn-sec' }, 'Copiar informe');
     copiar.addEventListener('click', function () { u.copiarTexto(informe(), copiar, 'Copiar informe'); });
     var descargar = h('button', { type: 'button', class: 'btn btn-sec', onclick: function () {
@@ -115,7 +149,7 @@
         h('p', { class: 'hz-det' }, h('b', null, 'Cómo arreglarlo: '), h('span', { html: N.inlineMarkdown(x.como_arreglar) })));
       if (x.codigo_corregido) cuerpo.appendChild(u.bloqueCodigo(x.codigo_corregido, 'Así quedaría'));
       if (x.nota_citada) {
-        var ruta = A.rutaDeNota(x.nota_citada.path);
+        var ruta = esR ? A.rutaDeNotaR(x.nota_citada.path) : A.rutaDeNota(x.nota_citada.path);
         cuerpo.appendChild(ruta ? h('a', { class: 'hz-nota', href: ruta }, 'Ver la nota: ' + x.nota_citada.titulo)
           : h('span', { class: 'hz-nota' }, 'Nota relacionada: ' + x.nota_citada.titulo));
       }
@@ -150,42 +184,43 @@
   }
 
   // Columna izquierda de Revisar y Explicar: el visor, las herramientas y el botón.
-  function columnaCodigo(ctx, modo, nivel, estado, panel) {
-    var def = MODOS[modo];
+  function columnaCodigo(ctx, modo, nivel, estado, panel, esR) {
+    var def = (esR ? MODOS_R : MODOS)[modo];
     var contador = h('div', { class: 'contador' });
     var editar = h('button', { type: 'button', class: 'ejemplo editar campo-oculto' }, u.icono('lapiz'), 'Editar');
-    var visor = u.crearVisor({ placeholder: def.placeholder, etiqueta: 'Tu do-file', alCambiar: function (v) { A.estado.borrador.codigo = v; } });
+    var visor = u.crearVisor({ placeholder: def.placeholder, etiqueta: esR ? 'Tu script de R' : 'Tu do-file', alCambiar: function (v) { A.estado.borrador.codigo = v; } });
     visor.enModo(function (m) { editar.classList.toggle('campo-oculto', m === 'edicion'); });
     editar.addEventListener('click', function () { visor.editar(); });
     u.enlazarContador(visor.areaTexto, contador, MAX_CODIGO, 'solo se usarán los primeros ' + MAX_CODIGO.toLocaleString('es-PE') + '.');
     visor.poner(A.estado.borrador.codigo); // recupera lo escrito (por ejemplo, al pasar de Revisar a Explicar)
 
-    var archivo = h('input', { type: 'file', class: 'campo-oculto', accept: '.do,.ado,.txt,text/plain' });
+    var archivo = h('input', { type: 'file', class: 'campo-oculto', accept: esR ? '.R,.r,.Rmd,.qmd,.txt,text/plain' : '.do,.ado,.txt,text/plain' });
     archivo.addEventListener('change', function () {
       var f = archivo.files && archivo.files[0];
       if (!f) return;
-      if (f.size > 500000) { u.estadoLinea(estado, 'error', 'Ese archivo es demasiado grande para un do-file (más de 500 KB).'); archivo.value = ''; return; }
+      if (f.size > 500000) { u.estadoLinea(estado, 'error', 'Ese archivo es demasiado grande para un ' + (esR ? 'script' : 'do-file') + ' (más de 500 KB).'); archivo.value = ''; return; }
       u.leerArchivoComoTexto(f).then(
         function (t) { visor.poner(t); u.estadoLinea(estado, '', ''); archivo.value = ''; },
         function () { u.estadoLinea(estado, 'error', 'No se pudo leer el archivo.'); });
     });
     var herramientas = h('div', { class: 'herramientas' },
-      h('button', { type: 'button', class: 'ejemplo', onclick: function () { archivo.click(); } }, u.icono('subir'), 'Subir archivo .do'),
-      h('button', { type: 'button', class: 'ejemplo', onclick: function () { visor.poner(EJEMPLO_DO); visor.enfocar(); } }, 'Probar con un ejemplo'),
+      h('button', { type: 'button', class: 'ejemplo', onclick: function () { archivo.click(); } }, u.icono('subir'), esR ? 'Subir archivo .R' : 'Subir archivo .do'),
+      h('button', { type: 'button', class: 'ejemplo', onclick: function () { visor.poner(esR ? EJEMPLO_R : EJEMPLO_DO); visor.enfocar(); } }, 'Probar con un ejemplo'),
       editar, archivo);
 
     var boton = h('button', { type: 'button', class: 'btn' }, def.etiqueta);
     boton.addEventListener('click', function () {
       var codigo = N.prepararCodigo(visor.valor(), MAX_CODIGO);
       if (!codigo) {
-        u.estadoLinea(estado, 'error', modo === 'revisar' ? 'Pega o sube primero el do-file que quieres revisar.' : 'Pega o sube primero el do-file que quieres entender.');
+        var queArchivo = esR ? 'script de R' : 'do-file';
+        u.estadoLinea(estado, 'error', modo === 'revisar' ? 'Pega o sube primero el ' + queArchivo + ' que quieres revisar.' : 'Pega o sube primero el ' + queArchivo + ' que quieres entender.');
         return;
       }
       A.estado.borrador.codigo = visor.valor();
       boton.disabled = true;
       panel.replaceChildren();
       var detener = u.iniciarEspera(estado, def.frases, true);
-      u.pedirJson('/api/asesor-stata-codigo', { modo: modo, nivel: nivel.valor(), codigo: codigo }, 90000)
+      u.pedirJson('/api/asesor-stata-codigo', esR ? { modo: modo, nivel: nivel.valor(), codigo: codigo, lenguaje: 'r' } : { modo: modo, nivel: nivel.valor(), codigo: codigo }, 90000)
         .then(function (r) {
           detener();
           boton.disabled = false;
@@ -194,7 +229,7 @@
           u.estadoLinea(estado, '', '');
           visor.leer(codigo); // el visor muestra el mismo texto que numeró el servidor
           var total = N.dividirLineas(codigo).length;
-          if (modo === 'revisar') pintarHallazgos(panel, r.data.hallazgos, total, visor);
+          if (modo === 'revisar') pintarHallazgos(panel, r.data.hallazgos, total, visor, esR);
           else pintarPasos(panel, r.data, total, visor);
           if (window.matchMedia('(max-width: 900px)').matches) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
         })
@@ -210,23 +245,24 @@
 
   A.vistas.codigo = function (ctx) {
     var modo = ctx.ruta.modo;
-    var def = MODOS[modo];
+    var esR = ctx.ruta.lenguaje === 'r';
+    var def = (esR ? MODOS_R : MODOS)[modo];
     var generar = A.codigoGenerar;
     if (modo === 'generar' && !generar) {
-      ctx.montar(h('div', { class: 'cuerpo' }, u.estadoVacio('Esta pantalla no está disponible.', null, h('a', { class: 'btn', href: '#/codigo/revisar' }, 'Ir a Revisar'))),
-        { titulo: 'Código', seccion: 'codigo' });
+      ctx.montar(h('div', { class: 'cuerpo' }, u.estadoVacio('Esta pantalla no está disponible.', null, h('a', { class: 'btn', href: N.construirRuta({ vista: 'codigo', modo: 'revisar', lenguaje: esR ? 'r' : null }) }, 'Ir a Revisar'))),
+        { titulo: 'Código', seccion: esR ? 'r' : 'codigo' });
       return;
     }
     var nivel = u.selectorNivel();
     var estado = h('div', { class: 'linea-estado', role: 'status', 'aria-live': 'polite' });
     var panel = h('div', { class: 'panel-res', 'aria-live': 'polite' }, h('p', { class: 'panel-vacio' }, def.vacio));
-    var izquierda = modo === 'generar' ? generar(ctx, { nivel: nivel, estado: estado, panel: panel }) : columnaCodigo(ctx, modo, nivel, estado, panel);
+    var izquierda = modo === 'generar' ? generar(ctx, { nivel: nivel, estado: estado, panel: panel, lenguaje: esR ? 'r' : 'stata' }) : columnaCodigo(ctx, modo, nivel, estado, panel, esR);
     ctx.montar(h('div', null,
-      u.hero({ kicker: 'Código', titulo: 'Trabajar con mi código', texto: def.ayuda }),
+      u.hero({ kicker: esR ? 'R · Código' : 'Código', titulo: 'Trabajar con mi código', texto: def.ayuda, extra: esR ? u.subnavR('codigo') : null }),
       h('div', { class: 'cuerpo cuerpo-flota' }, h('div', { class: 'lienzo' },
-        u.avisoPrivacidad(),
-        h('div', { class: 'controles' }, selectorModo(modo), nivel.el),
+        u.avisoPrivacidad(esR ? 'r' : 'stata'),
+        h('div', { class: 'controles' }, selectorModo(modo, esR), nivel.el),
         h('div', { class: 'dividido' }, h('div', { class: 'col-izq' }, izquierda, estado), h('div', { class: 'col-der' }, panel))))),
-    { titulo: 'Código · ' + def.etiqueta, seccion: 'codigo' });
+    { titulo: (esR ? 'R · Código · ' : 'Código · ') + def.etiqueta, seccion: esR ? 'r' : 'codigo' });
   };
 })();
