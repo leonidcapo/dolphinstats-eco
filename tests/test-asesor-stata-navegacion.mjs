@@ -3,6 +3,7 @@
 // Correr con: node tests/test-asesor-stata-navegacion.mjs
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
+import { existsSync, readFileSync } from 'node:fs';
 
 const N = createRequire(import.meta.url)('../asesor-stata-nucleo.js');
 
@@ -236,15 +237,17 @@ test('parsearIndiceMarkdown: temas, notas, resumen y fecha; ignora líneas suelt
   assert.deepEqual(N.parsearIndiceMarkdown('').temas, []);
 });
 
-test('índice real de r-notas: 5 guías con ruta válida y archivo existente', async () => {
-  const fs = await import('node:fs');
-  const r = N.parsearIndiceMarkdown(fs.readFileSync(new URL('../r-notas/INDEX.md', import.meta.url), 'utf8'));
+test('índice real de r-notas: 5 guías; toda nota (guía o del Radar) tiene ruta válida y archivo existente', () => {
+  const r = N.parsearIndiceMarkdown(readFileSync(new URL('../r-notas/INDEX.md', import.meta.url), 'utf8'));
   const notas = r.temas.flatMap((t) => t.notas);
-  assert.equal(notas.length, 5);
+  assert.equal(notas.filter((n) => !n.auto).length, 5);
+  assert.ok(notas.length >= 5);
   for (const n of notas) {
     assert.ok(N.parsearRuta(N.construirRuta({ vista: 'guia', origen: 'r', path: n.path })).path === n.path, n.path);
-    assert.ok(fs.existsSync(new URL('../r-notas/' + n.path, import.meta.url)), n.path);
+    assert.ok(existsSync(new URL('../r-notas/' + n.path, import.meta.url)), n.path);
   }
+  const partes = N.separarPorOrigen(r);
+  assert.equal(N.listarRadar(partes.radar, '').length, notas.length - 5);
 });
 
 test('rutas de Preguntar y Código en R: ida y vuelta, y las de Stata no cambian', () => {
