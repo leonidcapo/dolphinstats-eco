@@ -279,5 +279,35 @@ test('rutas de Resultados en R: ida y vuelta y las de Stata no cambian', () => {
   assert.deepEqual(N.parsearRuta('#/resultados'), { vista: 'resultados' });
 });
 
+test('rutas del Radar de R: ida y vuelta y la de Stata no cambia', () => {
+  assert.deepEqual(N.parsearRuta('#/r/radar'), { vista: 'radar', lenguaje: 'r' });
+  assert.deepEqual(N.parsearRuta('#/r/radar/x'), DESCONOCIDA);
+  assert.equal(N.construirRuta({ vista: 'radar', lenguaje: 'r' }), '#/r/radar');
+  assert.equal(N.construirRuta({ vista: 'radar' }), '#/radar');
+  assert.deepEqual(N.parsearRuta('#/radar'), { vista: 'radar' });
+});
+
+test('índice de R con notas automáticas: resumen, en simple, fecha y marca auto; se separan de las guías', () => {
+  const md = [
+    '## endes-r',
+    '- [Guía](knowledge/endes-r/01-uno.md) — resumen guía. · 2026-10-13',
+    '## survey-analysis',
+    '- [svyfoo: Pesos](knowledge/survey-analysis/svyfoo.md) — Calibra pesos. || Ajusta los pesos de una encuesta. · 2026-10-13 · auto',
+    '- [Sin simple](knowledge/survey-analysis/otra.md) — solo técnico · 2026-10-12 · auto',
+    '',
+  ].join(String.fromCharCode(10));
+  const r = N.parsearIndiceMarkdown(md);
+  const auto = r.temas[1].notas[0];
+  assert.deepEqual(auto, { titulo: 'svyfoo: Pesos', path: 'knowledge/survey-analysis/svyfoo.md', resumen: 'Calibra pesos.', simple: 'Ajusta los pesos de una encuesta.', fecha: '2026-10-13', auto: true });
+  assert.equal(r.temas[1].notas[1].simple, '');
+  assert.equal(r.temas[0].notas[0].auto, false);
+  const partes = N.separarPorOrigen(r);
+  assert.equal(partes.guias.temas.length, 1);
+  assert.equal(partes.guias.temas[0].nombre, 'endes-r');
+  assert.equal(partes.radar.temas[0].notas.length, 2);
+  assert.equal(N.listarRadar(partes.radar, '')[0].fecha, '2026-10-13');
+  assert.equal(N.nombreTema('survey-analysis'), 'Análisis de encuestas');
+});
+
 console.log('\n' + pasados + ' pasados, ' + fallidos + ' fallidos');
 process.exit(fallidos > 0 ? 1 : 0);

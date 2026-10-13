@@ -37,6 +37,7 @@
   u.subnavR = function (actual) {
     var enlaces = [
       ['aprender', 'Aprender', '#/r'],
+      ['radar', 'Radar', N.construirRuta({ vista: 'radar', lenguaje: 'r' })],
       ['preguntar', 'Preguntar', N.construirRuta({ vista: 'preguntar', lenguaje: 'r' })],
       ['codigo', 'Código', N.construirRuta({ vista: 'codigo', modo: 'revisar', lenguaje: 'r' })],
       ['resultados', 'Resultados', N.construirRuta({ vista: 'resultados', lenguaje: 'r' })],
@@ -96,7 +97,8 @@
         extra: h('div', null, u.subnavR('aprender'), h('div', { class: 'busca' }, u.icono('buscar'), entrada, conteo)),
       }), cuerpo), { titulo: 'R', seccion: 'r' });
     ctx.cuando(A.cargarIndiceR(),
-      function (indice) { pintar(indice, cuerpo, entrada, conteo); },
+      // Las notas del monitoreo (marcadas auto) van al Radar de R, no a la lista de guías.
+      function (indice) { pintar(N.separarPorOrigen(indice).guias, cuerpo, entrada, conteo); },
       function (e) { cuerpo.replaceChildren(u.estadoError(e.message, A.recargarVista)); });
   };
 })();

@@ -148,6 +148,7 @@
 
   var TEMAS_ES = {
     'endes-r': 'ENDES en R',
+    'survey-analysis': 'Análisis de encuestas',
     'stata-basics': 'Primeros pasos en Stata',
     'data-management': 'Manejo de datos',
     'descriptive-stats': 'Estadística descriptiva',
@@ -344,6 +345,7 @@
           if (partes.length === 3 && MODOS_CODIGO.indexOf(partes[2]) !== -1) return { vista: 'codigo', modo: partes[2], lenguaje: 'r' };
           return DESCONOCIDA();
         }
+        if (partes[1] === 'radar') return partes.length === 2 ? { vista: 'radar', lenguaje: 'r' } : DESCONOCIDA();
         if (partes[1] === 'resultados') return partes.length === 2 ? { vista: 'resultados', lenguaje: 'r' } : DESCONOCIDA();
         return guia('r');
       case 'preguntar': return partes.length === 1 ? { vista: 'preguntar' } : DESCONOCIDA();
@@ -359,7 +361,7 @@
   function construirRuta(ruta) {
     switch (ruta && ruta.vista) {
       case 'aprender': return '#/aprender';
-      case 'radar': return '#/radar';
+      case 'radar': return ruta.lenguaje === 'r' ? '#/r/radar' : '#/radar';
       case 'r': return '#/r';
       case 'preguntar': return ruta.lenguaje === 'r' ? '#/r/preguntar' : '#/preguntar';
       case 'resultados': return ruta.lenguaje === 'r' ? '#/r/resultados' : '#/resultados';
@@ -374,18 +376,21 @@
 
 
   // INDEX.md de las notas de R (archivo estático): mismo formato que el índice de Stata
-  // (`## tema` y `- [titulo](ruta) — resumen · fecha`). Devuelve { temas: [{ nombre, notas }] }.
+  // (`## tema` y `- [titulo](ruta) — resumen || en simple · fecha · auto`; «|| en simple» y
+  // «· auto» son opcionales y los pone el monitoreo). Devuelve { temas: [{ nombre, notas }] }.
   function parsearIndiceMarkdown(texto) {
     var temas = [];
     var actual = null;
+    var RE_NOTA = /^-\s*\[(.+?)\]\((.+?)\)(?:\s*—\s*(.*?))?(?:\s*·\s*(\d{4}-\d{2}-\d{2})(?:\s*·\s*(auto))?)?\s*$/;
     String(texto || '').split(/\r?\n/).forEach(function (linea) {
       var t = /^##\s+(.+?)\s*$/.exec(linea);
       if (t) { actual = { nombre: t[1], notas: [] }; temas.push(actual); return; }
-      var m = actual && /^-\s*\[(.+?)\]\((.+?)\)(?:\s*—\s*(.*?))?(?:\s*·\s*(\d{4}-\d{2}-\d{2}))?\s*$/.exec(linea);
+      var m = actual && RE_NOTA.exec(linea);
       if (m) {
+        var textos = (m[3] || '').split(' || ');
         actual.notas.push({
-          titulo: m[1].trim(), path: m[2].trim(), resumen: (m[3] || '').trim(),
-          simple: '', fecha: m[4] || null, auto: false,
+          titulo: m[1].trim(), path: m[2].trim(), resumen: textos[0].trim(),
+          simple: textos.slice(1).join(' || ').trim(), fecha: m[4] || null, auto: m[5] === 'auto',
         });
       }
     });

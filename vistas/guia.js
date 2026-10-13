@@ -87,15 +87,18 @@
   function pintar(ctx, path, esRadar, partes, markdown, esR) {
     var parsed = N.parsearFrontmatter(markdown);
     var titulo = parsed.meta.title || path;
-    var vecinos = esR ? (partes ? N.vecinosDeGuia(partes, path) : null) : (!esRadar && partes ? N.vecinosDeGuia(partes.guias, path) : null);
-    var volver = esRadar ? '#/radar' : esR ? '#/r' : '#/aprender';
-    var nombreVolver = esRadar ? 'Radar' : esR ? 'R' : 'Aprender';
+    // En R el índice es una sola lista: una nota marcada `auto` es del monitoreo (Radar de R).
+    var autoR = !!(esR && partes && partes.temas.some(function (t) { return t.notas.some(function (n) { return n.path === path && n.auto; }); }));
+    var delRadar = esRadar || autoR;
+    var vecinos = esR ? (partes && !autoR ? N.vecinosDeGuia(N.separarPorOrigen(partes).guias, path) : null) : (!esRadar && partes ? N.vecinosDeGuia(partes.guias, path) : null);
+    var volver = esRadar ? '#/radar' : autoR ? '#/r/radar' : esR ? '#/r' : '#/aprender';
+    var nombreVolver = esRadar ? 'Radar' : autoR ? 'Radar de R' : esR ? 'R' : 'Aprender';
 
     var botonEnlace = h('button', { type: 'button', class: 'btn btn-sec' }, 'Copiar enlace');
     botonEnlace.addEventListener('click', function () { u.copiarTexto(location.href, botonEnlace, 'Copiar enlace'); });
     var chips = h('div', { class: 'chips' },
       vecinos ? h('span', { class: 'chip' }, 'Guía ' + vecinos.posicion + ' de ' + vecinos.totalTema) : null,
-      esRadar ? h('span', { class: 'chip' }, 'Radar') : null,
+      delRadar ? h('span', { class: 'chip' }, 'Radar') : null,
       parsed.meta.source ? chipFuente(parsed.meta) : null,
       parsed.meta.date ? h('span', { class: 'chip' }, parsed.meta.date) : null,
       botonEnlace);
@@ -106,7 +109,7 @@
     if (titulo.length > 70) cabecera.querySelector('h1').classList.add('largo');
 
     var pie = vecinos ? navegacion(vecinos, esR ? 'r' : 'aprender')
-      : h('p', null, h('a', { class: 'btn btn-sec', href: volver }, u.icono('flecha-izq'), esRadar ? 'Volver al Radar' : 'Volver a las guías'));
+      : h('p', null, h('a', { class: 'btn btn-sec', href: volver }, u.icono('flecha-izq'), delRadar ? 'Volver al Radar' : 'Volver a las guías'));
     ctx.montar(h('div', null, cabecera, h('div', { class: 'cuerpo' }, articulo(N.separarSecciones(parsed.cuerpo), esR ? 'Código R' : 'Código Stata'), pie)),
       { titulo: titulo, seccion: esRadar ? 'radar' : esR ? 'r' : 'aprender' });
   }
