@@ -147,6 +147,7 @@
   }
 
   var TEMAS_ES = {
+    'endes-r': 'ENDES en R',
     'stata-basics': 'Primeros pasos en Stata',
     'data-management': 'Manejo de datos',
     'descriptive-stats': 'Estadística descriptiva',
@@ -286,6 +287,7 @@
   }
 
   var FUENTES = {
+    guia: 'Guía',
     libro: 'Libro',
     SSC: 'Módulo SSC',
     arXiv: 'Artículo (arXiv)',
@@ -332,6 +334,7 @@
     switch (partes[0]) {
       case 'aprender': return partes.length === 1 ? { vista: 'aprender' } : guia('aprender');
       case 'radar': return partes.length === 1 ? { vista: 'radar' } : guia('radar');
+      case 'r': return partes.length === 1 ? { vista: 'r' } : guia('r');
       case 'preguntar': return partes.length === 1 ? { vista: 'preguntar' } : DESCONOCIDA();
       case 'resultados': return partes.length === 1 ? { vista: 'resultados' } : DESCONOCIDA();
       case 'codigo':
@@ -346,15 +349,36 @@
     switch (ruta && ruta.vista) {
       case 'aprender': return '#/aprender';
       case 'radar': return '#/radar';
+      case 'r': return '#/r';
       case 'preguntar': return '#/preguntar';
       case 'resultados': return '#/resultados';
       case 'codigo': return '#/codigo/' + (MODOS_CODIGO.indexOf(ruta.modo) !== -1 ? ruta.modo : 'revisar');
       case 'guia': {
         var s = segmentosDePath(ruta.path);
-        return s ? '#/' + (ruta.origen === 'radar' ? 'radar' : 'aprender') + '/' + s.tema + '/' + s.slug : '#/';
+        return s ? '#/' + (ruta.origen === 'radar' ? 'radar' : ruta.origen === 'r' ? 'r' : 'aprender') + '/' + s.tema + '/' + s.slug : '#/';
       }
       default: return '#/';
     }
+  }
+
+
+  // INDEX.md de las notas de R (archivo estático): mismo formato que el índice de Stata
+  // (`## tema` y `- [titulo](ruta) — resumen · fecha`). Devuelve { temas: [{ nombre, notas }] }.
+  function parsearIndiceMarkdown(texto) {
+    var temas = [];
+    var actual = null;
+    String(texto || '').split(/\r?\n/).forEach(function (linea) {
+      var t = /^##\s+(.+?)\s*$/.exec(linea);
+      if (t) { actual = { nombre: t[1], notas: [] }; temas.push(actual); return; }
+      var m = actual && /^-\s*\[(.+?)\]\((.+?)\)(?:\s*—\s*(.*?))?(?:\s*·\s*(\d{4}-\d{2}-\d{2}))?\s*$/.exec(linea);
+      if (m) {
+        actual.notas.push({
+          titulo: m[1].trim(), path: m[2].trim(), resumen: (m[3] || '').trim(),
+          simple: '', fecha: m[4] || null, auto: false,
+        });
+      }
+    });
+    return { temas: temas };
   }
 
   function contieneNota(lista, path) {
@@ -472,6 +496,7 @@
     siguienteEnCiclo: siguienteEnCiclo,
     separarSecciones: separarSecciones,
     vecinosDeGuia: vecinosDeGuia,
+    parsearIndiceMarkdown: parsearIndiceMarkdown,
     parsearRuta: parsearRuta,
     construirRuta: construirRuta,
     existeNota: existeNota,

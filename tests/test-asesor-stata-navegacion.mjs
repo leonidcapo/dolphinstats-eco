@@ -215,5 +215,37 @@ test('siguienteEnCiclo: recorre los índices en círculo', () => {
 
 // ---- las tareas siguientes agregan pruebas arriba de esta línea ----
 
+test('rutas de R: lista, guía y ida y vuelta', () => {
+  assert.deepEqual(N.parsearRuta('#/r'), { vista: 'r' });
+  assert.deepEqual(N.parsearRuta('#/r/endes-r/01-diseno-muestral'), { vista: 'guia', origen: 'r', path: 'knowledge/endes-r/01-diseno-muestral.md' });
+  assert.deepEqual(N.parsearRuta('#/r/endes-r'), DESCONOCIDA);
+  assert.equal(N.construirRuta({ vista: 'r' }), '#/r');
+  assert.equal(N.construirRuta({ vista: 'guia', origen: 'r', path: 'knowledge/endes-r/01-diseno-muestral.md' }), '#/r/endes-r/01-diseno-muestral');
+});
+
+test('parsearIndiceMarkdown: temas, notas, resumen y fecha; ignora líneas sueltas', () => {
+  const md = ['# Índice', '', 'texto suelto', '', '## endes-r',
+    '- [Guía uno](knowledge/endes-r/01-uno.md) — resumen uno. · 2026-10-13',
+    '- [Guía dos](knowledge/endes-r/02-dos.md) — solo resumen', '- no es una nota', ''].join(String.fromCharCode(10));
+  const r = N.parsearIndiceMarkdown(md);
+  assert.equal(r.temas.length, 1);
+  assert.equal(r.temas[0].nombre, 'endes-r');
+  assert.equal(r.temas[0].notas.length, 2);
+  assert.deepEqual(r.temas[0].notas[0], { titulo: 'Guía uno', path: 'knowledge/endes-r/01-uno.md', resumen: 'resumen uno.', simple: '', fecha: '2026-10-13', auto: false });
+  assert.equal(r.temas[0].notas[1].fecha, null);
+  assert.deepEqual(N.parsearIndiceMarkdown('').temas, []);
+});
+
+test('índice real de r-notas: 5 guías con ruta válida y archivo existente', async () => {
+  const fs = await import('node:fs');
+  const r = N.parsearIndiceMarkdown(fs.readFileSync(new URL('../r-notas/INDEX.md', import.meta.url), 'utf8'));
+  const notas = r.temas.flatMap((t) => t.notas);
+  assert.equal(notas.length, 5);
+  for (const n of notas) {
+    assert.ok(N.parsearRuta(N.construirRuta({ vista: 'guia', origen: 'r', path: n.path })).path === n.path, n.path);
+    assert.ok(fs.existsSync(new URL('../r-notas/' + n.path, import.meta.url)), n.path);
+  }
+});
+
 console.log('\n' + pasados + ' pasados, ' + fallidos + ' fallidos');
 process.exit(fallidos > 0 ? 1 : 0);
