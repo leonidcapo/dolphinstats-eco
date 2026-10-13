@@ -590,17 +590,19 @@
    * Puerto directo de ENDES_PREVALENCIAS en chatbot.py (paso 3). Snapshot
    * embebido (ENDES 2025, sin fetch en vivo) de los 9 ejes que cubre el
    * Explorador ENDES V1. Si se regenera explorador/datos.json con más ejes o
-   * años, actualizar este objeto a mano igual que su par en Python. */
+   * años, actualizar este objeto a mano igual que su par en Python.
+   * Valores actualizados el 2026-10-13 con el explorador regenerado: los indicadores de
+   * los cuestionarios de salud usan su peso propio (PESO15_AMAS / Pesomen12). */
   var ENDES_PREVALENCIAS = {
-    'Higiene oral (niños 0-11 años)': { prevalenciaPct: 94.89, ic95Lo: 94.47, ic95Hi: 95.30, n: 32652, anio: 2025 },
-    'Comparte cepillo dental, no debería (niños 0-11 años)': { prevalenciaPct: 0.08, ic95Lo: 0.04, ic95Hi: 0.12, n: 29898, anio: 2025 },
-    'Hipertensión arterial (adultos 18+)': { prevalenciaPct: 13.38, ic95Lo: 12.59, ic95Hi: 14.18, n: 28610, anio: 2025 },
-    'Tabaquismo (adultos 18+)': { prevalenciaPct: 15.52, ic95Lo: 14.70, ic95Hi: 16.33, n: 28612, anio: 2025 },
-    'Síntomas depresivos moderados, PHQ-9≥10 (adultos 18+)': { prevalenciaPct: 7.67, ic95Lo: 7.06, ic95Hi: 8.29, n: 28599, anio: 2025 },
+    'Higiene oral (niños 0-11 años)': { prevalenciaPct: 94.69, ic95Lo: 94.34, ic95Hi: 95.05, n: 32652, anio: 2025 },
+    'Comparte cepillo dental, no debería (niños 0-11 años)': { prevalenciaPct: 0.13, ic95Lo: 0.05, ic95Hi: 0.22, n: 29898, anio: 2025 },
+    'Hipertensión arterial (adultos 18+)': { prevalenciaPct: 11.51, ic95Lo: 10.84, ic95Hi: 12.17, n: 28610, anio: 2025 },
+    'Tabaquismo (adultos 18+)': { prevalenciaPct: 16.66, ic95Lo: 15.90, ic95Hi: 17.43, n: 28612, anio: 2025 },
+    'Síntomas depresivos moderados, PHQ-9≥10 (adultos 18+)': { prevalenciaPct: 6.91, ic95Lo: 6.38, ic95Hi: 7.43, n: 28599, anio: 2025 },
     'Anemia infantil (niños 0-11 años)': { prevalenciaPct: 33.58, ic95Lo: 32.65, ic95Hi: 34.52, n: 17616, anio: 2025 },
     'Desnutrición crónica infantil (niños 0-11 años)': { prevalenciaPct: 12.21, ic95Lo: 11.55, ic95Hi: 12.86, n: 18993, anio: 2025 },
-    'Dificultad visual (adultos 60+)': { prevalenciaPct: 26.77, ic95Lo: 24.69, ic95Hi: 28.85, n: 5016, anio: 2025 },
-    'Alguna dificultad funcional (adultos 60+)': { prevalenciaPct: 4.40, ic95Lo: 3.49, ic95Hi: 5.32, n: 5031, anio: 2025 }
+    'Dificultad visual (adultos 60+)': { prevalenciaPct: 26.63, ic95Lo: 24.51, ic95Hi: 28.75, n: 5016, anio: 2025 },
+    'Alguna dificultad funcional (adultos 60+)': { prevalenciaPct: 4.75, ic95Lo: 3.74, ic95Hi: 5.77, n: 5031, anio: 2025 }
   };
 
   /* ---------------- UI wiring ---------------- */
