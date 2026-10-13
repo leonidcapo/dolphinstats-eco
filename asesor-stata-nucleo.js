@@ -149,6 +149,7 @@
   var TEMAS_ES = {
     'endes-r': 'ENDES en R',
     'survey-analysis': 'Análisis de encuestas',
+    'missing-data': 'Datos faltantes',
     'stata-basics': 'Primeros pasos en Stata',
     'data-management': 'Manejo de datos',
     'descriptive-stats': 'Estadística descriptiva',

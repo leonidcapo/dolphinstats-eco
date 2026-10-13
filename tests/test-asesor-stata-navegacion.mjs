@@ -310,6 +310,7 @@ test('índice de R con notas automáticas: resumen, en simple, fecha y marca aut
   assert.equal(partes.radar.temas[0].notas.length, 2);
   assert.equal(N.listarRadar(partes.radar, '')[0].fecha, '2026-10-13');
   assert.equal(N.nombreTema('survey-analysis'), 'Análisis de encuestas');
+  assert.equal(N.nombreTema('missing-data'), 'Datos faltantes');
 });
 
 console.log('\n' + pasados + ' pasados, ' + fallidos + ' fallidos');
