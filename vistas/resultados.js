@@ -28,6 +28,14 @@
     '          Pearson chi2(1) =   4.9237   Pr = 0.026',
   ].join('\n');
 
+  var EJEMPLO_CONTEXTO_R = 'Prevalencia de anemia en mujeres según área de residencia (v025: 1 urbano, 2 rural), ENDES con diseño complejo';
+  var EJEMPLO_SALIDA_R = [
+    '> svyby(~anemia, ~v025, dis, svymean, vartype = c("ci", "se"))',
+    '  v025    anemia          se      ci_l      ci_u',
+    '1    1 0.1669411 0.009956281 0.1474271 0.1864550',
+    '2    2 0.2403859 0.015942245 0.2091396 0.2716321',
+  ].join(String.fromCharCode(10));
+
   function bloque(titulo, contenido) {
     return h('section', { class: 'interp-bloque' }, h('h2', { class: 'interp-titulo' }, titulo), contenido);
   }
@@ -52,8 +60,11 @@
   }
 
   A.vistas.resultados = function (ctx) {
-    var area = h('textarea', { class: 'campo salida-campo', spellcheck: 'false', wrap: 'off', 'aria-label': 'Salida de Stata',
-      placeholder: 'Pega aquí la salida de Stata: una tabla de regresión, un chi cuadrado, un t-test, el resultado de un modelo de Cox…' });
+    var esR = ctx.ruta.lenguaje === 'r';
+    var programa = esR ? 'R' : 'Stata';
+    var area = h('textarea', { class: 'campo salida-campo', spellcheck: 'false', wrap: 'off', 'aria-label': 'Salida de ' + programa,
+      placeholder: esR ? 'Pega aquí la salida de R: un summary() de un modelo, una tabla de svymean o svyby, una prueba, una tabla de gtsummary…'
+        : 'Pega aquí la salida de Stata: una tabla de regresión, un chi cuadrado, un t-test, el resultado de un modelo de Cox…' });
     var contador = h('div', { class: 'contador' });
     var contexto = h('input', { type: 'text', class: 'campo', maxlength: String(MAX_CONTEXTO),
       placeholder: 'Ej.: factores asociados a bajo peso al nacer en un hospital de Lima' });
@@ -66,16 +77,17 @@
     u.enlazarContador(area, contador, MAX_SALIDA, 'solo se usarán los primeros ' + MAX_SALIDA.toLocaleString('es-PE') + '.');
 
     var ejemplo = h('button', { type: 'button', class: 'ejemplo', onclick: function () {
-      area.value = EJEMPLO_SALIDA;
+      area.value = esR ? EJEMPLO_SALIDA_R : EJEMPLO_SALIDA;
       area.dispatchEvent(new Event('input'));
-      contexto.value = EJEMPLO_CONTEXTO;
+      contexto.value = esR ? EJEMPLO_CONTEXTO_R : EJEMPLO_CONTEXTO;
       area.focus();
     } }, 'Probar con un ejemplo');
     var boton = h('button', { type: 'button', class: 'btn' }, 'Interpretar');
     boton.addEventListener('click', function () {
       var salida = area.value.trim().slice(0, MAX_SALIDA);
-      if (!salida) { u.estadoLinea(estado, 'error', 'Pega primero la salida de Stata que quieres interpretar.'); return; }
+      if (!salida) { u.estadoLinea(estado, 'error', 'Pega primero la salida de ' + programa + ' que quieres interpretar.'); return; }
       var cuerpo = { modo: 'interpretar', nivel: nivel.valor(), salida: salida };
+      if (esR) cuerpo.lenguaje = 'r';
       var ctxto = contexto.value.trim();
       if (ctxto) cuerpo.contexto = ctxto;
       boton.disabled = true;
@@ -99,16 +111,17 @@
     });
 
     ctx.montar(h('div', null,
-      u.hero({ kicker: 'Resultados', titulo: 'Entender mis resultados',
-        texto: 'Pega la salida de Stata (una tabla, un modelo, una prueba) y te explico qué dice, citando solo los números que aparecen.' }),
+      u.hero({ kicker: esR ? 'R · Resultados' : 'Resultados', titulo: 'Entender mis resultados',
+        texto: 'Pega la salida de ' + programa + ' (una tabla, un modelo, una prueba) y te explico qué dice, citando solo los números que aparecen.',
+        extra: esR ? u.subnavR('resultados') : null }),
       h('div', { class: 'cuerpo cuerpo-flota' }, h('div', { class: 'lienzo' },
-        u.avisoPrivacidad(),
+        u.avisoPrivacidad(esR ? 'r' : 'stata'),
         h('div', { class: 'dividido' },
           h('div', { class: 'col-izq' }, area, contador,
             h('label', { class: 'campo-etiqueta' }, 'Contexto del estudio (opcional, ayuda a interpretar mejor)', contexto),
             h('div', { class: 'herramientas' }, ejemplo),
             h('div', { class: 'fila-acciones' }, nivel.el, boton), estado),
           h('div', { class: 'col-der' }, panel))))),
-    { titulo: 'Resultados', seccion: 'resultados' });
+    { titulo: esR ? 'R · Resultados' : 'Resultados', seccion: esR ? 'r' : 'resultados' });
   };
 })();

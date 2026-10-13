@@ -113,13 +113,30 @@ await test('Código R · explicar y generar usan prompts de R', async () => {
   assert.match(llamadasDeepSeek[1].sistema, /generador de código R/);
 });
 
-await test('Código R · interpretar no está disponible (400) y sin lenguaje sigue siendo Stata', async () => {
+await test('Código R · interpretar: prompt de R, salida de R y validación; sin salida es 400', async () => {
   reiniciar();
-  const res = await codigo(pedido('/api/asesor-stata-codigo', { modo: 'interpretar', lenguaje: 'r', salida: 'x' }, true));
-  assert.equal(res.status, 400);
+  respuestaModelo = { que_se_hizo: 'Prevalencia por área.', resultados: [{ dato: 'rural 0.240', significado: 'Mayor que urbano 0.167' }], precauciones: ['Revisa el diseño'], como_reportarlo: 'La prevalencia fue 24 % en el área rural.' };
+  const d = await leer(await codigo(pedido('/api/asesor-stata-codigo', { modo: 'interpretar', lenguaje: 'r', salida: '2    2 0.2403859', contexto: 'ENDES' }, true)));
+  assert.equal(d.resultados.length, 1);
+  assert.match(d.como_reportarlo, /24 %/);
+  const l = llamadasDeepSeek[0];
+  assert.match(l.sistema, /resultados de R/);
+  assert.doesNotMatch(l.sistema, /Stata/);
+  assert.match(l.usuario, /Contexto del estudio: ENDES/);
+  assert.match(l.usuario, /Salida de R:/);
+  const vacio = await codigo(pedido('/api/asesor-stata-codigo', { modo: 'interpretar', lenguaje: 'r', salida: '   ' }, true));
+  assert.equal(vacio.status, 400);
+  assert.match((await vacio.json()).error, /salida de R/);
+});
+
+await test('Código sin lenguaje sigue siendo Stata (explicar e interpretar) y no lee r-notas', async () => {
+  reiniciar();
   respuestaModelo = { resumen: 'ok', pasos: [{ lineas: '1', que_hace: 'x', ojo: null }] };
   await leer(await codigo(pedido('/api/asesor-stata-codigo', { modo: 'explicar', codigo: 'use datos' }, true)));
   assert.match(llamadasDeepSeek[0].sistema, /tutor de Stata/);
+  respuestaModelo = { que_se_hizo: 'x', resultados: [], precauciones: [], como_reportarlo: null };
+  await leer(await codigo(pedido('/api/asesor-stata-codigo', { modo: 'interpretar', salida: 'tab x y' }, true)));
+  assert.match(llamadasDeepSeek[1].usuario, /Salida de Stata:/);
   assert.equal(authRecibidas.length, 0, 'Stata no lee r-notas');
 });
 

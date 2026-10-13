@@ -271,5 +271,13 @@ test('informe de revisión en R: título y bloque de código en r; sin lenguaje 
   assert.match(st, /```stata/);
 });
 
+test('rutas de Resultados en R: ida y vuelta y las de Stata no cambian', () => {
+  assert.deepEqual(N.parsearRuta('#/r/resultados'), { vista: 'resultados', lenguaje: 'r' });
+  assert.deepEqual(N.parsearRuta('#/r/resultados/x'), DESCONOCIDA);
+  assert.equal(N.construirRuta({ vista: 'resultados', lenguaje: 'r' }), '#/r/resultados');
+  assert.equal(N.construirRuta({ vista: 'resultados' }), '#/resultados');
+  assert.deepEqual(N.parsearRuta('#/resultados'), { vista: 'resultados' });
+});
+
 console.log('\n' + pasados + ' pasados, ' + fallidos + ' fallidos');
 process.exit(fallidos > 0 ? 1 : 0);

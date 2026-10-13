@@ -17,7 +17,7 @@ import { elegirNotasRelevantes } from './_lib/asesor-stata-relevancia.js';
 import { llamarDeepSeek, respuestaEnStreaming, mensajeError } from './_lib/asesor-stata-llm.js';
 import { cargarNotasR } from './_lib/asesor-r-notas.js';
 import {
-  INSTRUCCION_NIVEL_R, PROMPT_REVISAR_R, PROMPT_EXPLICAR_R, PROMPT_GENERAR_R,
+  INSTRUCCION_NIVEL_R, PROMPT_REVISAR_R, PROMPT_EXPLICAR_R, PROMPT_GENERAR_R, PROMPT_INTERPRETAR_R,
 } from './_lib/asesor-r-prompts.js';
 
 export const config = { runtime: 'edge' };
@@ -299,11 +299,8 @@ export default async function handler(request) {
     return jsonResponse(400, { error: 'El modo debe ser "revisar", "explicar", "interpretar" o "generar".' });
   }
 
-  // Pestaña R: mismos modos de código (salvo interpretar), con prompts de R y notas de r-notas/.
+  // Pestaña R: mismos modos, con prompts de R y notas de r-notas/.
   const esR = !!body && body.lenguaje === 'r';
-  if (esR && modo === 'interpretar') {
-    return jsonResponse(400, { error: 'Interpretar resultados todavía no está disponible para R.' });
-  }
   const niveles = esR ? INSTRUCCION_NIVEL_R : INSTRUCCION_NIVEL;
   const nivelPedido = body && typeof body.nivel === 'string' ? body.nivel.trim().toLowerCase() : '';
   const nivel = niveles[nivelPedido] ? nivelPedido : NIVEL_DEFAULT;
@@ -365,7 +362,7 @@ export default async function handler(request) {
   if (modo === 'interpretar') {
     const salida = textoDe(body, 'salida', MAX_SALIDA_CHARS);
     if (!salida) {
-      return jsonResponse(400, { error: 'Pega la salida de Stata que quieres interpretar.' });
+      return jsonResponse(400, { error: 'Pega la salida de ' + (esR ? 'R' : 'Stata') + ' que quieres interpretar.' });
     }
     const contextoEstudio = textoDe(body, 'contexto', MAX_CONTEXTO_ESTUDIO_CHARS);
 
@@ -373,9 +370,9 @@ export default async function handler(request) {
       let parsed;
       try {
         parsed = await llamarDeepSeek(
-          sistema(PROMPT_INTERPRETAR),
+          sistema(esR ? PROMPT_INTERPRETAR_R : PROMPT_INTERPRETAR),
           (contextoEstudio ? 'Contexto del estudio: ' + contextoEstudio + '\n\n' : '') +
-            'Salida de Stata:\n```\n' + salida + '\n```',
+            (esR ? 'Salida de R:' : 'Salida de Stata:') + '\n```\n' + salida + '\n```',
           deepseekKey,
           { maxTokens: 3500 }
         );

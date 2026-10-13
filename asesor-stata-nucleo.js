@@ -344,6 +344,7 @@
           if (partes.length === 3 && MODOS_CODIGO.indexOf(partes[2]) !== -1) return { vista: 'codigo', modo: partes[2], lenguaje: 'r' };
           return DESCONOCIDA();
         }
+        if (partes[1] === 'resultados') return partes.length === 2 ? { vista: 'resultados', lenguaje: 'r' } : DESCONOCIDA();
         return guia('r');
       case 'preguntar': return partes.length === 1 ? { vista: 'preguntar' } : DESCONOCIDA();
       case 'resultados': return partes.length === 1 ? { vista: 'resultados' } : DESCONOCIDA();
@@ -361,7 +362,7 @@
       case 'radar': return '#/radar';
       case 'r': return '#/r';
       case 'preguntar': return ruta.lenguaje === 'r' ? '#/r/preguntar' : '#/preguntar';
-      case 'resultados': return '#/resultados';
+      case 'resultados': return ruta.lenguaje === 'r' ? '#/r/resultados' : '#/resultados';
       case 'codigo': return (ruta.lenguaje === 'r' ? '#/r/codigo/' : '#/codigo/') + (MODOS_CODIGO.indexOf(ruta.modo) !== -1 ? ruta.modo : 'revisar');
       case 'guia': {
         var s = segmentosDePath(ruta.path);

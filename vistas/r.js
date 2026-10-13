@@ -39,6 +39,7 @@
       ['aprender', 'Aprender', '#/r'],
       ['preguntar', 'Preguntar', N.construirRuta({ vista: 'preguntar', lenguaje: 'r' })],
       ['codigo', 'Código', N.construirRuta({ vista: 'codigo', modo: 'revisar', lenguaje: 'r' })],
+      ['resultados', 'Resultados', N.construirRuta({ vista: 'resultados', lenguaje: 'r' })],
     ];
     return h('nav', { class: 'segmentado', 'aria-label': 'Secciones de la pestaña R' }, enlaces.map(function (e) {
       return h('a', { href: e[2], 'aria-current': e[0] === actual ? 'page' : null }, e[1]);
