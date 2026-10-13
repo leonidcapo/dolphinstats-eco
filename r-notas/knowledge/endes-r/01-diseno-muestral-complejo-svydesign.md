@@ -15,7 +15,8 @@ Toda estimación con ENDES debe declarar el diseño: **conglomerado (UPM)**, **e
   (factor de ponderación **multiplicado por 1 000 000**; hay que dividirlo). Los demás módulos
   (niños `RECH6`, mujeres `REC91`, etc.) no las traen: se unen por `HHID` (ver guía 05). Los
   módulos de salud (`CSALUD01`, `CSALUD08`) traen su propio peso (`PESO15_AMAS`, `Pesomen12`):
-  confirma en el diccionario cuál corresponde a tu módulo. Los nombres cambian por módulo y año
+  confirma en el diccionario cuál corresponde a tu módulo (ver guía 06: en salud el peso del hogar
+  `HV005` mueve la prevalencia 1–2 puntos). Los nombres cambian por módulo y año
   (`HV021` o `V021`, etc.): verifícalos con `names()` antes de escribir el código.
 - **Mayúsculas y minúsculas.** En 2016 `RECH0` trae `HV021` en mayúscula pero `hv022` y `hv005` en
   minúscula, y en 2016–2017 algunos archivos son `.SAV`. Para que el mismo código sirva en todos los
