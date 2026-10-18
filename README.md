@@ -7,10 +7,6 @@ Middleware, funciona en el plan Hobby gratuito).
 
 ## Herramientas
 
-- **Journal Search** (`journal-search.html`): buscador de revistas por
-  título/palabras clave, dataset Scimago Journal Rank (`data/journals.json`,
-  generado desde `endes-generator/scripts/build_journals.py`, ver ese repo).
-
 - **Calculadora de Muestra** (`calculadora-muestra.html` + `calculadora-muestra.js`):
   9 diseños de tamaño de muestra (proporción única, dos proporciones, dos medias,
   casos y controles, cohorte, correlación, antes/después con t pareada y McNemar,
@@ -56,9 +52,3 @@ Middleware, funciona en el plan Hobby gratuito).
    está configurada todavía).
 4. Deploy. El sitio pedirá esas credenciales (Basic Auth del navegador)
    antes de mostrar cualquier página.
-
-## Actualizar el dataset de Journal Search
-
-Cuando se regenere `journals.json` en `endes-generator`
-(`python scripts/build_journals.py knowledge/scimago.csv <salida>`), copiar
-el resultado a `data/journals.json` acá y hacer commit.
