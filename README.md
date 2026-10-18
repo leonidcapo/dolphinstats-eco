@@ -7,7 +7,7 @@ Middleware, funciona en el plan Hobby gratuito).
 
 ## Herramientas
 
-- **Journal Match** (`journal-match.html`): buscador de revistas por
+- **Journal Search** (`journal-match.html`): buscador de revistas por
   título/palabras clave, dataset Scimago Journal Rank (`data/journals.json`,
   generado desde `endes-generator/scripts/build_journals.py`, ver ese repo).
 
@@ -57,7 +57,7 @@ Middleware, funciona en el plan Hobby gratuito).
 4. Deploy. El sitio pedirá esas credenciales (Basic Auth del navegador)
    antes de mostrar cualquier página.
 
-## Actualizar el dataset de Journal Match
+## Actualizar el dataset de Journal Search
 
 Cuando se regenere `journals.json` en `endes-generator`
 (`python scripts/build_journals.py knowledge/scimago.csv <salida>`), copiar
