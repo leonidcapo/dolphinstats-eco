@@ -1,4 +1,7 @@
 {
+  "redirects": [
+    { "source": "/journal-match.html", "destination": "/journal-search.html", "permanent": true }
+  ],
   "headers": [
     {
       "source": "/(.*)",

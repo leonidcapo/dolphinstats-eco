@@ -7,7 +7,7 @@ Middleware, funciona en el plan Hobby gratuito).
 
 ## Herramientas
 
-- **Journal Search** (`journal-match.html`): buscador de revistas por
+- **Journal Search** (`journal-search.html`): buscador de revistas por
   título/palabras clave, dataset Scimago Journal Rank (`data/journals.json`,
   generado desde `endes-generator/scripts/build_journals.py`, ver ese repo).
 
